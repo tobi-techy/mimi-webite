@@ -1,0 +1,68 @@
+.content {
+  position: absolute;
+  left: 50%;
+  top: var(--content-top);
+  transform: translate(-50%, -50%);
+  width: var(--content-width);
+  z-index: 1000;
+  text-align: center;
+  pointer-events: none;
+}
+
+.headline {
+  margin: 0;
+  font-size: var(--headline-size);
+  font-weight: 500;
+  letter-spacing: var(--headline-tracking);
+  line-height: var(--headline-leading);
+  color: var(--ink);
+  animation: rise 900ms var(--ease-out) 150ms backwards;
+}
+
+/* Wide screens read the headline on one line, which is what lets it span the
+ * viewport. Below 1100px it becomes "Your business has enough / to worry about.",
+ * and phones read "Your business has / enough to worry about.". */
+.breakWideScreen,
+.breakNarrowScreen {
+  display: none;
+}
+
+@media (max-width: 1099.98px) {
+  .breakWideScreen {
+    display: inline;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .breakWideScreen {
+    display: none;
+  }
+
+  .breakNarrowScreen {
+    display: inline;
+  }
+}
+
+.sub {
+  margin: var(--sub-gap) 0 0;
+  font-size: var(--sub-size);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  color: var(--muted);
+  animation: rise 900ms var(--ease-out) 250ms backwards;
+}
+
+.cta {
+  margin-top: var(--cta-gap);
+  min-width: 150px;
+  pointer-events: auto;
+  animation: rise 900ms var(--ease-out) 350ms backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headline,
+  .sub,
+  .cta {
+    animation: none;
+  }
+}

@@ -1,0 +1,59 @@
+/*
+ * One screen tall, exactly: the copy, the type scale and the stickers are all sized so
+ * this section never grows past the viewport. It is also the one section that stays
+ * light in both themes, the daylight counterpart to the hero.
+ */
+.problem {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: clamp(30px, 5svh, 62px) var(--gutter) clamp(30px, 5svh, 62px);
+  background: #f7f5f0;
+  color: #111111;
+  isolation: isolate;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #fbfaf7;
+  color: #686663;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+}
+
+.statement {
+  margin: clamp(14px, 2.6svh, 34px) 0 0;
+  font-size: clamp(34px, min(6vw, 10.6svh), 128px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  text-wrap: pretty;
+}
+
+@media (max-width: 639.98px) {
+  .problem {
+    padding: clamp(28px, 4.6svh, 54px) var(--gutter) clamp(28px, 4.6svh, 54px);
+  }
+
+  .statement {
+    font-size: clamp(28px, min(10.6vw, 5.2svh), 48px);
+    letter-spacing: -0.02em;
+    line-height: 1.06;
+  }
+}

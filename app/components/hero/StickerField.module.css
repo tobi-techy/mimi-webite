@@ -1,0 +1,82 @@
+.field {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.sticker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 50% 50%;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sticker * {
+  pointer-events: none;
+}
+
+.awake {
+  will-change: transform;
+}
+
+.body {
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: var(--shadow-rest);
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform var(--hover-duration) var(--ease-out),
+    filter var(--hover-duration) var(--ease-out);
+  -webkit-user-drag: none;
+}
+
+@media (hover: hover) {
+  .sticker:hover {
+    z-index: 950 !important;
+  }
+
+  .sticker:hover .image {
+    transform: rotate(var(--tilt, 0deg)) scale(var(--hover-scale));
+    filter: var(--shadow-hover);
+  }
+}
+
+.grabbed {
+  z-index: 960 !important;
+  cursor: grabbing;
+}
+
+.grabbed .image,
+.grabbed:hover .image {
+  transform: translateY(var(--grab-lift))
+    scale(calc(var(--grab-scale) * var(--squash-x)), calc(var(--grab-scale) * var(--squash-y)));
+  filter: var(--shadow-grab);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker {
+    cursor: default;
+    touch-action: auto;
+  }
+
+  .image {
+    transition: none;
+  }
+
+  .sticker:hover .image {
+    transform: none;
+    filter: var(--shadow-rest);
+  }
+}

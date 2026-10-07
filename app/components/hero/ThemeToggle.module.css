@@ -1,0 +1,60 @@
+.toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--soft-ink);
+  transition:
+    color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out);
+}
+
+.toggle:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+}
+
+.sun,
+.moon {
+  grid-area: 1 / 1;
+}
+
+.moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(html:not([data-theme="light"])) .sun {
+    display: none;
+  }
+
+  :global(html:not([data-theme="light"])) .moon {
+    display: block;
+  }
+}
+
+:global(html[data-theme="dark"]) .sun {
+  display: none;
+}
+
+:global(html[data-theme="dark"]) .moon {
+  display: block;
+}
+
+:global(html[data-theme="light"]) .sun {
+  display: block;
+}
+
+:global(html[data-theme="light"]) .moon {
+  display: none;
+}

@@ -1,26 +1,162 @@
-@import "tailwindcss";
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f5f0;
+  --paper: #fbfaf7;
+  --ink: #111111;
+  --muted: #686663;
+  --soft-ink: #353432;
+  --sticker-border: #ffffff;
+  --button: #111111;
+  --button-text: #ffffff;
+  --hairline: rgba(17, 17, 17, 0.14);
+  --noise-opacity: 0.05;
+
+  --font-sans: var(--font-instrument-sans), "Instrument Sans", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --gutter: clamp(18px, 2.4vw, 36px);
+  --header-h: clamp(58px, 5.4vw, 78px);
+
+  --content-width: min(1240px, 88vw);
+  --content-top: 45%;
+  --headline-size: clamp(38px, 4.5vw, 68px);
+  --headline-tracking: -0.045em;
+  --headline-leading: 1;
+  --sub-size: clamp(15px, 1.15vw, 18px);
+  --sub-gap: clamp(14px, 1.4vw, 18px);
+
+  --cta-h: 48px;
+  --cta-pad: 26px;
+  --cta-size: 14px;
+  --cta-gap: clamp(20px, 2vw, 28px);
+  --cta-shadow: 0 2px 6px rgba(17, 17, 17, 0.1);
+  --cta-shadow-hover: 0 8px 18px rgba(17, 17, 17, 0.16);
+
+  --shadow-rest: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.08));
+  --shadow-hover: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.1));
+  --shadow-grab: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.14));
+  --grab-lift: -6px;
+  --hover-duration: 220ms;
+
+  /* Scales the stickers scattered through the sections below the hero. */
+  --sticker-scale: 1;
+
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root[data-theme="dark"] {
+  --background: #14130f;
+  --paper: #1a1915;
+  --ink: #f3f0e9;
+  --muted: #9a958c;
+  --soft-ink: #cdc8be;
+  --sticker-border: #ffffff;
+  --button: #f3f0e9;
+  --button-text: #14130f;
+  --hairline: rgba(243, 240, 233, 0.18);
+  --noise-opacity: 0.03;
+
+  --cta-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --cta-shadow-hover: 0 8px 18px rgba(0, 0, 0, 0.5);
+
+  --shadow-rest: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.34));
+  --shadow-hover: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+  --shadow-grab: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.5));
+
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (max-width: 1439.98px) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --sticker-scale: 0.88;
   }
 }
 
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  :root {
+    --content-width: min(760px, 88vw);
+    --headline-size: clamp(30px, 4.9vw, 44px);
+    --headline-leading: 1.02;
+    --sticker-scale: 0.74;
+  }
+}
+@media (max-width: 639.98px) {
+  :root {
+    --content-width: calc(100vw - 40px);
+    --content-top: 44%;
+    --headline-size: clamp(27px, 7.6vw, 36px);
+    --headline-leading: 1.03;
+    --sub-size: 14px;
+    --sub-gap: 12px;
+    --cta-h: 46px;
+    --cta-gap: 20px;
+    --grab-lift: -4px;
+    --sticker-scale: 0.62;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  transition: background-color 260ms var(--ease-out), color 260ms var(--ease-out);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-menu-open] body {
+  overflow: hidden;
+}
+
+html[data-dragging],
+html[data-dragging] * {
+  cursor: grabbing !important;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
 }
