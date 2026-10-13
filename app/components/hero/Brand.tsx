@@ -1,8 +1,9 @@
+import Link from "next/link";
 import styles from "./Brand.module.css";
 
 export function Brand() {
   return (
-    <a className={styles.brand} href="#" aria-label="Miriam, home">
+    <Link className={styles.brand} href="/" aria-label="Miriam, home">
       <span className={styles.mark} aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 20 20">
           <rect x="3.5" y="10" width="2.6" height="7" rx="0.8" fill="currentColor" />
@@ -11,6 +12,6 @@ export function Brand() {
         </svg>
       </span>
       Miriam
-    </a>
+    </Link>
   );
 }

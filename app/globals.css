@@ -136,6 +136,33 @@ button {
   color: inherit;
 }
 
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: var(--gutter);
+  z-index: 2000;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--button);
+  color: var(--button-text);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+  transition: transform 180ms var(--ease-out);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;

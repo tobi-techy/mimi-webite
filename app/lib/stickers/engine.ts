@@ -108,7 +108,7 @@ export class StickerEngine {
   constructor(hero: HTMLElement, field: HTMLElement, classes: StickerClassNames) {
     this.hero = hero;
     this.field = field;
-    this.header = hero.querySelector("[data-hero-header]");
+    this.header = document.querySelector("[data-hero-header]");
     this.classes = classes;
     this.reduced = this.reducedQuery.matches;
 

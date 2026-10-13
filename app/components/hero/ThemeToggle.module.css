@@ -27,34 +27,59 @@
 .sun,
 .moon {
   grid-area: 1 / 1;
+  transition:
+    opacity 200ms var(--ease-out),
+    scale 200ms var(--ease-out),
+    filter 200ms var(--ease-out);
 }
 
 .moon {
-  display: none;
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
 }
 
 @media (prefers-color-scheme: dark) {
   :global(html:not([data-theme="light"])) .sun {
-    display: none;
+    opacity: 0;
+    scale: 0.25;
+    filter: blur(4px);
   }
 
   :global(html:not([data-theme="light"])) .moon {
-    display: block;
+    opacity: 1;
+    scale: 1;
+    filter: none;
   }
 }
 
 :global(html[data-theme="dark"]) .sun {
-  display: none;
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
 }
 
 :global(html[data-theme="dark"]) .moon {
-  display: block;
+  opacity: 1;
+  scale: 1;
+  filter: none;
 }
 
 :global(html[data-theme="light"]) .sun {
-  display: block;
+  opacity: 1;
+  scale: 1;
+  filter: none;
 }
 
 :global(html[data-theme="light"]) .moon {
-  display: none;
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sun,
+  .moon {
+    transition: none;
+  }
 }

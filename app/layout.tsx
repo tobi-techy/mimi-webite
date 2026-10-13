@@ -30,6 +30,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
+        <a className="skip-link" href="#main">
+          Skip to content
+        </a>
         {children}
       </body>
     </html>

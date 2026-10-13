@@ -14,8 +14,15 @@ export function SiteHeader() {
 
   useEffect(() => {
     const root = document.documentElement;
+    const page = document.getElementById("main");
     if (menuOpen) root.dataset.menuOpen = "true";
     else delete root.dataset.menuOpen;
+    /* The overlay lives outside <main>, so making main inert keeps the menu and
+     * the header's close control focusable while the page behind them is not. */
+    if (page) {
+      if (menuOpen) page.setAttribute("inert", "");
+      else page.removeAttribute("inert");
+    }
     if (!menuOpen) return;
 
     const onKey = (event: KeyboardEvent) => {
@@ -29,6 +36,7 @@ export function SiteHeader() {
     desktop.addEventListener("change", onDesktop);
     return () => {
       delete root.dataset.menuOpen;
+      page?.removeAttribute("inert");
       document.removeEventListener("keydown", onKey);
       desktop.removeEventListener("change", onDesktop);
     };
