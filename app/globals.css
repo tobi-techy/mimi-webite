@@ -1,189 +1,523 @@
+@import "tailwindcss";
+
+/* Dark mode is driven by an attribute on <html> set before first paint, not by
+ * the media query, so a stored preference survives. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+ * Palette. Light is warm paper; dark is a warm near-black. These are the only
+ * place raw colour values live. Tailwind tokens below point at them, so the
+ * whole palette flips with [data-theme].
+ * ------------------------------------------------------------------------ */
 :root {
-  --background: #f7f5f0;
+  --outer: #ece8df;
+  --surface: #f7f5f0;
   --paper: #fbfaf7;
+  --tint: #efece5;
+  --tint2: #f1eee7;
   --ink: #111111;
+  --soft: #353432;
   --muted: #686663;
-  --soft-ink: #353432;
-  --sticker-border: #ffffff;
-  --button: #111111;
-  --button-text: #ffffff;
   --hairline: rgba(17, 17, 17, 0.14);
   --noise-opacity: 0.05;
-
-  --font-sans: var(--font-instrument-sans), "Instrument Sans", "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-
-  --gutter: clamp(18px, 2.4vw, 36px);
-  --header-h: clamp(58px, 5.4vw, 78px);
-
-  --content-width: min(1240px, 88vw);
-  --content-top: 45%;
-  --headline-size: clamp(38px, 4.5vw, 68px);
-  --headline-tracking: -0.045em;
-  --headline-leading: 1;
-  --sub-size: clamp(15px, 1.15vw, 18px);
-  --sub-gap: clamp(14px, 1.4vw, 18px);
-
-  --cta-h: 48px;
-  --cta-pad: 26px;
-  --cta-size: 14px;
-  --cta-gap: clamp(20px, 2vw, 28px);
-  --cta-shadow: 0 2px 6px rgba(17, 17, 17, 0.1);
-  --cta-shadow-hover: 0 8px 18px rgba(17, 17, 17, 0.16);
-
-  --shadow-rest: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.08));
-  --shadow-hover: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.1));
-  --shadow-grab: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.14));
-  --grab-lift: -6px;
-  --hover-duration: 220ms;
-
-  /* Scales the stickers scattered through the sections below the hero. */
-  --sticker-scale: 1;
-
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --background: #14130f;
+  --outer: #0e0d0a;
+  --surface: #14130f;
   --paper: #1a1915;
+  --tint: #201f1a;
+  --tint2: #232218;
   --ink: #f3f0e9;
+  --soft: #ddd8cf;
   --muted: #9a958c;
-  --soft-ink: #cdc8be;
-  --sticker-border: #ffffff;
-  --button: #f3f0e9;
-  --button-text: #14130f;
-  --hairline: rgba(243, 240, 233, 0.18);
-  --noise-opacity: 0.03;
-
-  --cta-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  --cta-shadow-hover: 0 8px 18px rgba(0, 0, 0, 0.5);
-
-  --shadow-rest: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.34));
-  --shadow-hover: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
-  --shadow-grab: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.5));
-
+  --hairline: rgba(243, 240, 233, 0.16);
   color-scheme: dark;
 }
 
-@media (max-width: 1439.98px) {
-  :root {
-    --sticker-scale: 0.88;
+@theme inline {
+  --color-outer: var(--outer);
+  --color-surface: var(--surface);
+  --color-paper: var(--paper);
+  --color-tint: var(--tint);
+  --color-tint2: var(--tint2);
+  --color-ink: var(--ink);
+  --color-soft: var(--soft);
+  --color-muted: var(--muted);
+  --color-hairline: var(--hairline);
+  /* Constants that do not follow the theme. */
+  --color-cream: #f3f0e9;
+  --color-solid: #111111;
+  /* Hairline and hover wash used on the solid (cream-on-ink) controls. */
+  --color-cream-hairline: rgba(243, 240, 233, 0.3);
+  --color-cream-wash: rgba(243, 240, 233, 0.12);
+  --color-cream-track: rgba(243, 240, 233, 0.16);
+  /* Muted greys used for de-emphasised statement copy and inert list dots. */
+  --color-faint: #a9a6a0;
+  --color-faint-2: #b7b4ad;
+
+  --font-sans: var(--font-instrument-sans), "Instrument Sans", Manrope, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sheet: 22px;
+  --radius-panel: 28px;
+  --radius-shell: 34px;
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
   }
-}
 
-@media (min-width: 640px) and (max-width: 1023.98px) {
-  :root {
-    --content-width: min(760px, 88vw);
-    --headline-size: clamp(30px, 4.9vw, 44px);
-    --headline-leading: 1.02;
-    --sticker-scale: 0.74;
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
-}
-@media (max-width: 639.98px) {
-  :root {
-    --content-width: calc(100vw - 40px);
-    --content-top: 44%;
-    --headline-size: clamp(27px, 7.6vw, 36px);
-    --headline-leading: 1.03;
-    --sub-size: 14px;
-    --sub-gap: 12px;
-    --cta-h: 46px;
-    --cta-gap: 20px;
-    --grab-lift: -4px;
-    --sticker-scale: 0.62;
-  }
-}
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-}
-
-body {
-  overflow-x: hidden;
-  background: var(--background);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  transition: background-color 260ms var(--ease-out), color 260ms var(--ease-out);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-html[data-menu-open] body {
-  overflow: hidden;
-}
-
-html[data-dragging],
-html[data-dragging] * {
-  cursor: grabbing !important;
-}
-
-a {
-  color: inherit;
-}
-
-button {
-  font: inherit;
-  color: inherit;
-}
-
-.skip-link {
-  position: fixed;
-  top: 8px;
-  left: var(--gutter);
-  z-index: 2000;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: var(--button);
-  color: var(--button-text);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  text-decoration: none;
-  transform: translateY(calc(-100% - 16px));
-  transition: transform 180ms var(--ease-out);
-}
-
-.skip-link:focus {
-  transform: translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skip-link {
-    transition: none;
-  }
-}
-
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
   body {
+    margin: 0;
+    background: var(--color-outer);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.55;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Anchor jumps clear the floating pill nav. */
+  :target {
+    scroll-margin-top: 110px;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  html[data-menu-open] body {
+    overflow: hidden;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  @media (max-width: 760px) {
+    body {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer components {
+  /* The page sits on a warm outer field with a rounded paper sheet inside it. */
+  .sheet {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 10px;
+  }
+
+  .inner {
+    background: var(--color-surface);
+    border-radius: var(--radius-shell);
+    padding: 0 clamp(16px, 3.4vw, 46px) clamp(20px, 3vw, 34px);
+    overflow: clip;
+  }
+
+  .skip-link {
+    position: fixed;
+    top: 8px;
+    left: clamp(18px, 2.4vw, 36px);
+    z-index: 2000;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: var(--color-solid);
+    color: var(--color-cream);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(calc(-100% - 16px));
+    transition: transform 180ms var(--ease-soft);
+  }
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 760px) {
+    .sheet {
+      padding: 6px;
+    }
+    .inner {
+      border-radius: 24px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skip-link {
+      transition: none;
+    }
+  }
+
+  /* Paper grain, fixed above everything and unreachable by the pointer. */
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: var(--noise-opacity);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+
+  /* Section rhythm shared by every marketing section. */
+  .section {
+    padding-top: clamp(56px, 8vw, 110px);
+    scroll-margin-top: 110px;
+  }
+
+  /* ---------------------------------------------------------------- stickers */
+  .sticker {
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.18));
+    transition: transform 220ms var(--ease-soft), filter 220ms var(--ease-soft);
+    /* Vertical page scroll still works when a touch starts on a sticker; only
+     * horizontal movement is captured for dragging. */
+    touch-action: pan-y;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .sticker:hover {
+    filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.26));
+  }
+
+  .sticker[data-dragging="true"] {
+    cursor: grabbing;
     transition: none;
+    z-index: 40;
+  }
+
+  .sticker[data-rotated="true"] {
+    transform: rotate(var(--rot, 0deg));
+  }
+
+  .stk-xl {
+    width: clamp(220px, 24vw, 320px);
+  }
+  .stk-l {
+    width: clamp(190px, 19vw, 260px);
+  }
+  .stk-m {
+    width: clamp(160px, 15vw, 210px);
+  }
+  .stk-xs {
+    width: 112px;
+  }
+  .stk-sign {
+    width: clamp(76px, 13vw, 180px);
+  }
+
+  /* Height of a sticker pile inside a card. */
+  .pile {
+    position: relative;
+    height: clamp(220px, 24vw, 300px);
+    margin: 4px 0 6px;
+  }
+  .pile-short {
+    height: clamp(170px, 15vw, 210px);
+  }
+  .pile-tall {
+    height: clamp(260px, 28vw, 360px);
+  }
+
+  /* ------------------------------------------------------- hero sticker slots */
+  .hero-stk {
+    position: absolute;
+    z-index: 3;
+  }
+  .hero-stk-a {
+    width: 128px;
+    left: -14px;
+    top: -34px;
+  }
+  .hero-stk-b {
+    width: 116px;
+    right: -10px;
+    top: -30px;
+  }
+  .hero-stk-c {
+    width: 96px;
+    left: 4%;
+    bottom: -30px;
+  }
+  .hero-stk-d {
+    width: 104px;
+    right: 5%;
+    bottom: -34px;
+  }
+
+  /* --------------------------------------------------------- bento grid areas */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: clamp(30px, 4vw, 50px);
+  }
+  .board-home {
+    grid-template-areas: "a a b" "a a b" "e e c" "e e d";
+  }
+  .board-five {
+    grid-template-areas: "a a b" "c d e";
+  }
+  .area-a {
+    grid-area: a;
+  }
+  .area-b {
+    grid-area: b;
+  }
+  .area-c {
+    grid-area: c;
+  }
+  .area-d {
+    grid-area: d;
+  }
+  .area-e {
+    grid-area: e;
+  }
+
+  /* A tile whose sticker column sits beside the copy. */
+  .tile-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-rows: auto 1fr auto;
+    gap: 10px 24px;
+  }
+  .tile-split > * {
+    grid-column: 1;
+  }
+  .tile-split > .pile {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    height: auto;
+    min-height: 300px;
+    margin: 0;
+  }
+  .tile-split > .tile-big {
+    align-self: end;
+  }
+
+  /* ---------------------------------------------------------- footer wordmark */
+  .wordmark {
+    position: relative;
+    aspect-ratio: 292.5 / 107.75;
+    margin: 0;
+  }
+  .wordmark-clip {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  /* The brand-kit SVG carries generous padding; oversize and offset it so the
+   * word bleeds to the edges the way the prototype wordmark does. */
+  .wordmark-img {
+    width: 125.81%;
+    max-width: none;
+    margin: -11.62% 0 0 -11.88%;
+  }
+  :root[data-theme="dark"] .wordmark-img,
+  :root[data-theme="dark"] .menu-logo {
+    filter: invert(1);
+    mix-blend-mode: lighten;
+  }
+
+  /* -------------------------------------------------------------- faq marker */
+  .faq summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .faq summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq summary::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border-right: 1.5px solid var(--color-muted);
+    border-bottom: 1.5px solid var(--color-muted);
+    transform: rotate(45deg);
+    transition: transform 220ms var(--ease-soft);
+  }
+  .faq details[open] summary::after {
+    transform: rotate(-135deg);
+  }
+  .faq details[open] .faq-answer {
+    animation: x-open 260ms var(--ease-soft);
+  }
+
+  /* --------------------------------------------------------------- motion */
+  @keyframes x-up {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes x-fall {
+    0% {
+      opacity: 0;
+      transform: translateY(-26px) scale(0.94) rotate(var(--rot, 0deg));
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(4px) scale(1.03) rotate(var(--rot, 0deg));
+    }
+    100% {
+      opacity: 1;
+      transform: rotate(var(--rot, 0deg));
+    }
+  }
+  @keyframes x-open {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  [data-load] {
+    opacity: 0;
+    transform: translateY(14px);
+    animation: x-up 700ms var(--ease-soft) forwards;
+    animation-delay: var(--d, 0ms);
+  }
+
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 600ms var(--ease-soft), transform 600ms var(--ease-soft);
+  }
+  [data-reveal][data-in] {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-drop] {
+    opacity: 0;
+  }
+  [data-drop][data-in] {
+    opacity: 1;
+    animation: x-fall 760ms var(--ease-soft) var(--d, 0ms) backwards;
+  }
+
+  /* --------------------------------------------------------- crossed-out list */
+  .nope-strike {
+    color: var(--color-muted);
+    text-decoration-thickness: 0.07em;
+    text-decoration-color: var(--color-ink);
+  }
+
+  @media (min-width: 760px) and (max-width: 999.98px) {
+    /* A lone third card fills the two-column row. */
+    .three-tiles > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 1000px) {
+    .board {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .board-home {
+      grid-template-areas: "a a" "b c" "d d" "e e";
+    }
+    .board-five {
+      grid-template-areas: "a a" "b c" "d e";
+    }
+  }
+
+  @media (max-width: 760px) {
+    .board,
+    .board-home,
+    .board-five {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: none;
+    }
+    .board > * {
+      grid-area: auto;
+    }
+    .tile-split {
+      display: flex;
+      flex-direction: column;
+    }
+    .tile-split > .pile {
+      min-height: 0;
+      height: 230px;
+      margin: 4px 0 6px;
+    }
+    .pile,
+    .pile-tall {
+      height: 230px;
+    }
+    .pile-short {
+      height: 190px;
+    }
+    .stk-xl {
+      width: 200px;
+    }
+    .stk-l {
+      width: 175px;
+    }
+    .stk-m {
+      width: 160px;
+    }
+    .hero-stk-a {
+      width: 92px;
+      left: -6px;
+      top: -24px;
+    }
+    .hero-stk-b {
+      width: 84px;
+      right: -6px;
+      top: -22px;
+    }
+    .hero-stk-c,
+    .hero-stk-d {
+      display: none;
+    }
+    .stk-xs {
+      width: 82px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    [data-load],
+    [data-reveal],
+    [data-drop] {
+      opacity: 1;
+      transform: none;
+      animation: none;
+      transition: none;
+    }
+    .sticker {
+      transition: none;
+    }
   }
 }
