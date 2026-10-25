@@ -1,5 +1,6 @@
 import { seedAutomationsList } from "@/features/console/content/automations";
 import { archiveConversations } from "@/features/console/demo/seed-archive";
+import { answerConversations, answerDocs, hypoOpening } from "@/features/console/demo/seed-answers";
 import type {
   CardRow,
   ComputerState,
@@ -15,7 +16,7 @@ import type {
 } from "@/features/console/demo/types";
 
 /** Sample data for the Wigmore Trading demo. Times are Lagos time on Fri 23 Oct 2026. */
-export const DEMO_VERSION = 7;
+export const DEMO_VERSION = 8;
 export const owner = { name: "Martin Nwike", first: "Martin", initials: "MN", company: "Wigmore Trading" };
 
 const T = (h: number, m: number) => new Date(2026, 9, 23, h, m).getTime();
@@ -307,7 +308,10 @@ const simple = (helper: HelperName, lines: [from: "me" | HelperName, text: strin
   ...lines.map(([from, text], i) => ({ id: id(), kind: "text" as const, from, text, at: start + i * 60000 })),
 ];
 
-export const seedConversations = (): Conversation[] => [...liveConversations(), ...archiveConversations()];
+export const seedConversations = (): Conversation[] => {
+  const [first, ...rest] = liveConversations();
+  return [first!, ...answerConversations(), ...rest, ...archiveConversations()];
+};
 
 const liveConversations = (): Conversation[] => [
   {
@@ -524,8 +528,7 @@ const liveConversations = (): Conversation[] => [
       { label: "Open the report", step: "brd.open" },
     ],
     messages: [
-      ...simple("Brand", [["Brand", "Hypo's weekly sell-out report is ready, 214 shops by area."]], T(7, 50)),
-      { id: id(), kind: "doc", from: "Brand", at: T(7, 51), docId: "doc-hypo", title: "Hypo weekly sell-out report", sub: "MD · 214 shops" },
+      ...hypoOpening(),
       {
         id: id(),
         kind: "card",
@@ -646,7 +649,9 @@ Iya Femi Provisions,Mushin,Femi Adebayo,0,0,Good
 Mama Bisi Provisions,Oshodi,Bisi Lawal,0,0,Good
 Ade Stores,Ojota,Ade Coker,0,0,Paid (verified)`;
 
-export const seedDocs = (): Doc[] => [
+export const seedDocs = (): Doc[] => [...baseDocs(), ...answerDocs()];
+
+const baseDocs = (): Doc[] => [
   {
     id: "doc-plan",
     title: "Reminder plan · 5 shops",

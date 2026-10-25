@@ -520,6 +520,24 @@ async function runStep(slug: string, step: string, text: string, ep: number) {
       if (!(await say(slug, "Proof", "Kola Mart and Sunny Provisions. Both sent screenshots of transfers that never landed.", ep))) return;
       return status(slug, "2 fake alerts flagged", false, "done");
 
+    /* structured answers (seed-answers.ts) */
+    case "ans.ikeja.monday":
+      if (!(await say(slug, "Collector", "Done. Ifeoma Enterprises and Joy Provisions are first on Monday's Van 3 run, and I'll send each a WhatsApp reminder on Sunday at 6pm.", ep))) return;
+      status(slug, "Monday run updated", false, "done");
+      return offer(slug, [{ label: "Open the collections list", step: "ans.ikeja.open" }]);
+    case "ans.ikeja.open":
+      openDoc("doc-col-oct19");
+      if (!(await say(slug, "Collector", "It's open in Docs. The four shops at the top are the ones Van 3 missed.", ep))) return;
+      return status(slug, "answered", false, "done");
+    case "ans.risk.hold":
+      if (!(await say(slug, "Credit", "Joy Provisions' next order is on hold until the ₦259,000 lands. I told Order, and I'll tell you the moment she pays.", ep))) return;
+      status(slug, "Joy on hold", false, "done");
+      return offer(slug, [{ label: "Draft a plan for Ade & Kemi", text: "Draft a payment plan for Ade & Kemi", step: "ans.risk.plan" }]);
+    case "ans.risk.plan":
+      openDoc("doc-plan-ade");
+      if (!(await say(slug, "Credit", "Drafted: ₦120,000 this Friday, then ₦72,300 a week for 3 weeks. It's open in Docs. Nothing goes to them until you say so.", ep))) return;
+      return status(slug, "plan drafted", false, "done");
+
     /* generic */
     case "gen.approve":
       return approvePending(slug, undefined, ep);

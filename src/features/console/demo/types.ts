@@ -122,7 +122,75 @@ export type Message =
       to?: HelperName;
       /** Gates: the decision card message this waits on. */
       link?: string;
+    }
+  /**
+   * A structured helper answer (Claude/Factory style): "Worked for 34s" that folds the work lines,
+   * a one-sentence plain answer, then blocks: stat cards, a data table, highlights, deliverables.
+   */
+  | {
+      id: string;
+      kind: "answer";
+      from: Worker;
+      at: number;
+      worked?: { secs: number; work?: WorkLine[] };
+      blocks: AnswerBlock[];
+      /** What each numbered citation badge ([^n] in the copy) points at. */
+      cites?: Record<number, Source>;
     };
+
+/** A work line folded under "Worked for Ns": the same reasoning and step lines the feed shows. */
+export type WorkLine = Extract<Message, { kind: "thought" | "step" }>;
+
+/* ---------- answer blocks ---------- */
+
+/**
+ * An inline entity chip in copy: `[[shop:Joy Provisions]]`, `[[route:Ikeja route]]`,
+ * `[[helper:Proof]]`, `[[brand:Hypo]]`, `[[bank:GTBank]]`, `[[file:credit-rules.md]]`.
+ */
+export type EntityKind = "shop" | "route" | "helper" | "brand" | "bank" | "file";
+export type Entity = { kind: EntityKind; label: string };
+
+/** Where a fact came from: a file, a sheet, a doc, a PDF, a tool, the bank or a WhatsApp chat. */
+export type SourceKind = "file" | "sheet" | "doc" | "pdf" | "tool" | "bank" | "whatsapp";
+export type Source = { kind: SourceKind; name: string; docId?: string };
+
+/** bad: orange delta and marks · good / flat: muted. */
+export type StatTone = "bad" | "good" | "flat";
+export type StatItem = {
+  label: string;
+  value: string;
+  /** Mono delta after the number ("−₦374,000", "+2%"). */
+  delta?: string;
+  tone?: StatTone;
+  /** Rounded-bar sparkline values (any scale). */
+  spark?: number[];
+  /** Bars from this index on are marked (orange on bad cards): where the drop starts. */
+  markFrom?: number;
+  /** Mono caption under the sparkline ("Mon 12 → Fri 23"). */
+  caption?: string;
+};
+
+export type TableCell =
+  | string
+  | { entity: Entity; href?: string }
+  | { score: number }
+  | { money: number; tone?: StatTone }
+  | { link: string; href?: string; docId?: string };
+export type TableColumn = { label: string; align?: "left" | "right" };
+
+export type DeliverableType = "Sheet" | "Doc" | "PDF";
+export type Deliverable = { title: string; type: DeliverableType; docId?: string };
+
+export type HighlightItem = { text: string; cite?: number[]; sources?: Source[] };
+
+export type AnswerBlock =
+  /** Plain answer copy: `**bold**`, `==orange==`, entity chips and `[^n]` citations inline. */
+  | { type: "text"; text: string; lead?: boolean }
+  | { type: "stats"; items: StatItem[] }
+  | { type: "table"; columns: TableColumn[]; rows: TableCell[][]; files?: Source[]; label?: string }
+  | { type: "highlights"; title?: string; items: HighlightItem[] }
+  /** Preview cards and/or a compact row list with a "Show all" expander after `visible` rows. */
+  | { type: "deliverables"; title?: string; cards?: Deliverable[]; rows?: Deliverable[]; visible?: number };
 
 /** Who does the work in a thread (never the owner). */
 export type Worker = HelperName | "Mimi";
@@ -160,7 +228,10 @@ export type ActivityIcon =
   | "shield-check"
   | "pen"
   | "folder"
-  | "circle-x";
+  | "circle-x"
+  | "sheet"
+  | "map-pin"
+  | "truck";
 
 export type MessageKind = Message["kind"];
 /** Messages that take reactions: bubbles, photos, voice notes and bubble-like cards (not chips, dates or system lines). */

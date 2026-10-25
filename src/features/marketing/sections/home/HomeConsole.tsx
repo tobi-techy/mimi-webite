@@ -26,7 +26,7 @@ export function HomeConsole() {
             </div>
             <div className="x-con__body" aria-hidden="true">
               <aside className="x-con__side">
-                <img className="x-con__logo" src="/brand/mimi-logo-horizontal-reverse.svg" alt="" />{" "}
+                <img className="x-con__logo" src="/brand/mimi-logo-horizontal-reverse.svg" alt="" loading="lazy" />{" "}
                 <ul className="x-con__nav">
                   {c.nav.map((n) => (
                     <li key={n.label} className={cx(n.className, n.on && "is-on") || undefined}>

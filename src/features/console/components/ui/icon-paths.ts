@@ -368,6 +368,21 @@ export const iconPaths = {
   "loop": [["path", { d: "M17 2l3 3-3 3" }], ["path", { d: "M4 11V9a4 4 0 0 1 4-4h12" }], ["path", { d: "M7 22l-3-3 3-3" }], ["path", { d: "M20 13v2a4 4 0 0 1-4 4H4" }]],
   "circle-dashed": [["circle", { cx: "12", cy: "12", r: "8" }]],
   "panel-right-open": [["path", { d: "M4 5h16v14H4zM15 5v14" }]],
+  "map-pin": [
+    ["path", { d: "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" }],
+    ["circle", { cx: "12", cy: "10", r: "3" }],
+  ],
+  truck: [
+    ["path", { d: "M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14" }],
+    ["circle", { cx: "17", cy: "18", r: "2" }],
+    ["circle", { cx: "7", cy: "18", r: "2" }],
+  ],
+  "chevrons-down": [["path", { d: "m7 6 5 5 5-5M7 13l5 5 5-5" }]],
+  "file-code": [
+    ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }],
+    ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4M8 13h8M8 17h5M8 9h2" }],
+  ],
+  wrench: [["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z" }]],
 } as const satisfies Record<string, readonly IconShape[]>;
 
 export type IconName = keyof typeof iconPaths;

@@ -19,9 +19,14 @@ type SiteFrameProps = {
 export function SiteFrame({ children, footer, whatsapp }: SiteFrameProps) {
   return (
     <SiteRoot>
+      <a className="x-skip" href="#main">
+        Skip to content
+      </a>
       <RenameBanner />
       <Nav />
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
       {footer}
       {motionConfig.tapToSlap && <SlapLayer />}
       {whatsapp}

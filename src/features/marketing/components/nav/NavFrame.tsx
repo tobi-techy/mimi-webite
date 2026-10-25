@@ -28,6 +28,23 @@ export function NavFrame({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!open) return;
+    // lock the page behind the open menu (html + body so iOS Safari stops scrolling too)
+    const root = document.documentElement;
+    root.classList.add("x-menu-open");
+    // a tap outside the menu closes it and is swallowed (no slap sticker, no stray link)
+    const onOutside = (e: MouseEvent) => {
+      const nav = document.getElementById("nav");
+      if (!nav || nav.contains(e.target as Node)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    };
+    // any menu link closes the menu, even one for the page already showing
+    const onMenuLink = (e: MouseEvent) => {
+      if ((e.target as Element | null)?.closest?.("#mmenu a")) setOpen(false);
+    };
+    document.addEventListener("click", onOutside, true);
+    document.addEventListener("click", onMenuLink);
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setOpen(false);
@@ -39,6 +56,9 @@ export function NavFrame({ children }: { children: ReactNode }) {
     document.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
     return () => {
+      root.classList.remove("x-menu-open");
+      document.removeEventListener("click", onOutside, true);
+      document.removeEventListener("click", onMenuLink);
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
     };

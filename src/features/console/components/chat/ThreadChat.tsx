@@ -129,23 +129,97 @@ export function ThreadChat({ slug }: { slug: string }) {
   return (
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
       <section className="mc-thread" aria-label={conv.title}>
-        <header className="mc-hdr">
+        <header className="mc-hdr mc-hdr--title">
           <div className="mc-hdr__l">
             <button className="mc-gb mc-gb--icon mc-show-phone" type="button" aria-label="Open menu" onClick={toggleSidebar}>
               <Icon name="menu" />
             </button>
-          </div>
-          <div className="mc-hc">
-            <HelperFace name={conv.helper} size={52} />
-            <span className="mc-hc__nm" title={`${conv.helper} · ${job}`}>
-              {conv.helper}
-            </span>
-            <span className="mc-hc__st mc-mono" aria-live="polite">
-              {conv.working && <i className="mc-spin" aria-hidden="true" />}
-              <span key={conv.status} className="mc-hc__stt">
-                {typing && typing !== "me" ? `${typing} is working` : conv.status}
-              </span>
-            </span>
+            <div className="mc-more mc-tt">
+              <button
+                type="button"
+                className="mc-tt__b"
+                aria-haspopup="menu"
+                aria-expanded={menu}
+                title={`${conv.helper} · ${job}`}
+                onClick={() => setMenu(!menu)}
+              >
+                <span className="mc-tt__t">{conv.title}</span>
+                <Icon name="chevron-down" className="i mc-tt__c" />
+              </button>
+              <p className="mc-tt__s" aria-live="polite">
+                <HelperFace name={conv.helper} size={14} />
+                <span className="mc-tt__h">{conv.helper}</span>
+                {conv.working && <i className="mc-spin" aria-hidden="true" />}
+                <span key={conv.status} className="mc-tt__st">
+                  {typing && typing !== "me" ? `${typing} is working` : conv.status}
+                </span>
+              </p>
+              {menu && (
+            <div className="mc-menu mc-menu--l" role="menu">
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  setMenu(false);
+                  void playDemo((h) => router.push(h));
+                }}
+              >
+                <Icon name="play" />
+                Play demo
+              </button>
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  setMenu(false);
+                  stageStory();
+                  router.push(`${consoleRoutes.threads}/${DEMO_SLUG}`);
+                }}
+              >
+                <Icon name="list-checks" />
+                Walk through with chips
+              </button>
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  setMenu(false);
+                  resetDemo();
+                  say("Demo reset to the start");
+                }}
+              >
+                <Icon name="refresh-cw" />
+                Reset demo
+              </button>
+              <hr />
+              <button role="menuitem" type="button" onClick={() => (setMenu(false), setPanelTab("Side chat"))}>
+                <Icon name="message-square" />
+                Side chat
+              </button>
+              <button role="menuitem" type="button" onClick={() => (setMenu(false), setPanelTab("Docs"))}>
+                <Icon name="file-text" />
+                Docs
+              </button>
+              {conv.helper === "Credit" && (
+                <Link role="menuitem" href={consoleRoutes.credit} onClick={() => setMenu(false)}>
+                  <Icon name="landmark" />
+                  Credit limits
+                </Link>
+              )}
+              <button
+                role="menuitem"
+                type="button"
+                onClick={() => {
+                  setMenu(false);
+                  setSound(!isSoundOn());
+                }}
+              >
+                <Icon name="zap" />
+                Sound on or off
+              </button>
+            </div>
+              )}
+            </div>
           </div>
           <div className="mc-hdr__r">
             {playing && (
@@ -163,76 +237,10 @@ export function ThreadChat({ slug }: { slug: string }) {
             >
               <Icon name="panel-right-open" />
             </button>
-            <div className="mc-more">
-              <button type="button" className="mc-gb mc-gb--icon" aria-label="More" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
-                <Icon name="ellipsis" />
-              </button>
-              {menu && (
-                <div className="mc-menu" role="menu">
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      void playDemo((h) => router.push(h));
-                    }}
-                  >
-                    <Icon name="play" />
-                    Play demo
-                  </button>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      stageStory();
-                      router.push(`${consoleRoutes.threads}/${DEMO_SLUG}`);
-                    }}
-                  >
-                    <Icon name="list-checks" />
-                    Walk through with chips
-                  </button>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      resetDemo();
-                      say("Demo reset to the start");
-                    }}
-                  >
-                    <Icon name="refresh-cw" />
-                    Reset demo
-                  </button>
-                  <hr />
-                  <button role="menuitem" type="button" onClick={() => (setMenu(false), setPanelTab("Side chat"))}>
-                    <Icon name="message-square" />
-                    Side chat
-                  </button>
-                  <button role="menuitem" type="button" onClick={() => (setMenu(false), setPanelTab("Docs"))}>
-                    <Icon name="file-text" />
-                    Docs
-                  </button>
-                  {conv.helper === "Credit" && (
-                    <Link role="menuitem" href={consoleRoutes.credit} onClick={() => setMenu(false)}>
-                      <Icon name="landmark" />
-                      Credit limits
-                    </Link>
-                  )}
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setMenu(false);
-                      setSound(!isSoundOn());
-                    }}
-                  >
-                    <Icon name="zap" />
-                    Sound on or off
-                  </button>
-                </div>
-              )}
-            </div>
+            <Link className="mc-btn mc-btn--pri mc-new" href={`${consoleRoutes.home}#new`} aria-label="New thread">
+              <Icon name="plus" />
+              <span className="mc-new__t">New</span>
+            </Link>
           </div>
         </header>
         <div className="mc-feed" ref={feed}>

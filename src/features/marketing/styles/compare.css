@@ -819,3 +819,12 @@
     padding-inline: 9px;
   }
 }
+
+/* touch: the jump chips reach 44px (were 35px) */
+@media (max-width: 1000px) and (pointer: coarse) {
+  .x-cmp__rail a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

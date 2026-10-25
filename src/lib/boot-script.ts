@@ -27,7 +27,7 @@ c.add("x-loading");
 var start=Date.now(),loaded=document.readyState==="complete",gone=false;
 function remove(){if(gone)return;gone=true;c.remove("x-loading","x-loading-out")}
 function out(){if(gone||c.contains("x-loading-out"))return;c.add("x-loading-out");setTimeout(remove,200)}
-function maybe(){if(loaded&&Date.now()-start>=900)out()}
-addEventListener("load",function(){loaded=true;setTimeout(maybe,Math.max(0,900-(Date.now()-start)))});
-setTimeout(maybe,900);setTimeout(out,1300);setTimeout(remove,1500);
+function maybe(){if(loaded&&Date.now()-start>=400)out()}
+addEventListener("load",function(){loaded=true;setTimeout(maybe,Math.max(0,400-(Date.now()-start)))});
+setTimeout(maybe,400);setTimeout(out,1000);setTimeout(remove,1200);
 })();`;

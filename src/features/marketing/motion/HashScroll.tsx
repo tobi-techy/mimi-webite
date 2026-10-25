@@ -12,6 +12,8 @@ function scrollToId(id: string, smooth: boolean): boolean {
   requestAnimationFrame(() => {
     const y = target.getBoundingClientRect().top + window.scrollY - (nav?.offsetHeight ?? 0);
     window.scrollTo({ top: y, behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto" });
+    // a focusable target (the skip link's <main>) also takes keyboard focus
+    if (target.hasAttribute("tabindex")) target.focus({ preventScroll: true });
   });
   return true;
 }

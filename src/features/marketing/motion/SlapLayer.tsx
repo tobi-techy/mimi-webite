@@ -11,6 +11,29 @@ import { sfx } from "@/lib/sound";
 type Slap = { id: number; left: number; top: number; w: number; r: number; src: string; out: boolean };
 
 const MAX_SLAPS = 12;
+const stickerSrc = (name: string) => `/stickers/${name}.webp`;
+
+/* Stickers already downloaded and decoded, so a slap paints on the same frame as the tap. */
+const ready: string[] = [];
+let warmed = false;
+function warmStickers() {
+  if (warmed || typeof window === "undefined") return;
+  warmed = true;
+  STICKER_POOL.forEach((name) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = stickerSrc(name);
+    img
+      .decode()
+      .then(() => ready.push(img.src.slice(img.src.indexOf("/stickers/"))))
+      .catch(() => {});
+  });
+}
+/** A random sticker that is ready to paint; any sticker if none has finished loading yet. */
+function pickSticker(): string {
+  const pool = ready.length ? ready : STICKER_POOL.map(stickerSrc);
+  return pool[Math.floor(Math.random() * pool.length)] ?? "/stickers/sticker-van.webp";
+}
 const IGNORE = "a, button, input, select, textarea, label, summary, form, .x-nav, .x-k, .x-st";
 
 /**
@@ -31,6 +54,13 @@ export function SlapLayer() {
   }
 
   useEffect(() => {
+    // warm the sticker images once the page is idle, before the first tap
+    const ric = (window as Window & { requestIdleCallback?: (cb: () => void) => number })
+      .requestIdleCallback;
+    const warmId = ric ? ric(warmStickers) : window.setTimeout(warmStickers, 800);
+    const firstTouch = () => warmStickers();
+    document.addEventListener("pointerdown", firstTouch, { once: true, passive: true });
+
     const timers = new Set<number>();
     const later = (fn: () => void, ms: number) => {
       const id = window.setTimeout(() => {
@@ -59,7 +89,7 @@ export function SlapLayer() {
         top: e.clientY - r.top,
         w,
         r: Math.round(Math.random() * 50 - 25),
-        src: `/stickers/${STICKER_POOL[Math.floor(Math.random() * STICKER_POOL.length)]}.webp`,
+        src: pickSticker(),
         out: false,
       };
       setSlaps((list) => [...list, slap].slice(-MAX_SLAPS));
@@ -75,6 +105,8 @@ export function SlapLayer() {
     document.addEventListener("click", onClick);
     return () => {
       document.removeEventListener("click", onClick);
+      document.removeEventListener("pointerdown", firstTouch);
+      if (!ric) window.clearTimeout(warmId);
       timers.forEach((id) => window.clearTimeout(id));
     };
   }, []);
@@ -87,7 +119,7 @@ export function SlapLayer() {
           className={cx("x-slap", s.out && "is-out")}
           style={{ left: s.left + "px", top: s.top + "px", "--sw": s.w + "px", "--r": s.r + "deg" }}
         >
-          <img src={s.src} alt="" style={{ transform: "none" }} />
+          <img src={s.src} alt="" decoding="sync" draggable={false} style={{ transform: "none" }} />
         </span>
       ))}
     </div>

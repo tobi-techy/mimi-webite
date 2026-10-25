@@ -62,7 +62,11 @@ export function ContactFormSection() {
             Send pilot request
             <Arrow />
           </button>{" "}
-          <p className="x-fine">Opens your email app, addressed to {site.contactEmail}.</p>
+          <p className="x-fine">
+            {site.formEndpoint
+              ? `Goes straight to ${site.contactEmail}.`
+              : `Opens your email app, addressed to ${site.contactEmail}.`}
+          </p>
         </form>
         <Guarantee label="Request ready" className="x-cform__ok" id="contactOk" statusMessage>
           Thanks. Your email app should open with your details. Send it and we'll be in touch.

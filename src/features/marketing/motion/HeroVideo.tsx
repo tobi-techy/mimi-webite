@@ -29,8 +29,22 @@ export function HeroVideo() {
     const v = ref.current;
     if (!v || shouldStayStill()) return;
     v.muted = true;
-    v.src = VIDEO_SRC;
-    v.play()?.catch(() => {});
+    /* Fetch the 1.5 MB clip only as it nears the screen, and pause it while it is off screen so it
+       is not decoding frames nobody sees. */
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+        if (entry.isIntersecting) {
+          if (!v.getAttribute("src")) v.src = VIDEO_SRC;
+          v.play()?.catch(() => {});
+        } else if (v.getAttribute("src")) {
+          v.pause();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+    io.observe(v);
+    return () => io.disconnect();
   }, []);
 
   return (

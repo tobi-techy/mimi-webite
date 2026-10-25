@@ -69,7 +69,7 @@ export function Footer() {
           </div>
           <div>
             <div className="x-foot__sig">
-              <img src="/brand/mimi-mascot-blink.svg" alt="" aria-hidden="true" />
+              <img src="/brand/mimi-mascot-blink.svg" alt="" aria-hidden="true" loading="lazy" />
               <span>Never run out.</span>
             </div>
             <p className="x-foot__count x-mono">

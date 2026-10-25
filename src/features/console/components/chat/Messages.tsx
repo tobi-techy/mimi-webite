@@ -6,6 +6,8 @@ import { ReactTarget, ReactionLayer, type LayerState } from "@/features/console/
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Markdown } from "@/features/console/components/panel/Markdown";
 import { StepLine, ThoughtBlock } from "@/features/console/components/chat/Work";
+import { Answer } from "@/features/console/components/chat/answer/Answer";
+import { Inline, plainInline } from "@/features/console/components/chat/answer/Inline";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
@@ -91,7 +93,7 @@ function Bubble({ m, tail }: { m: Extract<Message, { kind: "text" }>; tail: bool
   if (m.from !== "me") return <Streamed text={m.text} fresh={fresh} />;
   return (
     <div className={cx("mc-b", tail && "mc-b--tail")}>
-      <RichText text={m.text} />
+      <Inline text={m.text} />
     </div>
   );
 }
@@ -333,12 +335,13 @@ function bodyOf(m: Message, ctx: Ctx, tail: boolean): ReactNode {
   if (m.kind === "card") return <CardView m={m} ctx={ctx} />;
   if (m.kind === "doc") return <DocChip m={m} />;
   if (m.kind === "computer") return <ComputerChip m={m} />;
+  if (m.kind === "answer") return <Answer m={m} />;
   return null;
 }
 
 /** What Copy puts on the clipboard, and how a message is named to screen readers. */
 function plainOf(m: ReactableMessage): string {
-  const strip = (t: string) => t.replace(/\*\*|==/g, "");
+  const strip = plainInline;
   if (m.kind === "text") return strip(m.text);
   if (m.kind === "proof") return `${m.title} · ${m.meta} · ${naira(m.amount)} · ${m.foot}`;
   if (m.kind === "photos") return m.label;
@@ -443,6 +446,7 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
         turn={who !== prev}
         tail={tail}
         reacted={isReactable(m) && !!m.reactions?.length}
+        wide={m.kind === "answer"}
       >
         {body}
       </Row>,
@@ -525,6 +529,7 @@ function Row({
   turn,
   tail,
   reacted,
+  wide,
   children,
 }: {
   /** Message id: the row gets `id="m-…"` so approval gates can scroll to their card. */
@@ -538,6 +543,8 @@ function Row({
   tail?: boolean;
   /** Has reaction badges: leave room above for them. */
   reacted?: boolean;
+  /** A structured answer: takes the full column. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   const fresh = useFresh(at);
@@ -558,7 +565,7 @@ function Row({
   return (
     <div
       id={id ? `m-${id}` : undefined}
-      className={cx("mc-grp", kind === "me" ? "mc-grp--me" : "mc-grp--them", turn && "mc-grp--turn", anim && "mc-in")}
+      className={cx("mc-grp", kind === "me" ? "mc-grp--me" : "mc-grp--them", wide && "mc-grp--answer", turn && "mc-grp--turn", anim && "mc-in")}
       data-tail={tail || undefined}
     >
       {showName && who && who !== "me" && (
@@ -567,7 +574,7 @@ function Row({
           <span className="mc-mh__n">{who}</span>
         </p>
       )}
-      <div className={cx("mc-r", kind === "me" ? "mc-r--me" : "mc-r--them", reacted && "mc-r--rx")}>{children}</div>
+      <div className={cx("mc-r", kind === "me" ? "mc-r--me" : "mc-r--them", reacted && "mc-r--rx", wide && "mc-r--answer")}>{children}</div>
     </div>
   );
 }
