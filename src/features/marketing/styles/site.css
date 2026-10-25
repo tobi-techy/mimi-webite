@@ -5259,11 +5259,11 @@ html.x-loading-out .x-load {
     display: none;
   }
 }
-.x-rename{display:block;text-decoration:none;background:#0a0a0a;color:#eeeeee;border-bottom:1px solid #2a2725;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.x-rename{display:block;text-decoration:none;background:#ee6018;color:#101010;border-bottom:1px solid #c94f12;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .x-rename__in{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 20px;text-align:center}
-.x-rename__dot{width:7px;height:7px;background:#ee6018;flex:none}
-.x-rename b{font-weight:400;color:#8a8380}
-[data-theme="light"] .x-rename{background:#101010}
-.x-rename:hover .x-rename__more{color:#ee6018}
-.x-rename__more{color:#eeeeee;border-bottom:1px solid #3d3a39;padding-bottom:1px}
+.x-rename__dot{width:7px;height:7px;background:#101010;flex:none}
+.x-rename b{font-weight:400;color:#3a1a08}
+[data-theme="light"] .x-rename{background:#ee6018}
+.x-rename:hover .x-rename__more{border-bottom-color:#101010}
+.x-rename__more{color:#101010;border-bottom:1px solid rgba(16,16,16,.45);padding-bottom:1px}
 @media(max-width:560px){.x-rename b{display:none}}

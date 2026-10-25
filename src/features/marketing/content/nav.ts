@@ -12,10 +12,10 @@ export const primaryNav: NavLink[] = [
 
 export const secondaryNav: NavLink[] = [
   { href: "/blog", label: "Blog", key: "blog" },
-  { href: "/login", label: "Log in", key: "login" },
 ];
 
-export const signupHref = "/signup";
+/** The one call to action in the nav: the pilot request form. */
+export const pilotHref = "/contact";
 
 export const footerNav = {
   product: [

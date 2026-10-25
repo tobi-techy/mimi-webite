@@ -124,7 +124,7 @@ export function PricingPlans() {
           <div style={{ "--si": "0" }}>
             <span className="x-mono">Brands</span>
             <p>
-              Priced separately. Start by <Link href="/signup?type=brand">sponsoring a pilot</Link>.
+              Priced separately. Start by <Link href="/contact">sponsoring a pilot</Link>.
             </p>
           </div>
           <div style={{ "--si": "1" }}>

@@ -26,7 +26,7 @@ export function NotFoundSection() {
         <ButtonLink href="/pricing" variant="ghost">
           See pricing
         </ButtonLink>{" "}
-        <TextLink href="/signup">Sign up</TextLink>
+        <TextLink href="/contact">Book a pilot</TextLink>
       </ButtonRow>
     </Split>
   );

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Burger } from "@/features/marketing/components/nav/Burger";
 import { NavFrame } from "@/features/marketing/components/nav/NavFrame";
 import { NavLink } from "@/features/marketing/components/nav/NavLink";
-import { primaryNav, secondaryNav, signupHref } from "@/features/marketing/content/nav";
+import { primaryNav, secondaryNav, pilotHref } from "@/features/marketing/content/nav";
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { SoundToggle } from "@/components/sound/SoundToggle";
@@ -24,8 +24,8 @@ export function Nav() {
           {secondaryNav.map((l) => (
             <NavLink key={l.href} link={l} />
           ))}
-          <Link className="x-btn x-btn--o x-nav__cta" href={signupHref}>
-            Sign up
+          <Link className="x-btn x-btn--o x-nav__cta" href={pilotHref}>
+            Book a pilot
           </Link>
           <Burger />
         </div>
@@ -42,8 +42,8 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
-          <Link className="x-btn x-btn--o" href={signupHref}>
-            Sign up
+          <Link className="x-btn x-btn--o" href={pilotHref}>
+            Book a pilot
           </Link>
         </div>
       </div>

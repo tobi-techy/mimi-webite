@@ -63,10 +63,20 @@ export function ContactFormEnhancer() {
       fetch(site.formEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          /* FormSubmit options: subject line, readable table email, reply goes to the visitor. */
+          _subject: `Mimi pilot request: ${data.company || data.name}`,
+          _template: "table",
+          _replyto: data.email,
+          _captcha: "false",
+        }),
       })
-        .then((r) => {
+        .then(async (r) => {
           if (!r.ok) throw new Error("HTTP " + r.status);
+          /* FormSubmit answers 200 with success "false" when the inbox is not activated yet. */
+          const res = (await r.json().catch(() => ({}))) as { success?: string | boolean };
+          if (res.success === false || res.success === "false") throw new Error("Not sent");
           if (alive) done("Thanks. We have your details and will reply within two working days.");
         })
         .catch(() => {

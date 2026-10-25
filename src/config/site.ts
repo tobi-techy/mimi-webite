@@ -13,11 +13,12 @@ export const site = {
   location: "Ado-Ekiti, Nigeria",
   founder: "Oluwatobiloba (Tobi) Omotade",
   url: trimSlash(process.env.NEXT_PUBLIC_SITE_URL || "https://miriam.africa"),
-  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contact@miriam.africa",
+  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "tobilobaomotade@userail.money",
   /** International format, digits only. Empty hides every WhatsApp button. */
   whatsapp: (process.env.NEXT_PUBLIC_WHATSAPP || "").replace(/\D/g, ""),
   /** When set, the contact form POSTs JSON here; otherwise it falls back to mailto. */
-  formEndpoint: process.env.NEXT_PUBLIC_FORM_ENDPOINT || "",
+  formEndpoint:
+    process.env.NEXT_PUBLIC_FORM_ENDPOINT || "https://formsubmit.co/ajax/tobilobaomotade@userail.money",
   title: "Mimi · AI agents for FMCG distribution",
   shareTitle: "Mimi · The route, the shop, the money. One book.",
   description:

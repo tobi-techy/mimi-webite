@@ -18,7 +18,6 @@ const pages = [
   "/contact",
   "/brand-kit",
   "/blog",
-  "/signup",
   "/terms",
   "/privacy",
 ];
