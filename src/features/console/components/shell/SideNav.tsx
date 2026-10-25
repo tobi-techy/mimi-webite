@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { WorkspaceMenu } from "@/features/console/components/shell/WorkspaceMenu";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
@@ -166,13 +167,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
 
       <div className="mc-side__full">
         <div className="mc-side__top">
-          <Link href={consoleRoutes.home} className="mc-ws" aria-label={`Mimi console home, ${owner.company}`}>
-            <span className="mc-ws__mk" aria-hidden="true">
-              <HelperFace name="Mimi" size={15} />
-            </span>
-            <span className="mc-ws__nm">{owner.company}</span>
-            <Icon name="chevron-down" />
-          </Link>
+          <WorkspaceMenu />
           <button className="mc-ib" type="button" aria-label="Collapse sidebar" onClick={toggleSidebar}>
             <Icon name="panel-left" />
           </button>

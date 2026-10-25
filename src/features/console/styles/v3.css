@@ -256,18 +256,6 @@ html:not([data-theme="dark"]) .mc-me { border-top-color: var(--hair); }
 .mc-op span { position: relative; }
 .mc-op__fill { position: absolute; inset: 0 auto 0 0; background: var(--mc-in); transition: width .6s cubic-bezier(.3,.8,.3,1); }
 
-/* voice note */
-.mc-voice {
-  width: 280px; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px;
-  border: 1px solid var(--hair); border-radius: var(--radius-lg);
-}
-.mc-voice__p { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--pri-bg); color: var(--pri-fg); }
-.mc-voice__p .i { width: 13px; height: 13px; }
-.mc-voice__w { flex: 1; display: flex; align-items: center; gap: 2px; height: 20px; }
-.mc-voice__w i { width: 3px; border-radius: 2px; background: var(--hair); transition: background-color .2s var(--mech); }
-.mc-voice__w i.is-on { background: var(--ink); }
-.mc-voice__c { width: 100%; color: var(--muted); font-size: 12px; }
-
 /* decision card */
 .mc-apc { width: 340px; max-width: 100%; border: 1px solid var(--hair); border-radius: var(--radius-lg); overflow: hidden; }
 .mc-apc__h { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px 8px; }
@@ -603,7 +591,7 @@ html:not([data-theme="dark"]) .mc-me { border-top-color: var(--hair); }
   
   .mc-fi { padding: 128px 12px 12px; }
   .mc-b { max-width: min(280px, calc(100vw - 72px)); font-size: 15px; }
-    .mc-poll, .mc-apc, .mc-pv, .mc-voice, .mc-chipcard { width: min(290px, calc(100vw - 64px)); }
+    .mc-poll, .mc-apc, .mc-pv, .mc-chipcard { width: min(290px, calc(100vw - 64px)); }
   .mc-fan { width: 220px; height: 232px; }
   .mc-fan.is-open { width: 260px; }
   .mc-fan img { width: 170px; height: 215px; }
@@ -882,7 +870,7 @@ html:not([data-theme="dark"]) .mc-nr + .mc-nr { border-top-color: var(--hair); }
 .mc-rx--text .mc-b { max-width: 100%; }
 .mc-rx--card, .mc-rx--poll { width: 86%; }
 .mc-rx--voice, .mc-rx--proof { width: 64%; }
-.mc-rx--card .mc-apc, .mc-rx--poll .mc-poll, .mc-rx--voice .mc-voice, .mc-rx--proof .mc-pv { width: 100%; max-width: 100%; }
+.mc-rx--card .mc-apc, .mc-rx--poll .mc-poll, .mc-rx--proof .mc-pv { width: 100%; max-width: 100%; }
 .mc-r > .mc-chipcard { width: 64%; }
 .mc-rx.is-lifted { visibility: hidden; }
 .mc-r--rx { margin-top: 16px; }
@@ -1026,7 +1014,7 @@ html:not([data-theme="dark"]) .mc-rxl__dim--soft { background: rgba(16,16,16,.2)
   .mc-rx--text { max-width: 84vw; }
   .mc-b { max-width: 100%; }
   .mc-rx--card, .mc-rx--poll, .mc-rx--voice, .mc-rx--proof { width: auto; flex: 1 1 auto; max-width: 84vw; }
-  .mc-poll, .mc-apc, .mc-pv, .mc-voice { width: 100%; }
+  .mc-poll, .mc-apc, .mc-pv { width: 100%; }
   .mc-r > .mc-chipcard { width: auto; flex: 1 1 auto; max-width: 84vw; }
   .mc-fan { width: 230px; height: 248px; }
   .mc-fan.is-open { width: 286px; }

@@ -11,6 +11,10 @@ import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
 
+/** Stagger (ms) for the live recording bars. */
+const LIVE_BARS = Array.from({ length: 72 }, (_, i) => -((i * 211) % 900));
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
 type PlusItem = { icon: IconName; label: string; run: () => void };
 
 /** The docked pill composer: + menu, text, mic (voice note) and send. */
@@ -43,7 +47,20 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
     return () => window.clearTimeout(t);
   }, [rec]);
 
+  /* Escape cancels a recording */
+  useEffect(() => {
+    if (!rec) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setRec(0);
+    document.addEventListener("keydown", esc);
+    return () => document.removeEventListener("keydown", esc);
+  }, [rec]);
+
   const value = draft ?? text;
+
+  function cancelRec() {
+    sfx("console", "close", { emphasis: "subtle" });
+    setRec(0);
+  }
 
   function send() {
     if (!value.trim() || playing) return;
@@ -112,9 +129,22 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
       )}
       <div className={cx("mc-pill", rec > 0 && "is-rec")}>
         {rec > 0 ? (
-          <span className="mc-pill__rec mc-mono" role="status">
-            <i /> Recording 0:{String(rec - 1).padStart(2, "0")} · tap the mic to send
-          </span>
+          <div className="mc-rec">
+            <button type="button" className="mc-rec__x" aria-label="Cancel voice note" onClick={cancelRec}>
+              <Icon name="x" />
+            </button>
+            <span className="mc-rec__t mc-mono" role="timer" aria-label={`Recording, ${rec - 1} seconds`}>
+              {clock(rec - 1)}
+            </span>
+            <span className="mc-rec__w" aria-hidden="true">
+              {LIVE_BARS.map((d, i) => (
+                <i key={i} style={{ animationDelay: `${d}ms`, animationDuration: `${600 + ((i * 137) % 500)}ms` }} />
+              ))}
+            </span>
+            <button type="button" className="mc-rec__s" aria-label="Send voice note" onClick={mic}>
+              <Icon name="arrow-up" />
+            </button>
+          </div>
         ) : (
           <textarea
             ref={input}
@@ -132,12 +162,16 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
             }}
           />
         )}
-        <button type="button" className={cx("mc-mic", rec > 0 && "is-on")} aria-label={rec ? "Send voice note" : "Record a voice note"} onClick={mic}>
-          <Icon name="mic" />
-        </button>
-        <button type="button" className="mc-snd" aria-label="Send" disabled={!value.trim()} onClick={send}>
-          <Icon name="arrow-up" />
-        </button>
+        {rec === 0 && (
+          <>
+            <button type="button" className="mc-mic" aria-label="Record a voice note" onClick={mic}>
+              <Icon name="mic" />
+            </button>
+            <button type="button" className="mc-snd" aria-label="Send" disabled={!value.trim()} onClick={send}>
+              <Icon name="arrow-up" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -93,7 +93,7 @@ export type Message =
       /** What the helper says after the vote ({choice} is replaced). */
       reply?: string;
     } & Reactable)
-  | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string } & Reactable)
+  | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string; transcript?: string } & Reactable)
   | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }

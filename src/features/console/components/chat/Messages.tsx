@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { consoleMotion } from "@/config/console-motion";
 import { ReactTarget, ReactionLayer, type LayerState } from "@/features/console/components/chat/Tapbacks";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
@@ -177,38 +177,90 @@ function Poll({ m, ctx }: { m: Extract<Message, { kind: "poll" }>; ctx: Ctx }) {
   );
 }
 
-function Voice({ m }: { m: Extract<Message, { kind: "voice" }> }) {
+const VOICE_BARS = 27;
+/** m:ss for a voice note length. */
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+/** A stable, speech-like waveform (bar heights in %) seeded by the message id. */
+function waveOf(seed: string, n: number): number[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  const raw: number[] = [];
+  for (let i = 0; i < n; i++) {
+    h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+    raw.push((h % 1000) / 1000);
+  }
+  /* light smoothing so it reads like speech, tapered at both ends */
+  const out = raw.map((r, i) => {
+    const s = (r * 2 + (raw[i - 1] ?? r) + (raw[i + 1] ?? r)) / 4;
+    const env = Math.sin((Math.PI * (i + 1)) / (n + 1)) * 0.5 + 0.5;
+    return Math.round(Math.max(18, Math.min(100, (0.3 + s * 0.85) * env * 100)));
+  });
+  return out;
+}
+
+function VoiceNote({ m }: { m: Extract<Message, { kind: "voice" }> }) {
+  const me = m.from === "me";
   const [playing, setPlaying] = useState(false);
-  const [t, setT] = useState(0);
+  const [p, setP] = useState(0);
+  const [open, setOpen] = useState(false);
+  const at = useRef(0);
+  const bars = useMemo(() => waveOf(m.id, VOICE_BARS), [m.id]);
+
+  /* simulated playback: rAF progress over the stated duration, resumes where it paused */
   useEffect(() => {
     if (!playing) return;
-    const id = window.setInterval(() => {
-      setT((x) => {
-        if (x + 1 >= m.seconds) {
-          setPlaying(false);
-          return 0;
-        }
-        return x + 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(id);
+    const dur = m.seconds * 1000;
+    const start = performance.now() - at.current * dur;
+    let raf = 0;
+    const tick = (now: number) => {
+      const x = (now - start) / dur;
+      if (x >= 1) {
+        at.current = 0;
+        setP(0);
+        setPlaying(false);
+        return;
+      }
+      at.current = x;
+      setP(x);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [playing, m.seconds]);
-  const bars = [4, 9, 14, 8, 16, 11, 6, 13, 18, 10, 7, 12, 15, 9, 5, 11, 14, 8, 6, 10];
-  const at = playing ? t / m.seconds : 0;
+
+  const started = playing || p > 0;
+  const left = started ? Math.max(0, Math.ceil(m.seconds * (1 - p))) : m.seconds;
+  const toggle = () => setPlaying((x) => !x);
   return (
-    <div className="mc-voice">
-      <button type="button" className="mc-voice__p" aria-label={playing ? "Pause voice note" : "Play voice note"} onClick={() => setPlaying(!playing)}>
-        <Icon name={playing ? "pause" : "play"} />
-      </button>
-      <span className="mc-voice__w" aria-hidden="true">
-        {bars.map((h, i) => (
-          <i key={i} style={{ height: h }} className={cx(i / bars.length < at && "is-on")} />
-        ))}
-      </span>
-      <span className="mc-mono">
-        0:{String(playing ? m.seconds - t : m.seconds).padStart(2, "0")}
-      </span>
-      <small className="mc-voice__c">{m.caption}</small>
+    <div className={cx("mc-vn", me && "mc-vn--me")}>
+      <div className={cx("mc-vn__b", playing && "is-play")}>
+        <button
+          type="button"
+          className="mc-vn__p"
+          aria-label={`${playing ? "Pause" : "Play"} voice note, ${clock(m.seconds)}`}
+          aria-pressed={playing}
+          onClick={toggle}
+        >
+          <Icon name={playing ? "pause" : "play"} />
+        </button>
+        <span className="mc-vn__w" aria-hidden="true" onClick={toggle}>
+          {bars.map((h, i) => (
+            <i key={i} style={{ height: `${h}%` }} className={cx((i + 0.5) / bars.length <= p && "is-on")} />
+          ))}
+        </span>
+        <span className="mc-vn__t mc-mono" aria-hidden="true">
+          {clock(left)}
+        </span>
+      </div>
+      {m.transcript && (
+        <div className="mc-vn__tr">
+          <button type="button" className="mc-vn__tg" aria-expanded={open} onClick={() => setOpen(!open)}>
+            Transcript
+            <Icon name="chevron-right" />
+          </button>
+          {open && <p>{m.transcript}</p>}
+        </div>
+      )}
     </div>
   );
 }
@@ -331,7 +383,7 @@ function bodyOf(m: Message, ctx: Ctx, tail: boolean): ReactNode {
   if (m.kind === "proof") return <ProofCard m={m} />;
   if (m.kind === "photos") return <PhotoFan m={m} ctx={ctx} />;
   if (m.kind === "poll") return <Poll m={m} ctx={ctx} />;
-  if (m.kind === "voice") return <Voice m={m} />;
+  if (m.kind === "voice") return <VoiceNote m={m} />;
   if (m.kind === "card") return <CardView m={m} ctx={ctx} />;
   if (m.kind === "doc") return <DocChip m={m} />;
   if (m.kind === "computer") return <ComputerChip m={m} />;

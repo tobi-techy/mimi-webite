@@ -25,7 +25,7 @@ export function HomeCta() {
       ]}
       actions={
         <>
-          <img className="x-sticker" src="/brand/mimi-mascot-orange.svg" alt="Mimi mascot sticker" loading="lazy" decoding="async" />{" "}
+          <img className="x-sticker" src="/brand/mimi-mark-sticker.svg" alt="Mimi sticker" loading="lazy" decoding="async" />{" "}
           <ButtonLink href="/contact" arrow>
             Book a pilot
           </ButtonLink>

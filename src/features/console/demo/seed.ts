@@ -243,7 +243,7 @@ const chaseMessages = (): Conversation["messages"] => {
     { id: id(), kind: "text", from: "Proof", at: T(8, 45), text: "Took them off the list.", reactions: [{ by: "Collector", r: "like" }, { by: "me", r: "heart" }] },
     { id: id(), kind: "photos", from: "Proof", at: T(8, 47), label: "3 Photos · Joy Supermarket", photos: [photo.shelf, photo.shop, photo.counter] },
     { id: id(), kind: "text", from: "Proof", at: T(8, 47), text: "Joy says they paid by POS, slip `POS 2281`. ==Self-reported== until it lands in GTB." },
-    { id: id(), kind: "voice", from: "Proof", at: T(8, 48), seconds: 14, caption: "Voice note from Joy Supermarket" },
+    { id: id(), kind: "voice", from: "Proof", at: T(8, 48), seconds: 14, caption: "Voice note from Joy Supermarket", transcript: "Good morning. This is Joy Supermarket. We paid the ₦91,000 by POS yesterday evening, the slip number is 2281. Please check and confirm for us." },
     { id: id(), kind: "date", label: "Today 8:52 AM" },
     {
       id: id(),

@@ -102,7 +102,7 @@ html[data-theme="dark"] { --msg-color: #ffffff; --msg-me-bg: #212121; --msg-me-c
 .mc-tv .mc-r--them .mc-rx--voice,
 .mc-tv .mc-r--them .mc-rx--proof,
 .mc-tv .mc-r--them > .mc-chipcard { width: min(100%, 360px); }
-.mc-tv .mc-apc, .mc-tv .mc-poll, .mc-tv .mc-pv, .mc-tv .mc-voice, .mc-tv .mc-chipcard { border-radius: var(--radius-lg); box-shadow: none; }
+.mc-tv .mc-apc, .mc-tv .mc-poll, .mc-tv .mc-pv, .mc-tv .mc-chipcard { border-radius: var(--radius-lg); box-shadow: none; }
 
 /* ---------- activity lines (helper work steps) ---------- */
 .mc-act {

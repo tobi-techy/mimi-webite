@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "optimize:images": "node scripts/optimize-images.mjs",
-    "optimize:svg": "svgo --config svgo.config.cjs -f assets-src/brand -o public/brand && svgo --config svgo.config.cjs -i assets-src/console/loader-dark.svg assets-src/console/loader-light.svg -o public/console",
+    "optimize:svg": "svgo --config svgo.config.cjs -f assets-src/brand -o public/brand",
     "encode:video": "sh scripts/encode-hero-video.sh",
     "knip": "npx -y knip@5"
   },
