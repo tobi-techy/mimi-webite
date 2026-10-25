@@ -4,6 +4,8 @@ import { fontVariables } from "@/lib/fonts";
 import "@/styles/theme.css";
 import "@/styles/transitions.css";
 import "@/styles/mimi.css";
+import "@/styles/brand.css";
+import "@/styles/boot-loader.css";
 
 /** The <html> document shared by the root layout and the global 404: fonts, theme boot, shared CSS. */
 export function RootDocument({ children }: { children: ReactNode }) {

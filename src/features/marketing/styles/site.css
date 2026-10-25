@@ -1326,9 +1326,9 @@ body {
   color: var(--x-tertiary);
   white-space: nowrap;
 }
-.x-foot__sig img {
+.x-foot__sig .mimi-mark {
+  flex: none;
   width: 40px;
-  height: 40px;
 }
 
 @media (max-width: 900px) {
@@ -4091,67 +4091,7 @@ body {
   }
 }
 
-/* ===== first-load loading screen ===== */
-.x-load {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 20px;
-  background: #101010;
-  color: var(--x-muted);
-  opacity: 1;
-  transition: opacity 180ms var(--x-mech);
-}
-.x-load[hidden] {
-  display: none;
-}
-:root[data-theme="light"] .x-load {
-  background: #fafafa;
-}
-.x-load.is-out {
-  opacity: 0;
-  pointer-events: none;
-}
-/* Next.js port: the boot script shows the loader by class instead of an inline script toggling [hidden] */
-html:not(.x-loading) .x-load {
-  display: none;
-}
-html.x-loading-out .x-load {
-  opacity: 0;
-  pointer-events: none;
-}
-.x-load__mark {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-cards);
-}
-.x-load__bar {
-  width: 160px;
-  height: 1px;
-  background: var(--x-line);
-  overflow: hidden;
-}
-.x-load__bar i {
-  display: block;
-  height: 100%;
-  background: var(--x-text);
-  transform: scaleX(0);
-  transform-origin: left;
-  animation: x-load-fill 900ms var(--x-mech) forwards;
-}
-@keyframes x-load-fill {
-  to {
-    transform: scaleX(1);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .x-load {
-    display: none !important;
-  }
-}
+/* ===== first-load loading screen: shared, see src/styles/boot-loader.css ===== */
 
 /* money-saved calculator */
 #calcForm .x-fields label:last-child {

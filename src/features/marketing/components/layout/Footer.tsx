@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SlapCounter } from "@/features/marketing/motion/SlapCounter";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { Logo } from "@/components/ui/Logo";
 import { Sticker } from "@/components/ui/Sticker";
 import { footerNav } from "@/features/marketing/content/nav";
@@ -69,7 +70,7 @@ export function Footer() {
           </div>
           <div>
             <div className="x-foot__sig">
-              <img src="/brand/mimi-mascot-blink.svg" alt="" aria-hidden="true" loading="lazy" />
+              <BrandMark />
               <span>Never run out.</span>
             </div>
             <p className="x-foot__count x-mono">

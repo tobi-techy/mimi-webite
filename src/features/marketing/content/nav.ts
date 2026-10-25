@@ -11,6 +11,7 @@ export const primaryNav: NavLink[] = [
 ];
 
 export const secondaryNav: NavLink[] = [
+  { href: "/console", label: "Live demo", key: "demo" },
   { href: "/blog", label: "Blog", key: "blog" },
 ];
 

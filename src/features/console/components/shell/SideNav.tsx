@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
@@ -19,6 +19,14 @@ import { cx } from "@/lib/cx";
 
 const NEW_HREF = `${consoleRoutes.home}#new`;
 const DONE_SHOWN = 6;
+/** Demo setup progress: WhatsApp, Sheets and Paystack connected; shops import and team invite left. */
+const SETUP_DONE = 3;
+const SETUP_STEPS = 5;
+const readHash = () => window.location.hash;
+const onHash = (cb: () => void) => {
+  window.addEventListener("hashchange", cb);
+  return () => window.removeEventListener("hashchange", cb);
+};
 
 function NavRow({ href, icon, label, count, on }: { href: string; icon: IconName; label: string; count?: ReactNode; on?: boolean }) {
   return (
@@ -31,8 +39,13 @@ function NavRow({ href, icon, label, count, on }: { href: string; icon: IconName
 }
 
 function ThreadRow({ c, on }: { c: Conversation; on: boolean }) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  /* keep the open thread visible in the sidebar list (it can sit below the fold in Done) */
+  useEffect(() => {
+    if (on) ref.current?.scrollIntoView({ block: "nearest" });
+  }, [on]);
   return (
-    <Link href={conversationHref(c)} className={cx("mc-th", on && "is-on")} aria-current={on ? "page" : undefined}>
+    <Link ref={ref} href={conversationHref(c)} className={cx("mc-th", on && "is-on")} aria-current={on ? "page" : undefined}>
       <HelperFace name={c.helper} size={18} />
       <span className="mc-th__tx">
         <span className="mc-th__t">{c.title}</span>
@@ -42,7 +55,7 @@ function ThreadRow({ c, on }: { c: Conversation; on: boolean }) {
   );
 }
 
-/** Sidebar: logo, helper faces, three links, threads by Needs you / Running / Done, the owner. Collapses to a rail. */
+/** Sidebar: workspace switcher, search row, helper faces, three links, threads by Needs you / Running / Done, the owner. Collapses to a rail. */
 export function SideNav({ settings }: { settings: ReactNode }) {
   const pathname = usePathname();
   const { toggleSidebar, openPalette } = useShell();
@@ -54,6 +67,8 @@ export function SideNav({ settings }: { settings: ReactNode }) {
   const inSettings = pathname.startsWith(consoleRoutes.settings);
   const inThread = pathname.startsWith(consoleRoutes.threads);
   const needs = needCount(conversations);
+  const hash = useSyncExternalStore(onHash, readHash, () => "");
+  const isNew = pathname === consoleRoutes.home && hash === "#new";
 
   const groups = useMemo(() => {
     const list = filter ? conversations.filter((c) => c.helper === filter) : conversations;
@@ -151,17 +166,22 @@ export function SideNav({ settings }: { settings: ReactNode }) {
 
       <div className="mc-side__full">
         <div className="mc-side__top">
-          <Link href={consoleRoutes.home} className="mc-logo" aria-label="Mimi console home">
-            <img className="x-lock x-lock--rev" src="/brand/mimi-logo-horizontal-reverse.svg" alt="" />
-            <img className="x-lock x-lock--ink" src="/brand/mimi-logo-horizontal-ink.svg" alt="" />
+          <Link href={consoleRoutes.home} className="mc-ws" aria-label={`Mimi console home, ${owner.company}`}>
+            <span className="mc-ws__mk" aria-hidden="true">
+              <HelperFace name="Mimi" size={15} />
+            </span>
+            <span className="mc-ws__nm">{owner.company}</span>
+            <Icon name="chevron-down" />
           </Link>
-          <button className="mc-ib" type="button" aria-label="Search (⌘K)" onClick={openPalette}>
-            <Icon name="search" />
-          </button>
           <button className="mc-ib" type="button" aria-label="Collapse sidebar" onClick={toggleSidebar}>
             <Icon name="panel-left" />
           </button>
         </div>
+        <button type="button" className="mc-qs" onClick={openPalette} aria-label="Search and quick actions (⌘K)">
+          <Icon name="search" />
+          <span>Search</span>
+          <kbd>⌘K</kbd>
+        </button>
 
         {inSettings ? (
           <div className="mc-side__scroll mc-side__settings">
@@ -174,7 +194,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
               {faces(false)}
             </div>
             <nav className="mc-navs" aria-label="Main">
-              <NavRow href={NEW_HREF} icon="plus" label="New thread" />
+              <NavRow href={NEW_HREF} icon="plus" label="New thread" on={isNew} />
               <NavRow href={consoleRoutes.shops} icon="store" label="Shops" count={48} on={pathname.startsWith(consoleRoutes.shops) || pathname.startsWith(consoleRoutes.credit)} />
               <NavRow href={consoleRoutes.automations} icon="refresh-cw" label="Automations" count={autoCount} on={pathname.startsWith(consoleRoutes.automations)} />
             </nav>
@@ -211,6 +231,16 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           </>
         )}
 
+        <Link href={`${consoleRoutes.settings}/connectors`} className="mc-gs" aria-label={`Getting started, ${SETUP_DONE} of ${SETUP_STEPS} done`}>
+          <svg className="mc-gs__ring" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.25" />
+            <circle cx="8" cy="8" r="6.25" pathLength="100" strokeDasharray={`${(SETUP_DONE / SETUP_STEPS) * 100} 100`} transform="rotate(-90 8 8)" />
+          </svg>
+          <span className="mc-gs__t">Getting started</span>
+          <span className="mc-gs__k">
+            {SETUP_DONE} of {SETUP_STEPS}
+          </span>
+        </Link>
         <div className="mc-me">
           <span className="mc-ini" aria-hidden="true">
             {owner.initials}

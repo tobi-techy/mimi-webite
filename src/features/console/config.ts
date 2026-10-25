@@ -11,9 +11,8 @@ export const consoleRoutes = {
 export const threadHref = (slug: string): string => `${consoleRoutes.threads}/${slug}`;
 export const shopHref = (id: string): string => `${consoleRoutes.shops}/${id}`;
 
-/** First console visit in a session shows "Opening your book" (see lib/boot-script.ts). */
+/** First console visit in a session shows "Opening your book" (see lib/boot-script.ts, components/layout/BootLoader.tsx). */
 export const CONSOLE_LOADER_KEY = "mimi-console-loaded";
-export const CONSOLE_LOADER_MS = 950;
 
 /** Below this width the sidebar becomes a drawer. */
 export const DRAWER_BREAKPOINT = 899;

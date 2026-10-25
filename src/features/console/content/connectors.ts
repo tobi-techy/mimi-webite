@@ -8,6 +8,10 @@ export type Connector = {
   category: ConnectorCategory;
   connected: boolean;
   logo?: string;
+  /** Shown in the "Needs action" group of Connected tools (e.g. expired access). */
+  needs?: string;
+  /** Small grey "Beta" tag on the card. */
+  beta?: boolean;
 };
 
 const logo = (k: string, ext: "svg" | "png" = "svg") => `/console/logos/${k}.${ext}`;
@@ -36,6 +40,7 @@ export const connectors: readonly Connector[] = [
     category: "Messaging",
     connected: true,
     logo: logo("gmail"),
+    needs: "Access expired on 22 Oct · Reconnect so Proof can keep reading invoices",
   },
   {
     key: "paystack",
@@ -68,6 +73,7 @@ export const connectors: readonly Connector[] = [
     category: "Banking",
     connected: false,
     logo: logo("mono", "png"),
+    beta: true,
   },
   {
     key: "flutterwave",
@@ -188,6 +194,7 @@ export const connectors: readonly Connector[] = [
     category: "Messaging",
     connected: false,
     logo: logo("telegram"),
+    beta: true,
   },
   {
     key: "shopify",
@@ -216,8 +223,10 @@ export const providus: Connector = {
   connected: false,
 };
 
-export const featuredConnectors = ["quickbooks", "mono", "flutterwave", "zoho"] as const;
-export const introLogos = ["whatsapp", "paystack", "googlesheets", "moniepoint"] as const;
+/** Category order for the Connected tools grid. */
+export const connectorCategories: readonly ConnectorCategory[] = [
+  "Messaging", "Payments", "Banking", "Accounting", "Docs", "Storage", "Calendar", "Commerce", "CRM",
+];
 export const paymentProviders = ["paystack", "moniepoint", "providus"] as const;
 
 export const connectorPermissions: Record<ConnectorCategory, readonly string[]> = {

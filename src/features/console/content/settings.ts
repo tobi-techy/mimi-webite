@@ -125,7 +125,7 @@ export const settingsSections: readonly SettingsSection[] = [
     ],
   },
   { id: "appearance", title: "Appearance", icon: "palette", groups: [] },
-  { id: "connectors", title: "Connectors", icon: "plug", groups: [] },
+  { id: "connectors", title: "Connected tools", icon: "plug", groups: [] },
   {
     id: "computers",
     title: "Computers",

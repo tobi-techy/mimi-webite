@@ -1,0 +1,32 @@
+/* The v8 brand mark drawn inline (components/ui/BrandMark.tsx). Shared by both shells. */
+:root {
+  --mark-ink: #eeeeee;
+  --mark-cut: #101010;
+}
+:root[data-theme="light"] {
+  --mark-ink: #101010;
+  --mark-cut: #fafafa;
+}
+.mimi-mark {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.mimi-mark__body,
+.mimi-mark__bow {
+  fill: var(--mark-ink);
+}
+.mimi-mark__bow {
+  stroke: var(--mark-cut);
+  paint-order: stroke;
+}
+.mimi-mark__eyes {
+  fill: var(--mark-cut);
+}
+.mimi-mark__body,
+.mimi-mark__eyes,
+.mimi-mark__bow {
+  transform-box: fill-box;
+  transform-origin: center;
+}

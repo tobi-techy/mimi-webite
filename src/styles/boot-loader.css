@@ -1,0 +1,212 @@
+/*
+ * First-visit loading screen (components/layout/BootLoader.tsx), both shells.
+ * The boot script (lib/boot-script.ts) adds `html.x-loading` before first paint and
+ * `html.x-loading-out` once the page is ready (min 400ms, hard cap 1000ms).
+ *
+ * Intro (≈450ms): the v8 mark is clipped up into place, the eyes open, the bow snaps on, the face
+ * blinks once; a 1px progress hairline fills underneath.
+ * Handoff (≈480ms): the bar completes, then the panel wipes away top-down (clip-path), the same
+ * direction as the page transition wipe, with a hairline riding the edge. The page under it is
+ * already laid out and painted, so nothing shifts.
+ * Reduced motion: no intro, a plain 200ms fade out.
+ */
+:root {
+  --bl-bg: #101010;
+  --bl-muted: #8a8380;
+  --bl-track: #3d3a39;
+  --bl-fill: #eeeeee;
+  --bl-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bl-wipe: cubic-bezier(0.5, 0, 0.1, 1);
+}
+:root[data-theme="light"] {
+  --bl-bg: #fafafa;
+  --bl-muted: #4d4947;
+  --bl-track: #d9d6d4;
+  --bl-fill: #101010;
+}
+
+.boot-load {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bl-bg);
+  place-items: center;
+  clip-path: inset(0 0 0 0);
+}
+html.x-loading .boot-load {
+  display: grid;
+}
+.boot-load__in {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  /* sit optically a touch above centre */
+  margin-top: -4vh;
+}
+.boot-load__mark {
+  display: block;
+  width: 64px;
+  animation: bl-mark 300ms var(--bl-ease) both;
+}
+.boot-load__mark .mimi-mark__eyes {
+  animation: bl-eyes 460ms linear both;
+}
+.boot-load__mark .mimi-mark__bow {
+  animation: bl-bow 220ms cubic-bezier(0.3, 1.5, 0.5, 1) 190ms both;
+}
+.boot-load__label {
+  font:
+    400 11px/1 var(--font-geist-mono),
+    ui-monospace,
+    monospace;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bl-muted);
+  white-space: nowrap;
+  animation: bl-fade 220ms var(--bl-ease) 110ms both;
+}
+.boot-load__bar {
+  position: relative;
+  display: block;
+  width: 160px;
+  height: 1px;
+  background: var(--bl-track);
+  overflow: hidden;
+}
+.boot-load__bar i,
+.boot-load__bar b {
+  position: absolute;
+  inset: 0;
+  background: var(--bl-fill);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+/* keeps creeping toward 92% until the page is ready, never claims "done" on its own */
+.boot-load__bar i {
+  animation: bl-fill 1000ms cubic-bezier(0.3, 0.6, 0.4, 1) both;
+}
+.boot-load__edge {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: var(--bl-track);
+  opacity: 0;
+}
+
+/* handoff */
+html.x-loading-out .boot-load {
+  pointer-events: none;
+  animation: bl-wipe 400ms var(--bl-wipe) 40ms both;
+}
+html.x-loading-out .boot-load__bar b {
+  animation: bl-done 120ms var(--bl-ease) both;
+}
+html.x-loading-out .boot-load__in {
+  animation: bl-push 400ms var(--bl-wipe) 40ms both;
+}
+html.x-loading-out .boot-load__edge {
+  animation: bl-edge 400ms var(--bl-wipe) 40ms both;
+}
+
+@keyframes bl-mark {
+  from {
+    clip-path: inset(100% 0 0 0);
+    transform: translateY(10px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+/* closed until 150ms, open by 240ms, blink at 330 to 460ms */
+@keyframes bl-eyes {
+  0%,
+  32% {
+    transform: scaleY(0);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  52%,
+  72% {
+    transform: scaleY(1);
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  84% {
+    transform: scaleY(0.1);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+@keyframes bl-bow {
+  from {
+    transform: scale(0) rotate(-35deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes bl-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes bl-fill {
+  to {
+    transform: scaleX(0.92);
+  }
+}
+@keyframes bl-done {
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes bl-wipe {
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+@keyframes bl-push {
+  to {
+    transform: translateY(48px);
+    opacity: 0;
+  }
+}
+@keyframes bl-edge {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-load,
+  .boot-load *,
+  .boot-load .mimi-mark__eyes,
+  .boot-load .mimi-mark__bow {
+    animation: none !important;
+  }
+  .boot-load__bar i {
+    transform: scaleX(1);
+  }
+  .boot-load {
+    transition: opacity 200ms linear;
+  }
+  html.x-loading-out .boot-load {
+    opacity: 0;
+  }
+  .boot-load__edge {
+    display: none;
+  }
+}

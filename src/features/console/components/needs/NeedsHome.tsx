@@ -10,9 +10,25 @@ import { approveCard, conversationHref, declineCard, startThread } from "@/featu
 import { needItems, type NeedItem } from "@/features/console/demo/needs";
 import { owner } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
+import type { HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
 const VISIBLE = 4;
+type Starter = { helper: HelperName; label: string; text: string };
+/** New thread choice chips: a helper face + a plain job. Picking one fills the composer. */
+const STARTERS: readonly Starter[] = [
+  { helper: "Order", label: "Take an order", text: "Take an order for " },
+  { helper: "Collector", label: "Chase payments", text: "Chase shops that owe more than ₦50,000" },
+  { helper: "Credit", label: "Review a limit", text: "Should I raise the credit limit for " },
+  { helper: "Stock", label: "Check stock", text: "What is running low this week?" },
+  { helper: "Brand", label: "Brand report", text: "Draft this week's sell-out report for " },
+  { helper: "Proof", label: "Confirm a payment", text: "Check if this transfer landed: " },
+];
+const readHash = () => window.location.hash;
+const onHash = (cb: () => void) => {
+  window.addEventListener("hashchange", cb);
+  return () => window.removeEventListener("hashchange", cb);
+};
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
 const noop = () => () => {};
 const part = () => {
@@ -67,11 +83,23 @@ export function NeedsHome() {
   const when = useSyncExternalStore(noop, part, () => "Morning");
   const [all, setAll] = useState(false);
   const [text, setText] = useState("");
+  const [pick, setPick] = useState<string | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const isNew = useSyncExternalStore(onHash, readHash, () => "") === "#new";
 
   useEffect(() => {
-    if (window.location.hash === "#new") input.current?.focus();
-  }, []);
+    if (isNew) input.current?.focus();
+  }, [isNew]);
+
+  function choose(st: Starter) {
+    setPick(st.label);
+    setText(st.text);
+    const el = input.current;
+    if (el) {
+      el.focus();
+      requestAnimationFrame(() => el.setSelectionRange(st.text.length, st.text.length));
+    }
+  }
 
   const waiting = items.filter((i) => i.status === "needs").length;
   const busy = [...new Set(conversations.filter((c) => c.working).map((c) => c.helper))].slice(0, 2);
@@ -81,6 +109,7 @@ export function NeedsHome() {
     if (!text.trim()) return;
     const slug = startThread(text);
     setText("");
+    setPick(null);
     router.push(`/console/threads/new?id=${slug}`);
   }
 
@@ -88,25 +117,60 @@ export function NeedsHome() {
     <div className="mc-nh">
       <div className="mc-nh__scroll">
         <div className="mc-col mc-nh__in">
-          <h1 className="mc-nh__hi">
-            {items.length
-              ? `${when}, ${owner.first}. ${waiting} thing${waiting === 1 ? "" : "s"} need${waiting === 1 ? "s" : ""} you.`
-              : `All clear, ${owner.first}.${busy.length ? ` ${busy.join(" and ")} ${busy.length > 1 ? "are" : "is"} working.` : ""}`}
-          </h1>
-          {items.length > 0 && (
-            <section aria-label="Needs you">
-              <ul className="mc-nl">
-                {shown.map((it) => (
-                  <Row key={it.key} it={it} />
+          {isNew ? (
+            <>
+              <h1 className="mc-nh__hi">What should the team pick up?</h1>
+              <p className="mc-nh__sub">Pick a job to start, or just type. Nothing goes out without your yes.</p>
+              <div className="mc-chips" role="group" aria-label="Start with">
+                {STARTERS.map((st) => (
+                  <button
+                    key={st.label}
+                    type="button"
+                    className={cx("mc-chip", pick === st.label && "is-on")}
+                    aria-pressed={pick === st.label}
+                    onClick={() => choose(st)}
+                  >
+                    <HelperFace name={st.helper} size={18} />
+                    {st.label}
+                  </button>
                 ))}
-              </ul>
-              {items.length > VISIBLE && (
-                <button type="button" className="mc-nl__more" aria-expanded={all} onClick={() => setAll(!all)}>
-                  {all ? "Show less" : `Show all ${items.length}`}
-                  <Icon name="chevron-down" />
+                <button
+                  type="button"
+                  className={cx("mc-chip", pick === "other" && "is-on")}
+                  aria-pressed={pick === "other"}
+                  onClick={() => {
+                    setPick("other");
+                    input.current?.focus();
+                  }}
+                >
+                  <Icon name="ellipsis" />
+                  Something else
                 </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="mc-nh__hi">
+                {items.length
+                  ? `${when}, ${owner.first}. ${waiting} thing${waiting === 1 ? "" : "s"} need${waiting === 1 ? "s" : ""} you.`
+                  : `All clear, ${owner.first}.${busy.length ? ` ${busy.join(" and ")} ${busy.length > 1 ? "are" : "is"} working.` : ""}`}
+              </h1>
+              {items.length > 0 && (
+                <section aria-label="Needs you">
+                  <ul className="mc-nl">
+                    {shown.map((it) => (
+                      <Row key={it.key} it={it} />
+                    ))}
+                  </ul>
+                  {items.length > VISIBLE && (
+                    <button type="button" className="mc-nl__more" aria-expanded={all} onClick={() => setAll(!all)}>
+                      {all ? "Show less" : `Show all ${items.length}`}
+                      <Icon name="chevron-down" />
+                    </button>
+                  )}
+                </section>
               )}
-            </section>
+            </>
           )}
         </div>
       </div>

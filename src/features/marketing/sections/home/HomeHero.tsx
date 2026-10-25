@@ -31,8 +31,8 @@ export function HomeHero() {
               <ButtonLink href="/contact" className="x-pill">
                 Book a pilot
               </ButtonLink>{" "}
-              <Link className="x-tlink" href="/#witnesses">
-                See how it works →
+              <Link className="x-tlink" href="/console">
+                Try the live demo →
               </Link>
             </ButtonRow>
             <div className="x-strip x-mono">

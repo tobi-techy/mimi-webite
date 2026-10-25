@@ -1,16 +1,6 @@
 /* Next.js port additions: loader, links in nav lists, fixed chrome during page transitions, mobile drawer. */
 
-/* first-visit loader (ConsoleLoader + boot script) */
-.c-load { display: none; position: fixed; inset: 0; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: var(--bg); transition: opacity .18s var(--mech); }
-.c-loading .c-load { display: flex; }
-.c-loading-out .c-load { opacity: 0; }
-.c-load__mark { width: 56px; height: 56px; }
-.c-load__mark--light, html:not([data-theme="dark"]) .c-load__mark--dark { display: none; }
-html:not([data-theme="dark"]) .c-load__mark--light { display: block; }
-.c-load__label { font: 400 11px/1 var(--font-geist-mono), ui-monospace, monospace; letter-spacing: -0.02em; color: var(--muted); text-transform: uppercase; }
-.c-load__track { width: 160px; height: 1px; background: var(--hair); overflow: hidden; }
-.c-load__track i { display: block; height: 1px; width: 0; background: var(--ink); transition: width .9s var(--mech); }
-.c-load__track i.is-full { width: 100%; }
+/* first-visit loader: shared, see src/styles/boot-loader.css */
 
 .x-sd--done { background: var(--hair); }
 .x-sd--off { margin: 0; background: var(--muted); }
