@@ -1,0 +1,50 @@
+# Mimi
+
+> Mimi is a team of AI agents on WhatsApp for FMCG distributors and brands in Nigeria. It collects what shops owe, catches leaks on the route, and shows brands what really sold. Shops use it free.
+
+Mimi is built by Rail Technology Concepts Ltd (RC 9322751), Ado-Ekiti, Nigeria. Mimi is in early access and pilots are by invitation.
+
+## Key facts
+- Who it is for: FMCG distributors, the brands they carry, and the retail shops they supply.
+- Where it works: inside WhatsApp. Reps and shops keep using the app they already use.
+- One shop book: deliveries, payments and debts for each shop are kept in one shared record.
+- Three witnesses for every naira: a payment counts as verified only when the rep, the shop and the bank agree. Fake alerts get flagged.
+- Mimi never holds or moves money. Payments settle straight to the distributor's own account.
+- Distributors set credit limits. Mimi informs, people decide.
+- Shops own their data. Brands see totals by default, never another brand's sales, and shop-level data only with the shop's consent.
+- Free for shops, always.
+
+## The console
+Distributor teams work with Mimi in a web console:
+- Threads: ask Mimi in plain language (collections, restock, onboarding, credit) and follow each run step by step, including what its cloud computer is doing on screen.
+- Approvals: every payment plan, restock order or brand email waits as a draft until a person approves it.
+- Shops: each shop's sell-through, outstanding balance, payments (verified or self-reported) and credit score.
+- Credit: Mimi recommends limit changes with reasons; only the distributor can set a limit.
+- Settings: connectors (WhatsApp Business, Google Sheets, Gmail, Paystack and more), computers, members, shop access rules and usage.
+
+## Pages
+- [Home](/): what Mimi does and how it works
+- [Distributors](/distributors): collections, credit, route leaks
+- [Brands](/brands): sell-through visibility from real shop data
+- [Shops](/shops): the free shop book
+- [Pricing](/pricing): plans and the free pilot
+- [Compare](/compare): honest, cited comparison of Mimi with other distributor tools
+- [Brand kit](/brand-kit): logo, mascot, colours, type and press descriptions
+- [Security](/security): how data and money are protected
+- [About](/about): the team and why Mimi exists
+- [Blog](/blog): notes on distribution, trust and product
+- [Contact](/contact): request a pilot
+
+## Compare
+Competitor details as listed on each company's own website, checked 24 Oct 2026. "Not listed" means not found on their public site.
+- [Mimi vs the tools distributors use](/compare): the matrix, a 100-shop cost example, and tools that sit alongside Mimi
+- [F6C Distro vs Mimi](/compare/f6c-distro): AI sales agent on WhatsApp; strong on reorders and invoices
+- [DistroOS vs Mimi](/compare/distroos): distributor ERP (also known as VFG Distro)
+- [ZöTok vs Mimi](/compare/zotok): WhatsApp order to cash, built for India
+- [The old way vs Mimi](/compare/the-old-way): notebook, WhatsApp groups and Excel
+
+## Blog
+- [Why distributors still run on notebooks](/blog/why-distributors-run-on-notebooks)
+- [Three witnesses for every naira](/blog/three-witnesses-for-every-naira)
+- [Shops own their data. Here's what that means.](/blog/shops-own-their-data)
+- [One question a week, and no more](/blog/one-question-a-week)

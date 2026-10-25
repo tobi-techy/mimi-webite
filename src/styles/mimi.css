@@ -1,0 +1,169 @@
+/* Mimi looking around (MimiLooking): shared by the site and the console. */
+.x-mimi-look {
+  position: relative;
+  z-index: 0;
+  width: clamp(180px, 22vw, 280px);
+  height: auto;
+  overflow: visible;
+}
+.x-mimi-look__face {
+  fill: var(--x-text, var(--ink));
+}
+.x-mimi-look__eye {
+  fill: var(--x-canvas, var(--bg));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.x-mimi-look__head {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+  animation: x-mimi-tilt 6s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+}
+.x-mimi-look__eyes {
+  animation: x-mimi-eyes 6s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+}
+.x-mimi-look__eye--wink {
+  animation: x-mimi-wink 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes x-mimi-tilt {
+  0%,
+  12% {
+    transform: rotate(0deg) translateY(0);
+  }
+  22%,
+  34% {
+    transform: rotate(-6deg) translateY(2px);
+  }
+  46%,
+  62% {
+    transform: rotate(5deg) translateY(2px);
+  }
+  74%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+@keyframes x-mimi-eyes {
+  0%,
+  12% {
+    transform: translate(0, 0);
+  }
+  22%,
+  34% {
+    transform: translate(-16px, 4px);
+  }
+  46%,
+  62% {
+    transform: translate(16px, 6px);
+  }
+  74%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes x-mimi-wink {
+  0%,
+  50% {
+    transform: scaleY(1);
+  }
+  53%,
+  58% {
+    transform: scaleY(0.12);
+  }
+  61%,
+  84% {
+    transform: scaleY(1);
+  }
+  86% {
+    transform: scaleY(0.1);
+  }
+  88%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .x-mimi-look__head,
+  .x-mimi-look__eyes,
+  .x-mimi-look__eye--wink {
+    animation: none;
+  }
+}
+
+.x-mimi-look--sm {
+  width: 56px;
+}
+.x-mimi-look--xs {
+  width: 28px;
+}
+
+/* v8 bow: same colour as the face, cut out by a canvas-coloured outline */
+.x-mimi-look__bow {
+  fill: var(--x-text, var(--ink));
+  stroke: var(--x-canvas, var(--bg));
+  stroke-width: 6;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+/* Mimi Alive (src/components/ui/mimi-alive): living face rig */
+.x-mimi-alive-host {
+  display: inline-block;
+  width: clamp(180px, 22vw, 280px);
+  line-height: 0;
+}
+.x-mimi-alive-host--sm {
+  width: 56px;
+}
+.x-mimi-alive-host--xs {
+  width: 28px;
+}
+.x-mimi-alive {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.x-mimi-alive__face {
+  fill: var(--x-text, var(--ink));
+}
+.x-mimi-alive__eye {
+  fill: var(--x-canvas, var(--bg));
+}
+.x-mimi-alive__cheek {
+  fill: var(--color-signal-orange, #ee6018);
+}
+.x-mimi-alive__bow {
+  fill: var(--x-text, var(--ink));
+  stroke: var(--x-canvas, var(--bg));
+  stroke-width: 6;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+.x-mimi-stage {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+}
+.x-mimi-stage__moods {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 420px;
+}
+.x-mimi-stage__moods button {
+  font: 400 12px/1 var(--font-mono, ui-monospace, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--x-text, var(--ink));
+  background: transparent;
+  border: 1px solid var(--x-line, var(--line, #3d3a39));
+  border-radius: 3px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+.x-mimi-stage__moods button[aria-pressed="true"] {
+  background: var(--x-text, var(--ink));
+  color: var(--x-canvas, var(--bg));
+  border-color: var(--x-text, var(--ink));
+}

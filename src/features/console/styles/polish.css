@@ -1,0 +1,155 @@
+/* Calm pass, tabs, action groups, window bar, avatars, thread tabs, overlays. */
+/* calm pass: nothing outlined unless focused or selected; areas split by space and a faint surface tint */
+.x-panel, .x-drawer, .x-utbl > .x-uch, .x-pg, .x-note, .x-sr summary, .x-thumb, .x-tchrome, .x-kpis, .x-kpi, .x-ri, .x-modal li, .x-bub, .x-zz span, .x-stack img, .x-lg, .x-pkm, .x-modal, code, .x-pill { border: 0; }
+.x-card, .x-utile, .x-ucard, .x-comp, .x-plan, .x-void, .x-kpi, .x-dstats div, .x-intro { border: 0; border-radius: 12px; background: var(--surface); box-shadow: none; }
+.x-plan:hover, .x-comp:hover, .x-cc:hover, .x-fc:hover { background: var(--tint2); }
+.x-cc, .x-fc { text-align: left; width: 100%; font-size: 12.5px; }
+.x-fc > :last-child { margin-top: auto; }
+.x-uch .x-pk--ghost { margin-right: -8px; }
+.x-ckm, .x-ckt, .x-ckt button, .x-tpane, .x-seg { border: 0; } 
+.x-search, .x-sq, code{ background: var(--surface-2); border: 0; }
+.x-sq:hover { background: var(--tint2); }
+
+.x-search:focus-within { box-shadow: inset 0 0 0 1px var(--hair); }
+
+.x-pill { background: color-mix(in srgb, currentColor 10%, transparent); }
+.x-warn { border: 0; background: color-mix(in srgb, #B7791F 11%, transparent); }
+
+ .x-stmt td, .x-dl li, .x-tbr, .x-tcr, .x-tsheet span{ border-color: var(--line); }
+.x-tsheet span { border-right: 0; }
+
+.x-kpis { gap: 16px; margin-top: 24px; } .x-kpi, .x-kpi:first-child { padding: 18px 20px; }
+.x-dstats div { padding: 14px; }
+.x-pg button.is-on { border: 0; background: var(--tint2); }
+/* tabs and segments: no box, no underline; the active one is a soft pill */
+ .x-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 0; background: none; border-radius: 0; }
+
+ .x-seg button, .x-ckt button { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; margin: 0; border-radius: 999px; color: var(--muted); font-weight: 500; font-size: 12.5px; box-shadow: none; }
+ .x-seg button:hover, .x-ckt button:hover { color: var(--ink); }
+ .x-seg button.is-on, .x-ckt button.is-on, .x-ckf .x-seg button.is-on { background: var(--tint2); color: var(--ink); box-shadow: none; }
+.x-seg .x-tm{ font-weight: 400; margin-left: 0; }
+.x-seg button .i { width: 14px; height: 14px; }
+.x-ckt { gap: 2px; padding: 4px 12px 8px; }
+.x-ckf { border-top: 1px solid var(--line); }
+
+/* visible action groups: header actions and per-row buttons, borderless */
+.x-acts2 { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.x-racts { flex-wrap: nowrap; justify-content: flex-end; }
+
+.x-lhd .x-acts2 { margin-left: auto; } .x-lhd .x-acts2 + .x-btn--primary { margin-left: 8px; }
+.x-cbtns .x-acts2 { margin-left: -8px; }
+ 
+
+.x-ulab, .x-cap, .x-pkc { opacity: .8; }
+.x-ltools { margin: 20px 0 24px; }
+.x-cgrid, .x-fgrid { gap: 16px; }
+.x-ust { gap: 16px; margin-top: 24px; } .x-uc2 { gap: 16px; margin-top: 16px; } .x-ucard { padding: 20px; }
+.x-utbl { margin-top: 16px; padding: 0; } .x-utbl > .x-uch { padding: 16px 20px 8px; }
+.x-recs { margin-top: 24px; } .x-ri { padding: 14px 16px 14px 20px; }
+.x-sh { margin-top: 40px; }
+.x-comp { cursor: pointer; }
+.x-cbody .x-chd .x-pk--icon { margin-right: -8px; }
+
+  
+ .x-pkm { box-shadow: var(--shadow-sm); }
+@media (max-width: 1100px) {
+  
+  .x-split { flex-direction: column; flex: none; }
+  
+  .x-panel { width: auto; overflow: visible; }
+  .x-ust { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .x-uc2 { grid-template-columns: 1fr; }
+  
+}
+@media (max-width: 760px) {
+  body { overflow: auto; }
+  
+   .x-view{ overflow: visible; }
+  
+  
+  
+
+  
+  
+  .x-card { padding: 16px; }
+  
+  
+  
+  
+  .x-panel { padding: 16px; }
+  
+
+  .x-ltools .x-search, .x-shead .x-search { width: 100%; flex: 1 1 200px; }
+  .x-intro { flex-wrap: wrap; }
+  .x-shead .x-search { width: 100%; order: 3; }
+  .x-intro { padding: 24px; }
+  .x-intro > svg { display: none; }
+  .x-cgrid { grid-template-columns: 1fr; }
+  .x-fgrid { grid-template-columns: 1fr 1fr; }
+  .x-ctbl td:nth-child(2), .x-ctbl th:nth-child(2) { display: none; }
+
+  .x-cgrid3 { grid-template-columns: 1fr; }
+  .x-kpis { grid-template-columns: 1fr 1fr; }
+  .x-kpi b { font-size: 24px; }
+  .x-ri { flex-wrap: wrap; padding: 12px 16px; }
+  .x-drawer { padding: 16px; }
+  .x-dstats b { font-size: 17px; }
+  .x-utbl .x-search { width: 100%; }
+  .x-utbl > .x-uch { flex-wrap: wrap; }
+  .x-uval { font-size: 32px; }
+  .x-utile { height: 160px; }
+  .x-ckf .x-grow, .x-ckf > span:not(.x-seg) { display: none; }
+}
+/* v3: Capy-style shell. Window bar, inset frame, gele mark, dot field, flat threads */
+body { background: var(--base); }
+
+ 
+
+ 
+.x-grow { flex: 1; }
+
+.x-gele { width: 26px; height: 26px; color: var(--ink); display: block; }
+
+.x-panel { background: var(--frame); border-left: 1px solid var(--line) !important; }
+.x-card, .x-utile, .x-ucard, .x-comp, .x-plan, .x-void, .x-kpi, .x-dstats div, .x-intro { background: var(--surface); }
+
+/* avatars */
+
+/* home */
+
+.x-dots { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+ 
+
+/* thread tabs (Capy top tab row) */
+
+ 
+
+/* conversation */
+.x-split { position: relative; }
+.x-mm { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 5px; z-index: 2; }
+.x-mm button { width: 8px; height: 1.5px; border-radius: 1px; background: var(--hair); padding: 0; }
+.x-mm button.is-on { width: 12px; background: var(--ink); }
+.x-mm button:hover { background: var(--muted); }
+
+ 
+
+ 
+
+ 
+.x-ring { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--hair); border-top-color: var(--muted); animation: x-spin 1.4s linear infinite; }
+
+ 
+
+/* search, modals and drawers blur what's behind them */
+.x-ckw, .x-scrim, .x-dscrim { background: color-mix(in srgb, var(--base) 42%, transparent); -webkit-backdrop-filter: blur(14px) saturate(.85); backdrop-filter: blur(14px) saturate(.85); }
+.x-ckm { box-shadow: 0 0 0 1px var(--line), 0 24px 64px rgba(0,0,0,.18); background: var(--frame); }
+.x-ckw { animation: x-fade .16s ease-out; }
+.x-ckm { animation: x-rise .2s cubic-bezier(.22,1,.36,1); }
+@keyframes x-fade { from { opacity: 0; } }
+@keyframes x-rise { from { opacity: 0; transform: translateY(6px) scale(.99); } }
+@media (prefers-reduced-motion: reduce) { .x-ckw, .x-ckm, .x-ring { animation: none; } }
+@media (max-width: 1100px) { .x-mm { display: none; } }
+
+.x-stk { width: 40px; height: 44px; object-fit: contain; transform: rotate(-6deg); transition: transform .2s cubic-bezier(.22,1,.36,1); }
+

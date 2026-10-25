@@ -1,0 +1,65 @@
+/*
+ * Route transitions (React <ViewTransition>, see components/navigation/PageTransition.tsx).
+ * Factory style: no fade. The outgoing page is dropped at once and the incoming page wipes in
+ * from the top with a short 20px rise. Chrome (nav, console sidebar) carries its own
+ * view-transition name and stays put. Unsupported browsers swap instantly.
+ */
+:root {
+  --page-vt-duration: 300ms;
+  --page-vt-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* fixed chrome: captured on its own and never animated */
+::view-transition-group(site-nav),
+::view-transition-group(console-side),
+::view-transition-group(console-bar) {
+  animation: none;
+  z-index: 2;
+}
+::view-transition-old(site-nav),
+::view-transition-new(site-nav),
+::view-transition-old(console-side),
+::view-transition-new(console-side),
+::view-transition-old(console-bar),
+::view-transition-new(console-bar) {
+  animation: none;
+}
+
+::view-transition-group(.page) {
+  animation: none;
+}
+::view-transition-old(.page) {
+  animation: page-out 1ms linear both;
+}
+::view-transition-new(.page) {
+  animation: page-in var(--page-vt-duration) var(--page-vt-ease) both;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(20px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

@@ -1,18 +1,23 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
+import prettier from "eslint-config-prettier/flat";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
-]);
+const config = [
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  prettier,
+  {
+    rules: {
+      // Marketing copy is full of apostrophes and quotes; escaping them would hurt readability.
+      "react/no-unescaped-entities": "off",
+      // Logos, the mascot and die-cut stickers are decorative, CSS-sized and cloned by the sticker
+      // slap effect, so they stay plain <img>. Photos use next/image.
+      "@next/next/no-img-element": "off",
+    },
+  },
+  {
+    ignores: [".next/**", "out/**", "node_modules/**", "next-env.d.ts"],
+  },
+];
 
-export default eslintConfig;
+export default config;

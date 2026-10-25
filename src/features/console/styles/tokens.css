@@ -1,0 +1,30 @@
+/* Console tokens: the prototype palette, then the Factory theme layer that overrides it. */
+:root {
+  --bg: #F7F5F0; --paper: #FBFAF7; --ink: #1A1A1A; --soft: #353432; --muted: #686663; --hair: rgba(17,17,17,.14);
+  --green: #2F7D4F; --amber: #B7791F; --red: #B42318; --tint: rgba(17,17,17,.05);
+  --accent: #1F6F4A; --bubble: #EFEBE3; --warm: #F1EDE5; --head: rgba(17,17,17,.03); --chart-amber: #D9822B;
+  --shadow-sm: 0 1px 2px rgba(17,17,17,.06), 0 4px 12px rgba(17,17,17,.06);
+  --surface: #F0EDE6; --surface-2: rgba(17,17,17,.045); --tint2: rgba(17,17,17,.08); --line: color-mix(in srgb, var(--hair) 40%, transparent);
+}
+html[data-theme="dark"] {
+  --bg: #14130F; --paper: #1A1915; --ink: #F3F0E9; --soft: #CDC8BE; --muted: #9A958C; --hair: rgba(243,240,233,.18);
+  --green: #4FA672; --amber: #D69A3E; --red: #E0604F; --tint: rgba(243,240,233,.06);
+  --accent: #4FA672; --bubble: #24221D; --warm: #1F1D18; --head: rgba(243,240,233,.04);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.3);
+  --surface: #1D1C18; --surface-2: rgba(243,240,233,.06); --tint2: rgba(243,240,233,.1);
+}
+:root { --base: #F1EEE7; --frame: #FBFAF7; --face: #F1EEE7; }
+html[data-theme="dark"] { --bg: #0B0B0A; --paper: #0B0B0A; --base: #0B0B0A; --frame: #131312; --face: #0B0B0A; --surface: #1B1B19; --surface-2: rgba(243,240,233,.06); --tint2: rgba(243,240,233,.09); --bubble: #222220; --line: rgba(243,240,233,.07); }
+:root { --color-obsidian-canvas:#101010; --color-carbon-lift:#1d1a18; --color-ash-stroke:#3d3a39; --color-graphite-mid:#4d4947; --color-warm-granite:#8a8380; --color-pale-stone:#b8b3b0; --color-bone:#eeeeee; --color-chalk:#fafafa; --color-signal-orange:#ee6018; --color-metric-green:#a0ca92; --radius-sm:3px; --radius-lg:10px; --radius-2xl:20px; --mech: cubic-bezier(0.4,0,0.2,1); }
+html[data-theme="dark"] { color-scheme: dark;
+  --base:#101010; --bg:#101010; --paper:#101010; --face:#101010; --frame:#101010;
+  --surface:#1d1a18; --surface-2:rgba(238,238,238,.04); --tint:rgba(238,238,238,.06); --tint2:rgba(238,238,238,.09); --head:rgba(238,238,238,.03);
+  --bubble:#1d1a18; --warm:#1d1a18; --ink:#eeeeee; --soft:#b8b3b0; --muted:#8a8380; --hair:#3d3a39; --line:#1d1a18;
+  --green:#a0ca92; --amber:#ee6018; --red:#e5604f; --accent:#a0ca92; --chart-amber:#ee6018;
+  --shadow-sm: 0 0 0 1px #3d3a39; --pri-bg:#fafafa; --pri-fg:#101010; --pri-hover:#b8b3b0; }
+html:not([data-theme="dark"]) { color-scheme: light;
+  --base:#fafafa; --bg:#fafafa; --paper:#fafafa; --face:#fafafa; --frame:#fafafa;
+  --surface:#eeeeee; --surface-2:rgba(16,16,16,.035); --tint:rgba(16,16,16,.05); --tint2:rgba(16,16,16,.08); --head:rgba(16,16,16,.03);
+  --bubble:#eeeeee; --warm:#f3f3f3; --ink:#101010; --soft:#3d3a39; --muted:#5e5956; --hair:#d9d6d4; --line:#e4e1df;
+  --green:#4c7a3f; --amber:#c24e0f; --red:#b42318; --accent:#6f9e60; --chart-amber:#ee6018;
+  --shadow-sm: 0 0 0 1px #d9d6d4; --pri-bg:#101010; --pri-fg:#fafafa; --pri-hover:#3d3a39; }

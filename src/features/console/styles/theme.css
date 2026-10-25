@@ -1,0 +1,29 @@
+/* Factory theme layer: buttons, cards, mono status tags, logo lockup, live window. */
+body { font-family: var(--font-geist-sans), "Inter", system-ui, sans-serif; letter-spacing: -0.005em; }
+b, strong { font-weight: 500; }
+h1, .x-title { font-weight: 400 !important; letter-spacing: -0.025em !important; }
+/* buttons: three variants, 3px radius, mechanical motion */
+.x-search, code { border-radius: var(--radius-sm) !important; }
+.x-pill { transition: background-color .18s var(--mech), color .18s var(--mech), border-color .18s var(--mech) !important; }
+
+/* cards: outline on canvas, 10px */
+.x-card{ border-radius: var(--radius-lg) !important; box-shadow: none !important; }
+.x-card { background: transparent; border-color: var(--line); }
+html[data-theme="dark"] .x-card { border-color: #1d1a18; }
+
+.x-ckm { box-shadow: 0 0 0 1px var(--hair) !important; border-radius: var(--radius-2xl) !important; }
+/* status tags in mono */
+.x-pill { border-radius: var(--radius-sm) !important; font: 400 11px/1 var(--font-geist-mono), ui-monospace, monospace !important; text-transform: uppercase; letter-spacing: -0.02em; height: 22px; }
+.x-cap, .x-dsc h4, th { font-family: var(--font-geist-mono), ui-monospace, monospace !important; text-transform: uppercase; letter-spacing: -0.02em !important; font-weight: 400 !important; }
+.x-sd { box-shadow: none; }
+/* toast */
+.x-toast, html[data-theme="dark"] .x-toast { background: var(--pri-bg) !important; color: var(--pri-fg) !important; border-radius: var(--radius-sm) !important; box-shadow: none !important; }
+.x-bar span, .x-mb i { background: var(--ink); }
+::selection { background: rgba(238,96,24,.35); }
+
+/* pass 2: lockup logo + tighter top */
+.x-lock { height: 22px; width: auto; display: block; }
+.x-lock--ink { display: none; }
+html:not([data-theme="dark"]) .x-lock--ink { display: block; }
+html:not([data-theme="dark"]) .x-lock--rev { display: none; }
+

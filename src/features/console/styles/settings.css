@@ -1,0 +1,48 @@
+/* Settings, picker and command palette. */
+/* settings */
+
+.x-set h1.x-title { font-size: 20px; font-weight: 500; letter-spacing: -.01em; }
+.x-sh { display: flex; align-items: center; gap: 8px; margin: 32px 0 4px; min-height: 28px; }
+.x-sh h2 { flex: 1; font-size: 14px; font-weight: 500; margin: 0; }
+.x-sh h2 span { color: var(--muted); font-weight: 400; }
+
+.x-mono { font: 400 12px var(--font-geist-mono), ui-monospace, monospace; color: var(--muted); }
+
+.x-lgt { display: inline-grid; place-items: center; font: 500 11px var(--font-geist-sans), sans-serif; color: #1A1A1A; }
+
+/* picker */
+
+.x-pkm { position: fixed; z-index: 60; min-width: 200px; max-width: 320px; max-height: 320px; overflow-y: auto; padding: 4px; background: var(--paper); border: 1px solid var(--hair); border-radius: 10px; box-shadow: var(--shadow-sm); }
+.x-pkm .x-search { margin: 0 0 4px; height: 32px; }
+.x-pkc { font: 400 11px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px 8px 4px; }
+.x-pko { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 4px 8px; border-radius: 6px; text-align: left; font-size: 13px; }
+.x-pko.is-act { background: var(--tint); }
+.x-pko > span:not([class]) { flex: 1; min-width: 0; }
+.x-pko small { display: block; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.x-pko > .i { width: 14px; height: 14px; color: var(--muted); }
+.x-pko .x-ck { color: var(--ink); visibility: hidden; }
+.x-pko[aria-selected="true"] .x-ck { visibility: visible; }
+/* command palette */
+.x-ckw { position: fixed; inset: 0; z-index: 50; background: rgba(17,17,17,.4); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; }
+.x-ckm { width: 640px; max-width: 100%; max-height: 72vh; display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--hair); border-radius: 12px; box-shadow: 0 8px 24px rgba(17,17,17,.12), 0 2px 6px rgba(17,17,17,.08); overflow: hidden; }
+.x-ckin { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; flex: none; }
+.x-ckin > .i { color: var(--muted); }
+.x-ckin input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 15px; }
+.x-ckt { display: flex; gap: 16px; padding: 0 16px; border-bottom: 1px solid var(--hair); flex: none; overflow-x: auto; }
+.x-ckt button { height: 36px; font-size: 13px; color: var(--muted); border-bottom: 1.5px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.x-ckt button.is-on { color: var(--ink); font-weight: 500; border-bottom-color: var(--ink); }
+.x-ckl { flex: 1; overflow-y: auto; padding: 4px 8px 8px; }
+.x-ckl .x-cap { padding: 12px 8px 4px; }
+.x-ckr { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 6px 8px; border-radius: 8px; text-align: left; }
+.x-ckr.is-act { background: var(--tint); }
+.x-ckr > .i { color: var(--muted); }
+.x-ckr > span:not([class]) { flex: 1; min-width: 0; }
+.x-ckr b { display: block; font-size: 14px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.x-ckr small { display: block; font-size: 12px; color: var(--muted); }
+.x-ckr kbd { visibility: hidden; }
+.x-ckr.is-act kbd { visibility: visible; }
+.x-ckf { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 8px 16px; border-top: 1px solid var(--hair); font-size: 12px; color: var(--muted); flex: none; }
+.x-ckf .x-seg button { height: 22px; font-size: 12px; }
+.x-ckf .x-seg button.is-on { background: var(--ink); color: var(--bg); }
+.x-ckf .x-grow { flex: 1; }
+.x-ckf > span { display: inline-flex; align-items: center; gap: 4px; }

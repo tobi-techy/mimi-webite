@@ -1,0 +1,111 @@
+/* ===== Motion layer: transform + opacity only; start states need html.motion-ready ===== */
+html:not(.motion-ready) .x-rv,
+html:not(.motion-ready) .x-hl .x-w {
+  opacity: 1;
+  transform: none;
+}
+html.motion-ready .x-rv {
+  transform: translateY(14px);
+  transition:
+    opacity 0.36s var(--x-ease),
+    transform 0.36s var(--x-ease);
+  transition-delay: var(--mo-d, 0ms);
+}
+html.motion-ready .x-rv.is-in {
+  opacity: 1;
+  transform: none;
+}
+html.motion-ready .x-hl .x-w {
+  transform: translateY(14px);
+}
+html.motion-ready .x-hl.is-in .x-w {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.34s var(--x-ease),
+    transform 0.34s var(--x-ease);
+  transition-delay: calc(var(--li, 0) * 70ms);
+}
+/* groups (steps, outcome cards, facts): the children stagger instead of the box */
+html.motion-ready .x-rv.x-stag {
+  opacity: 1;
+  transform: none;
+}
+html.motion-ready .x-rv.x-stag > :not(.x-st) {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.36s var(--x-ease),
+    transform 0.36s var(--x-ease);
+  transition-delay: calc(var(--si, 0) * 70ms);
+}
+html.motion-ready .x-rv.x-stag.is-in > :not(.x-st) {
+  opacity: 1;
+  transform: none;
+}
+html.mo-reset .x-rv,
+html.mo-reset .x-hl .x-w,
+html.mo-reset .x-stag > * {
+  transition: none !important;
+}
+/* parallax and drift use the individual translate/scale properties, so existing transforms stay intact */
+html.motion-ready .x-khero__vid {
+  overflow: hidden;
+}
+html.mo-par .x-par {
+  scale: 1.1;
+  translate: 0 var(--py, 0px);
+  will-change: translate;
+}
+html.mo-par .x-drift {
+  translate: 0 var(--py, 0px);
+  will-change: translate;
+}
+/* scroll progress hairline */
+.x-prog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 60;
+  background: var(--x-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+.x-site.is-signup .x-prog {
+  display: none;
+}
+/* nav hairline appears after 24px of scroll */
+html.motion-ready .x-nav {
+  border-bottom-color: transparent;
+}
+html.motion-ready .x-nav::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--x-line);
+  opacity: 0;
+  transition: opacity 0.16s var(--x-mech);
+  pointer-events: none;
+}
+html.motion-ready .x-nav.is-scrolled::after,
+html.motion-ready .x-nav.is-open::after {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.motion-ready .x-rv,
+  html.motion-ready .x-hl .x-w,
+  html.motion-ready .x-rv.x-stag > :not(.x-st) {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  html.motion-ready .x-nav::after {
+    transition: none;
+  }
+}

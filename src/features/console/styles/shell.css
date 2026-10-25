@@ -1,0 +1,22 @@
+/* Shell: sidebar and main column. */
+/* sidebar */
+.x-search { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border: 1px solid var(--hair); border-radius: 6px; background: var(--paper); color: var(--muted); }
+.x-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 13px; }
+
+.x-cap { font: 400 11px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 16px 8px 4px; margin: 0; }
+
+.x-sd { width: 6px; height: 6px; border-radius: 50%; flex: none; margin: 0 4px; }
+.x-g { background: var(--green); } .x-a { background: var(--amber); } .x-r { background: var(--red); }
+
+.x-bar { height: 4px; border-radius: 999px; background: var(--tint); overflow: hidden; margin: 8px 0; }
+.x-bar span { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+
+/* main */
+
+.x-view { flex: 1; min-height: 0; overflow-y: auto; }
+.x-view[hidden], [hidden] { display: none !important; }
+
+h1.x-title { font-size: 28px; font-weight: 400; letter-spacing: -.02em; line-height: 1.2; margin: 0; }
+.x-sub { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; }
+
+.x-card { background: var(--paper); border: 1px solid var(--hair); border-radius: 14px; padding: 20px; }

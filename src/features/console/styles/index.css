@@ -1,0 +1,21 @@
+/*
+ * Console stylesheet (loaded only by app/console/layout.tsx), in cascade order.
+ * Ported from the console prototype; each file is one area of the app.
+ */
+@import "./tokens.css";
+@import "./base.css";
+@import "./shell.css";
+@import "./controls.css";
+@import "./thread.css";
+@import "./settings.css";
+@import "./usage.css";
+@import "./lists.css";
+@import "./polish.css";
+@import "./theme.css";
+@import "./approvals.css";
+@import "./shell-extras.css";
+@import "./ui.css";
+@import "./v3.css";
+@import "./messages.css";
+@import "./settings-factory.css";
+@import "./automations.css";

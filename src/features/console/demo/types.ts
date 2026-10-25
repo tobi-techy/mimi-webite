@@ -1,0 +1,276 @@
+import type { Automation } from "@/features/console/content/automations";
+
+/** Demo engine types. Everything in the console demo is sample data, run client-side. */
+
+export const helperNames = ["Order", "Collector", "Credit", "Stock", "Brand", "Proof"] as const;
+export type HelperName = (typeof helperNames)[number];
+/** Who can speak in a thread: a helper, Mimi herself, or the signed-in owner ("me"). */
+export type Speaker = HelperName | "Mimi" | "me";
+
+export type Folder = "Collections" | "Orders" | "Credit" | "Brands" | "Stock" | "Proof" | "General";
+/** Sidebar state: needs you (orange), running (spinner), done (green), or quiet. */
+export type ThreadState = "needs" | "run" | "done" | "idle";
+
+export type Tone = "Firm" | "Soft" | "Skip";
+export type Verdict = "verified" | "self" | "fake";
+
+/** One shop line in a decision card (and the plan sheet). */
+export type CardRow = {
+  label: string;
+  amount?: number;
+  /** Right-hand note after the amount ("Firm", "9 days"). */
+  note?: string;
+  tone?: Tone;
+  days?: number;
+  /** The owner changed this row (shown in orange in docs). */
+  edited?: boolean;
+  /** Orange note, e.g. "Fake alert". */
+  flag?: string;
+};
+
+export type CardStatus = "needs" | "sending" | "sent" | "declined";
+
+/** A plan or approval card: reminder plan, order draft, credit change, restock, brand draft, flagged payment. */
+export type DecisionCard = {
+  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag";
+  /** Shop (or "4 shops") the card is about, for the Needs you pile. */
+  shop?: string;
+  /** Headline amount; plans and orders fall back to the sum of their live rows. */
+  amount?: number;
+  /** One short reason, shown in the Needs you pile. */
+  why?: string;
+  title: string;
+  sub: string;
+  rows: CardRow[];
+  /** Extra lines in the plan sheet (goal, proof list, message preview). */
+  goal?: string;
+  proof?: { label: string; verdict: Verdict }[];
+  message?: { to: string; tone: Tone; text: string };
+  primary: string;
+  /** "Review" opens the sheet; "Decline" declines. */
+  secondary: "Review" | "Decline";
+  status: CardStatus;
+  sentAt?: string;
+  /** Text shown once sent ("Sent to 4 shops on WhatsApp"). */
+  doneText: string;
+};
+
+/** The six classic tapbacks; any other reaction is a single emoji (iOS 18 style). */
+export const tapbackKeys = ["heart", "like", "dislike", "haha", "bang", "question"] as const;
+export type TapbackKey = (typeof tapbackKeys)[number];
+/**
+ * One person's reaction on a message (one per person, iMessage rules). `by` is "me" (the owner),
+ * a helper, Mimi, or a shop's name. `r` is a tapback key or an emoji. `at` animates fresh badges.
+ */
+export type Reaction = { by: string; r: TapbackKey | string; at?: number };
+type Reactable = { reactions?: Reaction[] };
+
+export type Message =
+  | { id: string; kind: "date"; label: string }
+  | ({ id: string; kind: "text"; from: Speaker; text: string; at: number; read?: boolean } & Reactable)
+  | ({
+      id: string;
+      kind: "proof";
+      from: Speaker;
+      at: number;
+      title: string;
+      meta: string;
+      amount: number;
+      stamp: string;
+      foot: string;
+      footSub: string;
+      verdict: Verdict;
+    } & Reactable)
+  | ({ id: string; kind: "photos"; from: Speaker; at: number; label: string; photos: string[]; open?: boolean } & Reactable)
+  | ({
+      id: string;
+      kind: "poll";
+      from: Speaker;
+      at: number;
+      question: string;
+      options: string[];
+      voted?: number;
+      /** What the helper says after the vote ({choice} is replaced). */
+      reply?: string;
+    } & Reactable)
+  | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string } & Reactable)
+  | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
+  | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
+  | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }
+  /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
+  | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
+  /**
+   * A helper's reasoning: while `live` a shimmering "Thinking…" that streams the text; then a
+   * collapsed "Thought for 4s" line that opens to the reasoning in muted markdown.
+   */
+  | { id: string; kind: "thought"; from: Worker; at: number; text: string; secs?: number; live?: boolean; open?: boolean }
+  /** One stage of a helper's work: a tool step, a group, a handoff, an approval gate, an error or a retry. */
+  | {
+      id: string;
+      kind: "step";
+      from: Worker;
+      at: number;
+      variant: StepVariant;
+      icon?: ActivityIcon;
+      text: string;
+      state: WorkState;
+      /** Short mono note after the text ("38 credits", "8.0s"). */
+      meta?: string;
+      /** What opens under the step: inputs/outputs, a mini table or the grouped list. */
+      detail?: WorkDetail;
+      /** Handoffs: the helper asked. */
+      to?: HelperName;
+      /** Gates: the decision card message this waits on. */
+      link?: string;
+    };
+
+/** Who does the work in a thread (never the owner). */
+export type Worker = HelperName | "Mimi";
+export type StepVariant = "tool" | "group" | "handoff" | "gate" | "error" | "retry";
+/** run: spinner · done: check · failed: red · wait: waiting on the owner (orange mark). */
+export type WorkState = "run" | "done" | "failed" | "wait";
+export type WorkDetail =
+  | { type: "kv"; rows: [string, string][] }
+  | { type: "code"; label?: string; text: string }
+  | { type: "table"; head: string[]; rows: string[][] }
+  | { type: "list"; items: { icon?: ActivityIcon; text: string; meta?: string }[] };
+
+/** The thread's live checklist, pinned above the composer ("Step 3 of 6"). */
+export type PlanItemState = "done" | "run" | "wait" | "todo" | "failed";
+export type WorkPlan = { title: string; items: { label: string; state: PlanItemState }[] };
+
+/** Icons an activity line or work step can carry (a subset of the console icon set). */
+export type ActivityIcon =
+  | "search"
+  | "monitor"
+  | "file-text"
+  | "check"
+  | "list-checks"
+  | "refresh-cw"
+  | "receipt"
+  | "send"
+  | "book-text"
+  | "store"
+  | "landmark"
+  | "package"
+  | "bar-chart"
+  | "message-square"
+  | "users"
+  | "hand"
+  | "shield-check"
+  | "pen"
+  | "folder"
+  | "circle-x";
+
+export type MessageKind = Message["kind"];
+/** Messages that take reactions: bubbles, photos, voice notes and bubble-like cards (not chips, dates or system lines). */
+export const reactableKinds = ["text", "proof", "photos", "poll", "voice", "card"] as const;
+export type ReactableMessage = Extract<Message, { kind: (typeof reactableKinds)[number] }>;
+
+/** A reply chip: tapping it types `text` (or the label) into the composer, sends it and runs `step`. */
+export type Reply = { label: string; text?: string; step: string };
+
+export type Conversation = {
+  slug: string;
+  title: string;
+  helper: HelperName | "Mimi";
+  folder: Folder;
+  code: string;
+  state: ThreadState;
+  /** Mono status line under the helper's name ("checking Joy's POS payment"). */
+  status: string;
+  /** Spinner next to the status line. */
+  working: boolean;
+  /** Sidebar age ("2m"), or a clock time for new threads. */
+  ago: string;
+  /** Created in this demo session (lives at /console/threads/new?id=). */
+  created?: boolean;
+  /** One-line preview for home lists. */
+  preview: string;
+  /** Reply chips offered under the newest helper message (the scripted, film-safe path). */
+  replies?: Reply[];
+  /** Live checklist pinned above the composer while the helper works through a job. */
+  plan?: WorkPlan;
+  messages: Message[];
+};
+
+/** File type label in the docs list (mono). */
+export type DocKind = "PDF" | "MD" | "IMG" | "CSV" | "TXT" | "DOCX";
+/**
+ * What the viewer renders. Plans and reports are Markdown generated from live rows (so plan edits
+ * show up); pdf/image/file point at public/console-demo; csv/text/markdown carry their text.
+ */
+export type DocBody =
+  | { type: "invoice" }
+  | { type: "plan"; rows: CardRow[]; total: number }
+  | { type: "report"; rows: { area: string; cartons: number; change: string }[] }
+  | { type: "markdown"; text: string }
+  | { type: "pdf"; src: string }
+  | { type: "image"; src: string }
+  | { type: "csv"; text: string }
+  | { type: "text"; text: string }
+  | { type: "file"; src: string; name: string };
+
+export type DocVersion = { v: number; by: HelperName | "you"; at: string; note: string };
+
+export type Doc = {
+  id: string;
+  title: string;
+  kind: DocKind;
+  by: HelperName | "you";
+  at: string;
+  thread?: string;
+  body: DocBody;
+  /** The owner's note on the doc (editable; edits are highlighted). */
+  note: string;
+  noteEdited?: boolean;
+  versions: DocVersion[];
+};
+
+export type StepState = "done" | "run" | "todo";
+export type Step = { label: string; detail?: string; at: string; state: StepState };
+export type StatementRow = { date: string; narration: string; credit: string; mark?: "hl" | "ok" | "fake"; isNew?: boolean };
+
+export type ComputerStatus = "idle" | "live" | "paused" | "user" | "done";
+export type ComputerState = {
+  helper: HelperName;
+  status: ComputerStatus;
+  /** Short mono line: "reading GTB statement". */
+  activity: string;
+  url: string;
+  rows: StatementRow[];
+  steps: Step[];
+  /** Cursor tag over the screen. */
+  tag?: string;
+  /** Row index the cursor points at. */
+  cursorRow?: number;
+};
+
+export type SideMessage = { id: string; from: "me" | "Mimi"; text: string; quote?: string; at: number };
+
+export type DocFilter = "All" | "By helpers" | "By you" | "This thread";
+export type PanelTab = "Computer" | "Side chat" | "Docs" | "Launcher";
+
+export type DemoState = {
+  version: number;
+  conversations: Conversation[];
+  docs: Doc[];
+  computer: ComputerState;
+  side: SideMessage[];
+  panel: { open: boolean; tab: PanelTab; full: boolean; docId?: string; filter?: DocFilter };
+  /** Who is typing, and where. */
+  typing: { slug: string; who: Speaker } | null;
+  sideTyping: boolean;
+  /** Plan sheet open on this card message. */
+  sheet: { slug: string; messageId: string } | null;
+  /** Composer text the guided demo is typing. */
+  draft: { slug: string; text: string } | null;
+  /** The guided demo is playing. */
+  playing: boolean;
+  /** The thread on screen (sidebar highlight). Not meaningful after reload. */
+  active?: string;
+  counter: number;
+  automations: Record<string, boolean>;
+  /** Every automation (seeded and made in this session) with its run history. */
+  autos: Automation[];
+};

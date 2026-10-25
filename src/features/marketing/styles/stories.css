@@ -1,0 +1,211 @@
+/* ===== Story moments: final state by default; start states only under html.motion-ready + .is-armed (set by JS). Transform + opacity only. ===== */
+.x-panel {
+  border: 1px solid var(--x-line);
+  border-radius: var(--radius-cards);
+  padding: var(--card-padding);
+  background: var(--x-canvas);
+}
+.x-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--x-line);
+}
+.x-panel__head .x-num {
+  color: var(--x-muted);
+}
+.x-srow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--x-line);
+  font: 400 15px/1.3 var(--x-sans);
+  letter-spacing: -0.01em;
+}
+.x-srow small {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--x-muted);
+}
+.x-num {
+  font: 400 13px/1.2 var(--x-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.x-vchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--x-line);
+  border-radius: var(--radius-buttons);
+  color: var(--x-muted);
+  font: 400 12px/1.2 var(--x-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.x-vchip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+}
+.x-vchip.is-ok {
+  color: var(--x-text);
+  border-color: var(--x-tertiary);
+}
+.x-vchip.is-ok::before,
+.x-vchip.is-warn::before {
+  background: currentColor;
+}
+.x-vchip.is-warn {
+  color: var(--x-accent);
+  border-color: var(--x-accent);
+}
+/* a state swap: start (a) and final (b) share one grid cell and cross-fade, so nothing reflows */
+.x-sw {
+  display: inline-grid;
+  justify-items: end;
+}
+.x-sw > * {
+  grid-area: 1 / 1;
+  transition: opacity 0.16s var(--x-mech);
+}
+.x-sw__a {
+  opacity: 0;
+}
+.x-a {
+  transition:
+    opacity 0.22s var(--x-mech),
+    transform 0.22s var(--x-mech);
+}
+.is-reset .x-a,
+.is-reset .x-a::after,
+.is-reset .x-sw > * {
+  transition: none !important;
+}
+html.motion-ready .is-armed .x-a:not(.is-on) {
+  opacity: 0;
+  transform: translateY(8px);
+}
+html.motion-ready .is-armed .x-sw.x-a:not(.is-on) {
+  opacity: 1;
+  transform: none;
+}
+html.motion-ready .is-armed .x-sw.x-a:not(.is-on) .x-sw__a {
+  opacity: 1;
+}
+html.motion-ready .is-armed .x-sw.x-a:not(.is-on) .x-sw__b {
+  opacity: 0;
+}
+
+/* 1 + 5. chat story with the step sequence; pinned on wide, tall screens */
+.x-chat {
+  margin: 0;
+  max-width: 460px;
+  border: 1px solid var(--x-line);
+  border-radius: var(--radius-cards);
+  background: var(--x-canvas);
+  overflow: hidden;
+}
+
+/* 2. three witnesses: a payment line ticks through its checks */
+
+/* 3. shop debt book: rows fill in, the total counts down as payments verify */
+.x-book {
+  margin-top: var(--spacing-40);
+  max-width: 640px;
+}
+.x-book__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.x-book__amt {
+  position: relative;
+}
+.x-book__amt--paid::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 50%;
+  height: 1px;
+  background: currentColor;
+  transform-origin: 0 50%;
+  transition: transform 0.22s var(--x-mech);
+}
+html.motion-ready .is-armed .x-book__amt.x-a:not(.is-on) {
+  opacity: 1;
+  transform: none;
+}
+html.motion-ready .is-armed .x-book__amt.x-a:not(.is-on)::after {
+  transform: scaleX(0);
+}
+.x-book__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+}
+.x-book__total output {
+  font: 400 clamp(28px, 3vw, 38px)/1 var(--x-sans);
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 4. brands: shop rows collapse into area totals */
+.x-agg {
+  margin-top: var(--spacing-40);
+  max-width: 520px;
+}
+.x-agg__stage {
+  display: grid;
+}
+.x-agg__stage > ul {
+  grid-area: 1 / 1;
+  align-self: start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.x-agg__shop small {
+  display: inline;
+  margin: 0 0 0 8px;
+}
+.x-agg__shop {
+  opacity: 0;
+  transform: translateY(calc(var(--to, 0) * 100%)) scaleY(0.4);
+  transform-origin: 50% 0;
+  transition-duration: 0.26s;
+}
+html.motion-ready .is-armed .x-agg__shop.x-a:not(.is-on) {
+  opacity: 1;
+  transform: none;
+}
+.x-agg__all {
+  font-weight: 500;
+}
+.x-agg__note {
+  padding-top: 12px;
+  font-size: 14px;
+  color: var(--x-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .x-a,
+  .x-a::after,
+  .x-sw > * {
+    transition: none !important;
+  }
+}
