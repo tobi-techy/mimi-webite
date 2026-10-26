@@ -651,7 +651,7 @@ async function collect(slug: string, ep: number) {
     !(await tool(slug, "Collector", "search", "Reading the GTBank statement", ep, {
       done: "Read the GTBank statement",
       meta: "· 38 credits since Monday",
-      detail: { type: "kv", rows: [["Account", "Wigmore Trading Ltd · ****4471"], ["Range", "19 to 23 Oct"], ["Credits", "38 · ₦2,914,500"]] },
+      detail: { type: "kv", rows: [["Account", "Coral Lane Trading Ltd · ****4471"], ["Range", "19 to 23 Oct"], ["Credits", "38 · ₦2,914,500"]] },
       ms: 1300,
     }))
   )
@@ -1080,7 +1080,7 @@ async function runComputer(ep: number, mode: "verified" | "fake" | "both"): Prom
   setComputer(() => ({ ...idleComputer(), status: "live", activity: "opening GTBank", steps: [] }));
   openPanel("Computer");
   sfx("console", "open", { emphasis: "subtle" });
-  step("Opened the GTBank statement", "Wigmore Trading Ltd · ****4471");
+  step("Opened the GTBank statement", "Coral Lane Trading Ltd · ****4471");
   if (!(await wait(1700, ep, true))) return false;
   setComputer((c) => ({ ...c, activity: "reading GTB statement", cursorRow: 0, tag: "Proof · Ade Stores ₦45,000", rows: c.rows.map((r, i) => (i === 0 ? { ...r, mark: "ok" } : r)) }));
   step("Matched Ade Stores ₦45,000", "TRF 08:42 · Verified");

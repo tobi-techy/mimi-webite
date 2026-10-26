@@ -85,7 +85,7 @@ components, no `any`. Content lives in typed `content/` modules, never inline in
 
 ## Console demo
 
-`/console` is a clickable product demo for the Wigmore Trading workspace. All data is sample data
+`/console` is a clickable product demo for the Coral Lane Trading workspace. All data is sample data
 in `src/features/console/content`; nothing is sent anywhere and actions show a toast.
 
 - Sidebar order: New thread, Approvals, Threads, Shops, Credit, with Settings at the bottom.

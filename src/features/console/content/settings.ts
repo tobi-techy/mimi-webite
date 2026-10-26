@@ -49,7 +49,7 @@ const btn = (label: string, toast?: string, to?: SettingsSectionId): SettingsCon
   to,
 });
 const kbd = (...keys: string[]): SettingsControl => ({ kind: "kbd", keys, on: true });
-const WHO = ["Alone", "Ask first", "Wigmore only"] as const;
+const WHO = ["Alone", "Ask first", "Coral Lane only"] as const;
 const ROLE = ["Admin", "Sales rep"] as const;
 
 export const settingsSections: readonly SettingsSection[] = [
@@ -66,7 +66,7 @@ export const settingsSections: readonly SettingsSection[] = [
         title: "Your organization",
         rows: [
           {
-            title: "Wigmore Trading",
+            title: "Coral Lane Trading",
             detail: "Distributor · 14 seats",
             control: btn("Edit", undefined, "organization"),
             avatar: "WG",
@@ -130,7 +130,7 @@ export const settingsSections: readonly SettingsSection[] = [
     id: "computers",
     title: "Computers",
     icon: "monitor",
-    action: { label: "New computer", toast: "wigmore-06 is starting", primary: true },
+    action: { label: "New computer", toast: "coral-06 is starting", primary: true },
     groups: [
       {
         title: "Computers",
@@ -226,7 +226,7 @@ export const settingsSections: readonly SettingsSection[] = [
         title: "Details",
         rows: [
           {
-            title: "Wigmore Trading",
+            title: "Coral Lane Trading",
             detail: "Distributor · 14 seats",
             control: btn("Edit", "Organization details opened"),
             avatar: "WG",
@@ -274,7 +274,7 @@ export const settingsSections: readonly SettingsSection[] = [
     id: "members",
     title: "Members",
     icon: "users",
-    sub: "4 people in Wigmore Trading",
+    sub: "4 people in Coral Lane Trading",
     action: { label: "Invite", toast: "Invite link copied", primary: true },
     groups: [
       {
@@ -288,19 +288,19 @@ export const settingsSections: readonly SettingsSection[] = [
           },
           {
             title: "Adaeze Nwosu",
-            detail: "ada@wigmoretrading.ng",
+            detail: "ada@corallane.example",
             control: sel(ROLE, "Admin"),
             avatar: "AN",
           },
           {
             title: "Kunle Bakare",
-            detail: "kunle@wigmoretrading.ng",
+            detail: "kunle@corallane.example",
             control: sel(ROLE, "Sales rep"),
             avatar: "KB",
           },
           {
             title: "Hauwa Sani",
-            detail: "hauwa@wigmoretrading.ng",
+            detail: "hauwa@corallane.example",
             control: sel(ROLE, "Sales rep"),
             avatar: "HS",
           },
@@ -330,7 +330,7 @@ export const settingsSections: readonly SettingsSection[] = [
           {
             title: "Change credit limits",
             detail: "Raising or lowering a shop's limit",
-            control: sel(WHO, "Wigmore only"),
+            control: sel(WHO, "Coral Lane only"),
           },
           {
             title: "Message new shops",
@@ -375,7 +375,7 @@ export const settingsSections: readonly SettingsSection[] = [
 /** Sidebar groups for settings (usage opens from Billing, so it is not listed). */
 export const settingsNav: ReadonlyArray<{ title: string; ids: readonly SettingsSectionId[] }> = [
   { title: "Account", ids: ["general", "appearance", "connectors", "computers", "support"] },
-  { title: "Workspace (Wigmore)", ids: ["organization", "members", "shops", "billing"] },
+  { title: "Workspace (Coral Lane)", ids: ["organization", "members", "shops", "billing"] },
 ];
 
 export const findSettingsSection = (id: string): SettingsSection | undefined =>

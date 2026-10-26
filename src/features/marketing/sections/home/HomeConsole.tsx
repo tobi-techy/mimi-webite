@@ -90,7 +90,7 @@ export function HomeConsole() {
         </ul>
         <ButtonRow className="x-con__cta" reveal>
           <ButtonLink href="/contact">Book a pilot</ButtonLink>{" "}
-          <TextLink href={routes.console} arrow>
+          <TextLink href={routes.consoleUrl} arrow>
             Try the console demo
           </TextLink>
         </ButtonRow>

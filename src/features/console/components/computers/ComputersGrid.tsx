@@ -17,7 +17,7 @@ import { cx } from "@/lib/cx";
 
 type Filter = "all" | "on" | "off";
 /** The computer working the demo thread opens that thread; the rest just say so. */
-const THREAD_COMPUTER = "wigmore-01";
+const THREAD_COMPUTER = "coral-01";
 
 /** Settings > Computers: every computer with a live thumbnail, search, status tabs, wake/pause. */
 export function ComputersGrid() {

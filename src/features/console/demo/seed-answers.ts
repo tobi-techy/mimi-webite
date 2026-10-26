@@ -297,7 +297,7 @@ export const answerDocs = (): Doc[] => [
     at: "Mon",
     body: {
       type: "markdown",
-      text: `# Credit rules · Wigmore Trading
+      text: `# Credit rules · Coral Lane Trading
 
 1. New shops start at ₦50,000 for 4 weeks.
 2. Raise a limit only after 8 on-time weeks, and by no more than 50%.

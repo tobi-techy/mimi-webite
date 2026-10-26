@@ -98,7 +98,7 @@ export function PlanSheet() {
               <h3 className="mc-cap">Message to {c.message.to}</h3>
               <div className="mc-wa">
                 <small>
-                  <span>WhatsApp · from Wigmore Trading</span>
+                  <span>WhatsApp · from Coral Lane Trading</span>
                   <span>{c.rows.find((r) => r.label === c.message?.to)?.tone ?? c.message.tone}</span>
                 </small>
                 <textarea

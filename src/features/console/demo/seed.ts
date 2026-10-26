@@ -16,9 +16,9 @@ import type {
   WorkPlan,
 } from "@/features/console/demo/types";
 
-/** Sample data for the Wigmore Trading demo. Times are Lagos time on Fri 23 Oct 2026. */
+/** Sample data for the Coral Lane Trading demo. Times are Lagos time on Fri 23 Oct 2026. */
 export const DEMO_VERSION = 9;
-export const owner = { name: "Martin Nwike", first: "Martin", initials: "MN", company: "Wigmore Trading" };
+export const owner = { name: "Martin Nwike", first: "Martin", initials: "MN", company: "Coral Lane Trading" };
 
 const T = (h: number, m: number) => new Date(2026, 9, 23, h, m).getTime();
 
@@ -108,7 +108,7 @@ export const seedComputer = (): ComputerState => ({
   url: "ibank.gtbank.com/statement",
   rows: statementRows().map((r, i) => (i === 1 ? { ...r, mark: "hl" } : r)),
   steps: [
-    { label: "Opened the GTBank statement", detail: "Wigmore Trading Ltd · ****4471", at: "08:46", state: "done" },
+    { label: "Opened the GTBank statement", detail: "Coral Lane Trading Ltd · ****4471", at: "08:46", state: "done" },
     { label: "Matched Ade Stores ₦45,000", detail: "TRF 08:42 · Verified", at: "08:47", state: "done" },
     { label: "Looking for Joy Supermarket's POS payment", detail: "POS settlements land in batches", at: "08:48", state: "run" },
   ],
@@ -171,7 +171,7 @@ const chaseMessages = (): Conversation["messages"] => {
       state: "done",
       text: "Read the GTBank statement",
       meta: "· 38 credits since Monday",
-      detail: { type: "kv", rows: [["Account", "Wigmore Trading Ltd · ****4471"], ["Range", "19 to 23 Oct"], ["Credits", "38 · ₦2,914,500"]] },
+      detail: { type: "kv", rows: [["Account", "Coral Lane Trading Ltd · ****4471"], ["Range", "19 to 23 Oct"], ["Credits", "38 · ₦2,914,500"]] },
     },
     {
       id: id(),

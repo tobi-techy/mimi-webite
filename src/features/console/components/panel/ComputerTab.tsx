@@ -282,7 +282,7 @@ export function ComputerTab() {
                 <div className="mc-bank__h">
                   <div>
                     <b>Account statement</b>
-                    <span>Wigmore Trading Ltd · ****4471</span>
+                    <span>Coral Lane Trading Ltd · ****4471</span>
                   </div>
                   <span className="mc-bank__lg">GTBank</span>
                 </div>

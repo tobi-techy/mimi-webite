@@ -22,7 +22,7 @@ export function ComputerScreen({ kind }: { kind: ScreenKind }) {
     <div className={cx("x-tbody", BODY_CLASS[kind])}>
       {kind === "bank" && (
         <>
-          <p>Statement · Wigmore Trading</p>
+          <p>Statement · Coral Lane Trading</p>
           {statementRows.map((r) => (
             <div key={r.time + r.who} className={cx("x-tbr", "hit" in r && "is-hit")}>
               <span>{r.time}</span>

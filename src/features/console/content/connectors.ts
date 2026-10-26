@@ -234,7 +234,7 @@ export const connectorPermissions: Record<ConnectorCategory, readonly string[]> 
   Banking: ["Read bank statements", "Read account balances", "Never moves money"],
   Accounting: ["Read invoices and bills", "Create draft invoices", "Never posts without your approval"],
   Messaging: ["Read messages", "Send messages within your approval rules", "Never deletes conversations"],
-  Docs: ["Read sheets and pages you share", "Update rows when asked", "Never shares files outside Wigmore"],
+  Docs: ["Read sheets and pages you share", "Update rows when asked", "Never shares files outside Coral Lane"],
   Storage: ["Read folders you pick", "Save reports and receipts", "Never deletes files"],
   Calendar: ["Read events", "Create delivery reminders", "Never invites outside people"],
   Commerce: ["Read orders and products", "Read stock levels", "Never changes prices"],

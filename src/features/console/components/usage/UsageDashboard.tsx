@@ -46,7 +46,7 @@ export function UsageDashboard() {
         <div>
           <h1>Usage</h1>
           <p>
-            Track how Mimi works for Wigmore: runs, messages, money recovered and computer hours across every
+            Track how Mimi works for Coral Lane: runs, messages, money recovered and computer hours across every
             shop.
           </p>
         </div>

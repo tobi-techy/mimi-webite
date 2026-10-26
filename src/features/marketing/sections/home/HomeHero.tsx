@@ -1,3 +1,4 @@
+import { routes } from "@/config/routes";
 import Link from "next/link";
 import { Fragment } from "react";
 import { HeroVideo } from "@/features/marketing/motion/HeroVideo";
@@ -31,7 +32,7 @@ export function HomeHero() {
               <ButtonLink href="/contact" className="x-pill">
                 Book a pilot
               </ButtonLink>{" "}
-              <Link className="x-tlink" href="/console">
+              <Link className="x-tlink" href={routes.consoleUrl}>
                 Try the live demo →
               </Link>
             </ButtonRow>

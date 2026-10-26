@@ -83,7 +83,7 @@ export const consoleMock = {
     { label: "Shops", count: "48" },
     { label: "Credit" },
   ],
-  user: { initials: "TO", name: "Wigmore Trading" },
+  user: { initials: "TO", name: "Coral Lane Trading" },
   cards: [
     {
       chip: "Draft",
@@ -96,7 +96,7 @@ export const consoleMock = {
     { chip: "Check", warn: true, title: "Flagged transfer alert · Iya Basira Stores", sub: "₦45,000" },
   ],
   live: {
-    title: "WIGMORE-02 · LIVE",
+    title: "CORAL-02 · LIVE",
     bars: ["70%", "92%", "56%", "80%", "40%"],
     caption: "Checking Providus statement",
   },

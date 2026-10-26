@@ -23,7 +23,7 @@ import { Table } from "@/features/console/components/ui/Table";
 import { Button } from "@/features/console/components/ui/Button";
 
 type Tab = "all" | "late" | "rec";
-const LIMIT_TOAST = "Only Wigmore can set limits. Draft saved.";
+const LIMIT_TOAST = "Only Coral Lane can set limits. Draft saved.";
 const suggestsChange = (l: CreditLine): boolean => /^(Raise|Lower)/.test(l.recommendation);
 
 /** Recommended limit changes and the credit lines they apply to. Accepting updates the line. */

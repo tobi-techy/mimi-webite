@@ -1,3 +1,4 @@
+import { routes } from "@/config/routes";
 /** Navigation and footer links. `key` is the route the link marks as current in the nav. */
 export type NavLink = { href: string; label: string; key: string };
 
@@ -11,7 +12,7 @@ export const primaryNav: NavLink[] = [
 ];
 
 export const secondaryNav: NavLink[] = [
-  { href: "/console", label: "Live demo", key: "demo" },
+  { href: routes.consoleUrl, label: "Live demo", key: "demo" },
   { href: "/blog", label: "Blog", key: "blog" },
 ];
 

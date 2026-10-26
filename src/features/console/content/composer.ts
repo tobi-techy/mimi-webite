@@ -13,13 +13,13 @@ export const autonomy: readonly LevelOption[] = [
   { value: "High", detail: "Asks only before money moves", level: 3 },
 ];
 
-export const workspaces = ["Wigmore Trading", "Wigmore Ikeja branch"] as const;
+export const workspaces = ["Coral Lane Trading", "Coral Lane Ikeja branch"] as const;
 export const shopScopes = ["All 48 shops", "Oshodi · 6", "Mushin · 3", "Ikeja · 3"] as const;
 export const computerChoices = [
   { value: "Computer: Auto", detail: "Mimi picks a free computer" },
-  { value: "wigmore-01", detail: "Payments" },
-  { value: "wigmore-02", detail: "Collector" },
-  { value: "wigmore-03", detail: "Stock" },
+  { value: "coral-01", detail: "Payments" },
+  { value: "coral-02", detail: "Collector" },
+  { value: "coral-03", detail: "Stock" },
 ] as const;
 
 export const COMPOSER_PLACEHOLDER = "Ask anything, / for commands, @ for a shop";

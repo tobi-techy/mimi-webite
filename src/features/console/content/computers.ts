@@ -12,7 +12,7 @@ export type Computer = {
 
 export const computers: readonly Computer[] = [
   {
-    name: "wigmore-01",
+    name: "coral-01",
     role: "Payments",
     running: true,
     task: "Checking Providus statement",
@@ -21,7 +21,7 @@ export const computers: readonly Computer[] = [
     url: "ibank.providusbank.com",
   },
   {
-    name: "wigmore-02",
+    name: "coral-02",
     role: "Collector",
     running: true,
     task: "Sending reminders to 6 shops",
@@ -30,7 +30,7 @@ export const computers: readonly Computer[] = [
     url: "web.whatsapp.com",
   },
   {
-    name: "wigmore-03",
+    name: "coral-03",
     role: "Stock",
     running: true,
     task: "Updating Mushin route sheet",
@@ -39,7 +39,7 @@ export const computers: readonly Computer[] = [
     url: "docs.google.com/spreadsheets",
   },
   {
-    name: "wigmore-04",
+    name: "coral-04",
     role: "Order",
     running: false,
     task: "Nothing running",
@@ -48,7 +48,7 @@ export const computers: readonly Computer[] = [
     url: "about:blank",
   },
   {
-    name: "wigmore-05",
+    name: "coral-05",
     role: "Spare",
     running: false,
     task: "Nothing running",
@@ -76,7 +76,7 @@ export const chatRows = [
 
 export const chatBubbles = [
   { text: "Good morning, who is this?" },
-  { text: "This is Mimi from Wigmore. Your balance of ₦184,500 is now 12 days late.", me: true },
+  { text: "This is Mimi from Coral Lane. Your balance of ₦184,500 is now 12 days late.", me: true },
   { text: "Ok, I will send it today" },
 ] as const;
 

@@ -17,13 +17,13 @@ export default function CreditPage() {
         <div className="x-lhd">
           <h1 className="x-title">Credit</h1>
           <PageMenu page="Credit" filters="every shop and route" />
-          <ToastButton variant="primary" message="Only Wigmore can set limits. Draft saved.">
+          <ToastButton variant="primary" message="Only Coral Lane can set limits. Draft saved.">
             <Icon name="plus" />
             New credit line
           </ToastButton>
         </div>
         <p className="x-sub">
-          <Link href="/console/shops">Shops</Link> · Wigmore sets every limit. Mimi recommends.
+          <Link href="/console/shops">Shops</Link> · Coral Lane sets every limit. Mimi recommends.
         </p>
         <div className="x-kpis">
           {creditKpis.map((k) => (

@@ -112,7 +112,7 @@ function planMarkdown(doc: Doc): string | null {
         return `| ${shop}${r.flag ? ` · ${r.flag}` : ""} | ${r.amount ? r.amount.toLocaleString("en-US") : ""} | ${r.days ?? ""} | ${tone} |`;
       })
       .join("\n");
-    return `# Reminder plan\n\nWigmore Trading · ${doc.at} · nothing sends until you approve.\n\n## Shops\n\n| Shop | Owes ₦ | Days late | Tone |\n| --- | ---: | ---: | --- |\n${rows}\n\n**Total: ${naira(b.total)}**\n\n## Rules\n\n- Check GTB before every reminder, so nobody who paid gets chased.\n- Polite, but firm past a week.\n- Fake alerts stay on Firm and their next order is held.\n`;
+    return `# Reminder plan\n\nCoral Lane Trading · ${doc.at} · nothing sends until you approve.\n\n## Shops\n\n| Shop | Owes ₦ | Days late | Tone |\n| --- | ---: | ---: | --- |\n${rows}\n\n**Total: ${naira(b.total)}**\n\n## Rules\n\n- Check GTB before every reminder, so nobody who paid gets chased.\n- Polite, but firm past a week.\n- Fake alerts stay on Firm and their next order is held.\n`;
   }
   if (b.type === "report") {
     const total = b.rows.reduce((s, r) => s + r.cartons, 0);
@@ -364,7 +364,7 @@ function Invoice({ doc }: { doc: Doc }) {
             <span className="mc-paper__m">{doc.title.split("·")[0]?.replace("Invoice", "").trim()} · 14 Oct 2026</span>
           </div>
           <div className="mc-paper__r">
-            <b>Wigmore Trading Ltd</b>
+            <b>Coral Lane Trading Ltd</b>
             <span className="mc-paper__m">Lagos mainland</span>
           </div>
         </div>

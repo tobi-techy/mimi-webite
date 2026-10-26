@@ -358,7 +358,7 @@ export function DoneActions({ children }: { children: ReactNode }) {
 /** Finishes the auth prototype: continues to the console demo (no real session is created). */
 export function ConsoleButton({ children }: { children: ReactNode }) {
   return (
-    <ButtonLink href={routes.console} arrow>
+    <ButtonLink href={routes.consoleUrl} arrow>
       {children}
     </ButtonLink>
   );

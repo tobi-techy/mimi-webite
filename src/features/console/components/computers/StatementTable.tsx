@@ -5,7 +5,7 @@ import { cx } from "@/lib/cx";
 export function StatementTable() {
   return (
     <div className="x-stmt">
-      <p>Account statement · Wigmore Trading</p>
+      <p>Account statement · Coral Lane Trading</p>
       <table>
         <tbody>
           {statementRows.map((r) => (
