@@ -269,3 +269,15 @@ html:not([data-theme="dark"]) .mc-side__full > .mc-me { border-top: 1px solid va
   .mc-wl__go { font-size: 0; gap: 0; }
   .mc-wl__all { height: 44px; padding: 0 12px; }
 }
+
+/* ---------- wide conversation (Tobi, 26 Oct 2026): everything spans the one 880px column ----------
+ * --msg-col (messages.css) sets the column; it is a max-width, so it shrinks fluidly when the
+ * workspace panel is open. Owner bubbles stay at most 85% of it. */
+.mc-tv .mc-r--them .mc-rx--card,
+.mc-tv .mc-r--them .mc-rx--poll { width: 100%; }
+.mc-tv .mc-apc, .mc-tv .mc-poll { width: 100%; max-width: 100%; }
+.mc-tv .mc-ws__d { max-width: 100%; }
+.mc-tv .mc-wl__box { width: 100%; box-sizing: border-box; }
+.mc-tv .mc-rp { width: 100%; margin-left: 0; }
+/* helper step lines never run past a narrowed column (panel open at 1280); their text ellipsises */
+.mc-tv .mc-r--work, .mc-tv .mc-r--work > .mc-ws { max-width: 100%; }

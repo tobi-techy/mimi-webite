@@ -60,9 +60,10 @@ export function pageMetadata({
     },
     twitter: {
       card: "summary_large_image",
+      site: site.twitterHandle,
       title: shareTitle,
       description,
-      images: [image.url],
+      images: [image],
     },
     ...(noindex ? { robots: { index: false, follow: true } } : {}),
   };
@@ -86,6 +87,7 @@ export function organizationJsonLd() {
     founder: { "@type": "Person", name: site.founder },
     address: { "@type": "PostalAddress", addressLocality: "Ado-Ekiti", addressCountry: "NG" },
     brand: { "@type": "Brand", name: site.name },
+    sameAs: site.socials.map((s) => s.href),
   };
 }
 

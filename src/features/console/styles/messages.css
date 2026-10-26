@@ -3,7 +3,7 @@
  * the column (no bubble), with a small face + mono name line at the start of each turn. Your
  * messages stay iMessage bubbles (inverted, palette version), right-aligned, up to 85% wide.
  * The feed is a CSS grid on an 8px rhythm: 8px between messages in a turn, 24px between turns.
- * Thread column (feed, chips, composer) is exactly 720px of content on desktop.
+ * Thread column (feed, chips, composer) is up to 880px of content on desktop and shrinks fluidly.
  * ===================================================================================== */
 
 /* Message text spec (Tobi, 24 Oct 2026). One-line changes live here. */
@@ -16,14 +16,14 @@
   /* your bubble: Factory's user message bubble (#212121 / #FFFFFF dark), light equivalent */
   --msg-me-bg: #f0efed;
   --msg-me-color: #101010;
-  --msg-col: 720px;
+  --msg-col: 880px; /* Tobi, 26 Oct 2026: wider conversation (was 720px) */
   --msg-u: 8px; /* base unit */
   --msg-gap: var(--msg-u); /* between messages in one turn */
   --msg-turn: calc(var(--msg-u) * 3); /* between turns */
 }
 html[data-theme="dark"] { --msg-color: #ffffff; --msg-me-bg: #212121; --msg-me-color: #ffffff; }
 
-/* ---------- the column: exactly 720px of content, shared by feed, chips and composer ---------- */
+/* ---------- the column: up to 880px of content, shared by feed, chips and composer ---------- */
 .mc-tv .mc-fi,
 .mc-tv .mc-cmp { max-width: calc(var(--msg-col) + 48px); padding-inline: 24px; }
 .mc-tv .mc-plus { left: 24px; }

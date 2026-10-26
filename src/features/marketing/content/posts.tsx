@@ -347,6 +347,11 @@ export const posts: Post[] = [
   },
 ];
 
+/** The post's 1200x630 link-preview banner (public/blog/<slug>/og.png), used for og:image and twitter:image. */
+export function postOgImage(post: Post): { url: string; width: number; height: number; alt: string } {
+  return { url: `/blog/${post.slug}/og.png`, width: 1200, height: 630, alt: `Mimi blog: ${post.title}` };
+}
+
 export function getPost(slug: string): Post | undefined {
   return posts.find((p) => p.slug === slug);
 }

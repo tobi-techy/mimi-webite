@@ -1,5 +1,6 @@
 import { ContactFormEnhancer } from "@/features/marketing/forms/ContactFormEnhancer";
 import { ButtonLink } from "@/components/ui/Button";
+import { SocialLinks } from "@/components/ui/SocialLinks";
 import { Guarantee, PointList } from "@/components/ui/Cards";
 import { Field, SelectField } from "@/components/ui/Form";
 import { Section, Wrap } from "@/components/ui/Section";
@@ -34,6 +35,10 @@ export function ContactFormSection() {
               </ButtonLink>
             </>
           )}
+          <div className="x-contact__socials">
+            <Label>Follow Mimi</Label>
+            <SocialLinks id="contactSocials" />
+          </div>
         </div>
         <form className="x-pilot x-cform x-rv" id="contactForm" noValidate>
           <div className="x-cform__row">

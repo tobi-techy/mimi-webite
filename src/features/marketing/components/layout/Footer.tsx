@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SlapCounter } from "@/features/marketing/motion/SlapCounter";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { Logo } from "@/components/ui/Logo";
+import { SocialLinks } from "@/components/ui/SocialLinks";
 import { Sticker } from "@/components/ui/Sticker";
 import { footerNav } from "@/features/marketing/content/nav";
 import { site } from "@/config/site";
@@ -16,6 +17,7 @@ export function Footer() {
           <div className="x-foot__brand">
             <Logo className="x-foot__logo" />{" "}
             <p>WhatsApp AI agents for FMCG distributors and brands, sharing one consented shop book.</p>
+            <SocialLinks className="x-foot__socials" id="footSocials" />
           </div>
           <div className="x-foot__col">
             <h3>Product</h3>
