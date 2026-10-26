@@ -66,3 +66,22 @@
 .mc-ws__tool { color: var(--soft); }
 .mc-ws__tr { color: var(--muted); font-variant-numeric: tabular-nums; }
 .mc-ws--live .mc-ws__h { display: flex; align-items: center; gap: 8px; }
+
+/* ---------- inline action cards: risk tier, proof labels, email draft ---------- */
+.mc-tier {
+  flex: none; height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border: 1px solid var(--hair);
+  border-radius: var(--radius-sm); font: 400 10.5px/1 var(--font-geist-mono), ui-monospace, monospace; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .02em;
+}
+.mc-apc__h .mc-tier + .mc-nd { margin-left: 8px; }
+.mc-pf {
+  margin-left: 6px; font: 400 10.5px/1 var(--font-geist-mono), ui-monospace, monospace; font-style: normal;
+  color: var(--muted); letter-spacing: .01em;
+}
+.mc-pf--verified { color: var(--soft); }
+.mc-pf--verified::before { content: "✓ "; }
+.mc-pf--likely::before, .mc-pf--estimated::before { content: "~ "; }
+.mc-apc__mail { margin: 2px 16px 6px; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 6px; display: grid; gap: 4px; font-size: 13px; color: var(--ink); }
+.mc-apc__mail p { margin: 0; display: flex; gap: 8px; min-width: 0; }
+.mc-apc__mail p span { flex: none; width: 52px; color: var(--muted); font-size: 12px; }
+.mc-apc__mail .mc-apc__body { display: block; color: var(--soft); line-height: 1.55; padding-top: 4px; border-top: 1px solid var(--line); margin-top: 4px; }

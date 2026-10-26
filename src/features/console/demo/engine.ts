@@ -883,7 +883,7 @@ function orderCard(shop: string, cartons: number): DecisionCard {
     title: `Order · ${shop}`,
     sub: `${naira(total)} · delivery Saturday`,
     rows: [
-      { label: `Indomie Chicken 70g (${cartons})`, amount: total, note: `${cartons} cartons` },
+      { label: `Indomie Chicken 70g (${cartons})`, amount: total, note: `${cartons} cartons`, proof: "verified" },
       { label: "Van 2 · Saturday", note: "Mushin first" },
     ],
     primary: "Confirm order",
@@ -952,9 +952,9 @@ async function stock(slug: string, ep: number) {
     title: "Restock · Indomie Chicken 70g",
     sub: "120 cartons · ₦384,000",
     rows: [
-      { label: "In the warehouse", note: "86 cartons" },
-      { label: "Selling", note: "21 a day" },
-      { label: "Order from Dufil", amount: 384000 },
+      { label: "In the warehouse", note: "86 cartons", proof: "verified" },
+      { label: "Runs out", note: "Thursday", proof: "estimated" },
+      { label: "Indomie 70g × 120 cartons", amount: 384000, note: "price list", proof: "verified" },
     ],
     primary: "Approve restock",
     secondary: "Decline",
@@ -1204,6 +1204,9 @@ async function afterApprove(slug: string, card: DecisionCard, ep: number) {
     case "flag":
       if (!(await say(slug, "Proof", "Done. Kola Mart's orders are on hold until cash lands in GTB.", ep, 900))) return;
       return offer(slug, [{ label: "Draft a message to Kola Mart", step: "prf.msg" }]);
+    case "match":
+      await say(slug, "Proof", `Marked paid in the book: ${shop}, ${naira(card.amount ?? 0)}. No money moved, I only recorded it.`, ep, 900);
+      return;
   }
 }
 

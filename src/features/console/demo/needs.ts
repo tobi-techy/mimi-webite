@@ -16,6 +16,16 @@ export type NeedItem = {
   conv: Conversation;
 };
 
+/** Cards that are drafts going out (restock to a supplier, brand email): the button says Send. */
+const DRAFTS: DecisionCard["kind"][] = ["stock", "brand"];
+
+/** The two buttons on an inline card: Approve (or Send for drafts) and Discard (Review opens the plan sheet). */
+export function cardActions(c: DecisionCard): { primary: string; secondary: "Review" | "Discard" } {
+  return { primary: DRAFTS.includes(c.kind) ? "Send" : "Approve", secondary: c.secondary === "Review" ? "Review" : "Discard" };
+}
+
+export const tierOf = (c: DecisionCard) => c.tier ?? "Approve";
+
 const amountOf = (c: DecisionCard) =>
   c.amount ?? (c.rows.some((r) => r.amount !== undefined) ? c.rows.filter((r) => r.tone !== "Skip").reduce((s, r) => s + (r.amount ?? 0), 0) : undefined);
 
@@ -36,7 +46,7 @@ export function needItems(conversations: Conversation[]): NeedItem[] {
         shop: m.card.shop,
         amount: amountOf(m.card),
         why: m.card.why,
-        primary: m.card.primary,
+        primary: cardActions(m.card).primary,
         status: m.card.status,
         conv,
       });

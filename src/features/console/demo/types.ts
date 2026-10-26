@@ -26,13 +26,24 @@ export type CardRow = {
   edited?: boolean;
   /** Orange note, e.g. "Fake alert". */
   flag?: string;
+  /** How sure the figure is (RAI-295): verified (bank or signed), likely, estimated. */
+  proof?: ProofLevel;
 };
+
+/** How sure a figure is. Credit uses verified only. */
+export type ProofLevel = "verified" | "likely" | "estimated";
+/** What a card may do on its own: Auto (just does it), Notify (does it, tells you), Approve (asks first), Never (Mimi never does it). */
+export type RiskTier = "Auto" | "Notify" | "Approve" | "Never";
 
 export type CardStatus = "needs" | "sending" | "sent" | "declined";
 
 /** A plan or approval card: reminder plan, order draft, credit change, restock, brand draft, flagged payment. */
 export type DecisionCard = {
-  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag";
+  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match";
+  /** Risk tier label; cards that wait on the owner are Approve. */
+  tier?: RiskTier;
+  /** Brand emails: the draft itself (stays a draft until the owner taps Send). */
+  email?: { to: string; subject: string; body: string };
   /** Shop (or "4 shops") the card is about, for the Needs you pile. */
   shop?: string;
   /** Headline amount; plans and orders fall back to the sum of their live rows. */

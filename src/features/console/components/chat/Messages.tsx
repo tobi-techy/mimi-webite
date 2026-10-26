@@ -21,7 +21,8 @@ import {
   toggleFan,
   votePoll,
 } from "@/features/console/demo/engine";
-import { reactableKinds, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
+import { cardActions, tierOf } from "@/features/console/demo/needs";
+import { reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
@@ -273,7 +274,10 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
   stock: "bar-chart",
   brand: "share",
   flag: "triangle-alert",
+  match: "shield-check",
 };
+
+const proofWord: Record<ProofLevel, string> = { verified: "verified", likely: "likely", estimated: "estimated" };
 
 function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx }) {
   const c: DecisionCard = m.card;
@@ -283,6 +287,8 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
   const rows = plan ? live.slice(0, 2) : c.rows;
   const more = plan ? live.length - rows.length : 0;
   const icon = cardIcon[c.kind];
+  const act = cardActions(c);
+  const tier = tierOf(c);
   return (
     <div className={cx("mc-apc", c.status === "needs" && fresh && consoleMotion.approvalAttention && "is-attn")}>
       <div className="mc-apc__h">
@@ -291,11 +297,27 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           {c.title}
           <small className="mc-mono">{c.sub}</small>
         </div>
+        <span className={cx("mc-tier", `mc-tier--${tier.toLowerCase()}`)} title={`Risk tier: ${tier}`}>
+          {tier}
+        </span>
         {c.status === "needs" && <span className="mc-nd">Needs you</span>}
         {c.status === "sending" && <span className="mc-nd mc-nd--run">Sending</span>}
         {c.status === "sent" && <span className="mc-nd mc-nd--ok">{plan || c.kind === "brand" ? "Sent" : "Done"}</span>}
-        {c.status === "declined" && <span className="mc-nd mc-nd--off">Declined</span>}
+        {c.status === "declined" && <span className="mc-nd mc-nd--off">Discarded</span>}
       </div>
+      {c.email && (
+        <div className="mc-apc__mail">
+          <p>
+            <span>To</span>
+            {c.email.to}
+          </p>
+          <p>
+            <span>Subject</span>
+            {c.email.subject}
+          </p>
+          <p className="mc-apc__body">{c.email.body}</p>
+        </div>
+      )}
       <div className="mc-apc__rows">
         {rows.map((r) => (
           <div key={r.label} className="mc-apc__rw">
@@ -304,6 +326,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
               {r.amount !== undefined && naira(r.amount)}
               {r.amount !== undefined && (r.tone || r.note) && " · "}
               {r.tone ?? r.note}
+              {r.proof && <em className={cx("mc-pf", `mc-pf--${r.proof}`)}>{proofWord[r.proof]}</em>}
               {r.flag && <em className="mc-or"> · {r.flag}</em>}
             </span>
           </div>
@@ -320,12 +343,12 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           <button
             type="button"
             className="mc-btn"
-            onClick={() => (c.secondary === "Review" ? openSheet(ctx.slug, m.id) : declineCard(ctx.slug, m.id))}
+            onClick={() => (act.secondary === "Review" ? openSheet(ctx.slug, m.id) : declineCard(ctx.slug, m.id))}
           >
-            {c.secondary}
+            {act.secondary}
           </button>
           <button type="button" className="mc-btn mc-btn--pri" onClick={() => approveCard(ctx.slug, m.id)}>
-            {c.primary}
+            {act.primary}
           </button>
         </div>
       )}

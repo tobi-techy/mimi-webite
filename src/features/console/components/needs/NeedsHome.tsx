@@ -59,14 +59,14 @@ function Row({ it }: { it: NeedItem }) {
           </span>
         ) : (
           <>
-            <button type="button" className="mc-ib mc-nr__x" aria-label={`Decline: ${it.what}`} onClick={() => declineCard(it.slug, it.messageId)}>
+            <button type="button" className="mc-ib mc-nr__x" aria-label={`Discard: ${it.what}`} onClick={() => declineCard(it.slug, it.messageId)}>
               <Icon name="x" />
             </button>
             <Link className="mc-btn mc-nr__open" href={conversationHref(it.conv)} aria-label={`Open the ${it.helper} thread`}>
               Open
             </Link>
             <button type="button" className="mc-btn mc-btn--pri mc-nr__ok" onClick={() => approveCard(it.slug, it.messageId)}>
-              Approve
+              {it.primary}
             </button>
           </>
         )}
