@@ -5287,3 +5287,28 @@ html.x-menu-open body {
   outline: 2px solid #101010;
   outline-offset: -4px;
 }
+
+/* screenshots inside a post: a little wider than the text column, hairline, 10px corners, caption below */
+.x-site .x-post__body > .x-post__fig {
+  position: relative;
+  left: 50%;
+  translate: -50% 0;
+  width: min(880px, calc(100vw - 40px));
+  margin-block: 40px;
+}
+.x-post__fig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--x-photo-line);
+  border-radius: var(--radius-cards);
+  background: var(--x-raised);
+}
+.x-post__fig figcaption {
+  margin-top: 12px;
+  font: 400 14px/1.5 var(--x-sans);
+  color: var(--x-tertiary);
+}
+.x-site .x-post__body > .x-post__fig:has(img[height="1688"]) {
+  width: min(390px, calc(100vw - 40px));
+}

@@ -81,6 +81,21 @@ export const photoManifest = {
     ],
     "og": "/media/photos/photo2-shop-og.jpg",
     "blurDataURL": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAABQAgCdASoQAAkAAsBMJZACdG1/Dx3sVevCX+AA/oQJDxDyQIJrZeSRx6rBvpunT9U97Gd4XZeNq9BkY/N0Pa/ztRw1bGG3DBGP6NYeSkWllOAW38tH8kDcN72BN3DlrNAAAA=="
+  },
+  "post-helpers-cover": {
+    "width": 3200,
+    "height": 1800,
+    "widths": [
+      480,
+      768,
+      1024,
+      1376,
+      1600,
+      1920,
+      2560
+    ],
+    "og": "/media/photos/post-helpers-cover-og.jpg",
+    "blurDataURL": "data:image/webp;base64,UklGRlAAAABXRUJQVlA4IEQAAADQAQCdASoQAAkAAsBMJaQAAuit4DsdAAD++RHWUeEb3fKmOVNdkv7bKdMG3L71xgMERctPYF3O3jmvILDWvsAb9gAAAA=="
   }
 } as const;
 
