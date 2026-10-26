@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
-import { NeedsHome } from "@/features/console/components/needs/NeedsHome";
-import { ConsoleView } from "@/features/console/components/shell/ConsoleView";
+import { MimiHome } from "@/features/console/components/chat/MimiHome";
 
-export const metadata: Metadata = { title: "Needs you" };
+export const metadata: Metadata = { title: "Mimi" };
 
+/** The console opens on Mimi's conversation. The Needs you pile moved to /console/needs. */
 export default function ConsoleHomePage() {
-  return (
-    <ConsoleView className="mc-view-home" label="Needs you">
-      <NeedsHome />
-    </ConsoleView>
-  );
+  return <MimiHome />;
 }

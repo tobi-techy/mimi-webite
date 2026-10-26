@@ -120,8 +120,9 @@ export function runningIn(s: Pick<DemoState, "typing">, c: Conversation): boolea
 export function rosterRow(s: Pick<DemoState, "conversations" | "typing" | "computer">, name: RosterName): RosterRow {
   const seed = rosterSeed[name];
   const mine = s.conversations.filter((c) => c.helper === name);
-  const needs = mine.reduce((n, c) => n + needsIn(c), 0);
   const total = s.conversations.reduce((n, c) => n + needsIn(c), 0);
+  /* Mimi carries the whole team's count (the sidebar has no Needs you row); helpers carry their own */
+  const needs = name === "Mimi" ? total : mine.reduce((n, c) => n + needsIn(c), 0);
   const live = mine.find((c) => runningIn(s, c));
   let state: FaceState = seed.base;
   let step = seed.step;

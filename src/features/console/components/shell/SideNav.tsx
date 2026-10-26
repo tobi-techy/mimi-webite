@@ -11,7 +11,6 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { consoleRoutes } from "@/features/console/config";
 import { conversationHref } from "@/features/console/demo/engine";
-import { needCount } from "@/features/console/demo/needs";
 import { faceStateLabel, rosterNames, rosterRow, type RosterRow } from "@/features/console/demo/roster";
 import { owner } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
@@ -24,26 +23,27 @@ function NavRow({
   label,
   count,
   on,
-  hot,
 }: {
   href: string;
   icon: IconName;
   label: string;
   count?: ReactNode;
   on?: boolean;
-  hot?: boolean;
 }) {
   return (
     <Link href={href} className="mc-nav" aria-current={on ? "page" : undefined}>
       <Icon name={icon} />
       <span className="mc-nav__label">{label}</span>
-      {count !== undefined &&
-        (hot ? <b className="mc-badge">{count}</b> : <span className="mc-nav__k">{count}</span>)}
+      {count !== undefined && <span className="mc-nav__k">{count}</span>}
     </Link>
   );
 }
 
 const nairaShort = (n: number) => `₦${n.toLocaleString("en-US")}`;
+
+/** Mimi's row opens the console home (her conversation); a helper's row opens her conversation. */
+const rosterHref = (r: RosterRow) =>
+  r.name === "Mimi" || !r.thread ? consoleRoutes.home : conversationHref(r.thread);
 
 /**
  * One roster row (Grok Bot style): face with state, name, relative time, an outcome preview and
@@ -53,7 +53,7 @@ const nairaShort = (n: number) => `₦${n.toLocaleString("en-US")}`;
 function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
   const [peek, setPeek] = useState(false);
   const press = useRef<number | undefined>(undefined);
-  const href = r.thread ? conversationHref(r.thread) : consoleRoutes.home;
+  const href = rosterHref(r);
   const label = `${r.name}, ${faceStateLabel[r.state].toLowerCase()}${r.needs ? `, ${r.needs} waiting on you` : ""}. ${r.preview}. Now: ${r.step}. ${nairaShort(r.costToday)} today.`;
   return (
     <Link
@@ -101,8 +101,10 @@ function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
 }
 
 /**
- * Sidebar: workspace switcher, search, three rows (Needs you, Shops, Automations), then the
- * roster (Mimi and six helpers, one conversation each), the owner. Collapses to a rail on desktop.
+ * Sidebar: workspace switcher, search, Shops, Automations, then the roster (Mimi and six helpers,
+ * one conversation each), the owner. Nothing waiting on the owner needs a row of its own: each
+ * helper's row carries her orange count, Mimi's carries the team total and her conversation lists
+ * every waiting card (the full pile stays at /console/needs and in ⌘K). Collapses to a rail on desktop.
  */
 export function SideNav({ settings }: { settings: ReactNode }) {
   const pathname = usePathname();
@@ -117,11 +119,10 @@ export function SideNav({ settings }: { settings: ReactNode }) {
     [conversations, typing, computer],
   );
   const inSettings = pathname.startsWith(consoleRoutes.settings);
-  const inThread = pathname.startsWith(consoleRoutes.threads);
-  const needs = needCount(conversations);
+  /* the console home is Mimi's conversation */
+  const inThread = pathname === consoleRoutes.home || pathname.startsWith(consoleRoutes.threads);
   /* the open conversation belongs to one helper; that roster row is the selected one */
   const activeHelper = inThread ? conversations.find((c) => c.slug === active)?.helper : undefined;
-  const inHome = pathname === consoleRoutes.home || pathname.startsWith("/console/approvals");
 
   return (
     <aside className="mc-side" id="console-side" aria-label={inSettings ? "Settings" : "Sidebar"}>
@@ -133,15 +134,6 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <button className="mc-ib" type="button" aria-label="Search (⌘K)" onClick={openPalette}>
           <Icon name="search" />
         </button>
-        <Link
-          href={consoleRoutes.home}
-          className="mc-ib mc-rail__needs"
-          aria-label={`Needs you, ${needs}`}
-          title="Needs you"
-        >
-          <Icon name="house" />
-          {needs > 0 && <b className="mc-badge mc-badge--dot">{needs}</b>}
-        </Link>
         <Link href={consoleRoutes.shops} className="mc-ib" aria-label="Shops" title="Shops">
           <Icon name="store" />
         </Link>
@@ -154,7 +146,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
               key={r.name}
               role="listitem"
               className={cx("mc-pin", activeHelper === r.name && "is-on")}
-              href={r.thread ? conversationHref(r.thread) : consoleRoutes.home}
+              href={rosterHref(r)}
               aria-label={`${r.name}, ${faceStateLabel[r.state].toLowerCase()}${r.needs ? `, ${r.needs} waiting on you` : ""}`}
               title={`${r.name} · ${r.step}`}
             >
@@ -199,14 +191,6 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         ) : (
           <>
             <nav className="mc-navs mc-navs--quiet" aria-label="Main">
-              <NavRow
-                href={consoleRoutes.home}
-                icon="house"
-                label="Needs you"
-                count={needs}
-                hot={needs > 0}
-                on={inHome}
-              />
               <NavRow
                 href={consoleRoutes.shops}
                 icon="store"

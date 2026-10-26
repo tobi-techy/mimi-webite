@@ -36,12 +36,15 @@ const part = () => {
   return h < 12 ? "Morning" : h < 17 ? "Afternoon" : "Evening";
 };
 
+/** Opens the helper's conversation on this card. */
+const cardHref = (it: NeedItem) => `${conversationHref(it.conv)}#m-${it.messageId}`;
+
 function Row({ it }: { it: NeedItem }) {
   const sending = it.status === "sending";
   return (
     <li className={cx("mc-nr", sending && "is-sending")}>
       <HelperFace name={it.helper} size={32} />
-      <Link className="mc-nr__tx" href={conversationHref(it.conv)}>
+      <Link className="mc-nr__tx" href={cardHref(it)}>
         <span className="mc-nr__what">
           {it.what}
           {it.amount !== undefined && <b> · {naira(it.amount)}</b>}
@@ -62,7 +65,7 @@ function Row({ it }: { it: NeedItem }) {
             <button type="button" className="mc-ib mc-nr__x" aria-label={`Discard: ${it.what}`} onClick={() => declineCard(it.slug, it.messageId)}>
               <Icon name="x" />
             </button>
-            <Link className="mc-btn mc-nr__open" href={conversationHref(it.conv)} aria-label={`Open the ${it.helper} thread`}>
+            <Link className="mc-btn mc-nr__open" href={cardHref(it)} aria-label={`Open the ${it.helper} thread`}>
               Open
             </Link>
             <button type="button" className="mc-btn mc-btn--pri mc-nr__ok" onClick={() => approveCard(it.slug, it.messageId)}>
@@ -75,7 +78,7 @@ function Row({ it }: { it: NeedItem }) {
   );
 }
 
-/** /console: one calm pile of everything waiting on the owner, and the composer that starts a thread. */
+/** /console/needs (⌘K "Needs you"): one calm pile of everything waiting on the owner, and the composer that starts a thread. */
 export function NeedsHome() {
   const router = useRouter();
   const conversations = useDemo((s) => s.conversations);

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Approvals now live in the Needs you pile on the console home. */
+/** Approvals live in the Needs you pile (and in Mimi's conversation). */
 export default function ApprovalsPage() {
-  redirect("/console");
+  redirect("/console/needs");
 }

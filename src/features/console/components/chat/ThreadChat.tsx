@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/features/console/components/chat/Composer";
 import { DateLine, EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/console/components/chat/Messages";
 import { PlanSheet } from "@/features/console/components/chat/PlanSheet";
-import { PlanStrip } from "@/features/console/components/chat/Work";
+import { Waiting } from "@/features/console/components/chat/Waiting";
+import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -14,7 +15,6 @@ import { consoleRoutes, helperHref } from "@/features/console/config";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   DEMO_SLUG,
-  conversationHref,
   openPanel,
   playDemo,
   resetDemo,
@@ -25,7 +25,7 @@ import {
   stopDemo,
   togglePanel,
 } from "@/features/console/demo/engine";
-import { dayLabel, helperEntry, helperSections } from "@/features/console/demo/roster";
+import { dayLabel, helperSections } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
 import type { Conversation, Speaker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
@@ -141,6 +141,18 @@ export function ThreadChat({ slug }: { slug: string }) {
     autoUntil.current = Date.now() + 900;
     el.scrollTo({ top: el.scrollHeight, behavior: prefersReducedMotion() || count < 2 ? "auto" : "smooth" });
   }, [count, typing, chips]);
+  /* opened on one card (Mimi's roll-up links to …#m-<card>): show that card instead of the newest message */
+  useEffect(() => {
+    const id = /^#m-(.+)$/.exec(window.location.hash)?.[1];
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      if (!document.getElementById(`m-${id}`)) return;
+      stick.current = false;
+      autoUntil.current = 0;
+      goToCard(decodeURIComponent(id));
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [slug]);
   useEffect(() => {
     const el = feed.current;
     const inner = el?.firstElementChild;
@@ -196,7 +208,7 @@ export function ThreadChat({ slug }: { slug: string }) {
     return (
       <section className="mc-empty-thread" aria-label="Thread">
         <EmptyThread helper="Mimi">This thread isn&apos;t in the demo any more.</EmptyThread>
-        <Link className="mc-btn" href={consoleRoutes.home}>
+        <Link className="mc-btn" href={consoleRoutes.newThread}>
           Start a new thread
         </Link>
       </section>
@@ -206,7 +218,6 @@ export function ThreadChat({ slug }: { slug: string }) {
   const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
   /* one conversation per helper: every task she has worked on, the open one last */
   const sections = helperSections(conversations, conv.helper, slug);
-  const mimi = helperEntry(conversations, "Mimi");
   /* computer level 1: a live status line in the header while the panel is closed */
   const compActive = computer.status === "live" || computer.status === "paused" || computer.status === "user";
   const compHere = compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer" || ("from" in m && m.from === computer.helper)));
@@ -345,7 +356,7 @@ export function ThreadChat({ slug }: { slug: string }) {
             </Link>
             <Link
               className="mc-btn mc-btn--pri mc-new"
-              href={mimi ? conversationHref(mimi) : consoleRoutes.home}
+              href={consoleRoutes.home}
               aria-label="New: ask Mimi"
               title="Ask Mimi to start something new"
               onClick={(e) => {
@@ -371,6 +382,7 @@ export function ThreadChat({ slug }: { slug: string }) {
                 typing={typingAny?.slug === c.slug ? typingAny.who : null}
               />
             ))}
+            {conv.helper === "Mimi" && <Waiting />}
             <Replies slug={slug} />
           </div>
         </div>

@@ -1,6 +1,11 @@
 /** Console routes and constants. */
 export const consoleRoutes = {
+  /** Mimi's conversation: the console opens on her. */
   home: "/console",
+  /** Everything waiting on the owner in one pile (⌘K "Needs you"; Mimi's conversation links here too). */
+  needs: "/console/needs",
+  /** Start a new thread: helper chips and a composer. */
+  newThread: "/console/needs#new",
   threads: "/console/threads",
   shops: "/console/shops",
   credit: "/console/credit",

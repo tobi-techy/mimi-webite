@@ -152,7 +152,7 @@ function StateMark({ state }: { state: StepMsg["state"] }) {
 }
 
 /** Scrolls the decision card a gate waits on into view and flashes it. */
-function goTo(messageId: string) {
+export function goToCard(messageId: string) {
   const el = document.getElementById(`m-${messageId}`);
   if (!el) return;
   el.scrollIntoView({ block: "center", behavior: reduced() ? "auto" : "smooth" });
@@ -255,7 +255,7 @@ export function StepLine({ m }: { m: StepMsg }) {
         <div className="mc-ws__h">{body}</div>
       )}
       {m.variant === "gate" && m.link && m.state === "wait" && (
-        <button type="button" className="mc-ws__go" onClick={() => goTo(m.link!)}>
+        <button type="button" className="mc-ws__go" onClick={() => goToCard(m.link!)}>
           Go to the decision
           <Icon name="arrow-up" />
         </button>

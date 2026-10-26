@@ -4,6 +4,7 @@ import { ConsoleView } from "@/features/console/components/shell/ConsoleView";
 import { ButtonLink } from "@/features/console/components/ui/Button";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { Page } from "@/features/console/components/ui/Page";
+import { consoleRoutes } from "@/features/console/config";
 
 export const metadata: Metadata = { title: "Threads" };
 
@@ -13,7 +14,7 @@ export default function ThreadsPage() {
       <Page>
         <div className="x-lhd">
           <h1 className="x-title">Threads</h1>
-          <ButtonLink variant="primary" href="/console#new">
+          <ButtonLink variant="primary" href={consoleRoutes.newThread}>
             <Icon name="plus" />
             New thread
           </ButtonLink>
