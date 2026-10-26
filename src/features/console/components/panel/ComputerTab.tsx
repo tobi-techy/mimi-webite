@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { pauseComputer, takeControl } from "@/features/console/demo/engine";
+import { pauseComputer, setPanelFull, takeControl } from "@/features/console/demo/engine";
 import { useDemo } from "@/features/console/demo/store";
 import type { ComputerStatus } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
@@ -16,6 +16,40 @@ const STATUS: Record<ComputerStatus, string> = {
   done: "Done",
 };
 
+/** The desktop clock (the panel only renders on the client, after a click). */
+function useClock(): string {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 15000);
+    return () => window.clearInterval(t);
+  }, []);
+  return now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** A window title bar: three hairline buttons and the title. */
+function TitleBar({ title, active }: { title: string; active?: boolean }) {
+  return (
+    <div className={cx("mc-win__bar", active && "is-active")}>
+      <span className="mc-win__btns" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="mc-win__t">{title}</span>
+    </div>
+  );
+}
+
+/** Shop book sheet behind the browser, so the desktop feels like a real one (synthetic). */
+const SHEET = [
+  ["Shop", "Owes", "Days"],
+  ["Chuks & Sons", "62,400", "9"],
+  ["Joy Supermarket", "91,000", "6"],
+  ["Bright Star", "58,000", "5"],
+  ["Ola & Daughters", "54,500", "4"],
+  ["Kola Mart", "120,000", "3"],
+];
+
 /** The computer a helper is driving: status + controls, the screen edge to edge, a one-line step strip. */
 export function ComputerTab() {
   const c = useDemo((s) => s.computer);
@@ -24,6 +58,8 @@ export function ComputerTab() {
   const cur = runIdx >= 0 ? runIdx : c.steps.length - 1;
   const step = c.steps[cur];
   const busy = c.status === "live" || c.status === "paused";
+  const full = useDemo((s) => s.panel.full);
+  const time = useClock();
 
   return (
     <div className="mc-comp">
@@ -42,27 +78,60 @@ export function ComputerTab() {
             {c.status === "paused" ? "Resume" : "Pause"}
           </button>
           <button type="button" className="mc-btn mc-btn--sm mc-btn--pri" aria-pressed={c.status === "user"} onClick={takeControl}>
-            <Icon name="hand" />
-            {c.status === "user" ? `Give back to ${c.helper}` : "Take control"}
+            <Icon name={c.status === "user" ? "check" : "hand"} />
+            {c.status === "user" ? "I'm done" : "Take control"}
+          </button>
+          <button
+            type="button"
+            className="mc-ib mc-cfull"
+            aria-label={full ? "Back to the panel" : "Full screen"}
+            title={full ? "Back to the panel (Esc)" : "Full screen"}
+            onClick={() => setPanelFull(!full)}
+          >
+            <Icon name={full ? "minimize-2" : "maximize-2"} />
           </button>
         </div>
       </div>
 
-      <div className={cx("mc-scr", c.status === "user" && "is-user")}>
+      <div className={cx("mc-scr mc-desk", c.status === "user" && "is-user")}>
         {(c.status === "user" || c.status === "paused") && (
           <div className="mc-scr__banner" role="status">
             <span className="mc-mono">
               {c.status === "user" ? `You have control · ${c.helper} is waiting` : `Paused · ${c.helper} stopped at step ${cur + 1}`}
             </span>
             <button type="button" className="mc-btn mc-btn--sm" onClick={c.status === "user" ? takeControl : pauseComputer}>
-              {c.status === "user" ? "Give back" : "Resume"}
+              {c.status === "user" ? "I'm done" : "Resume"}
             </button>
           </div>
         )}
-        <div className="mc-url">
-          <span aria-hidden="true">‹ ›</span>
-          <b>{c.url}</b>
+        <div className="mc-desk__top" aria-hidden="true">
+          <span className="mc-desk__who">
+            <i className={cx("mc-dot", c.status !== "live" && "is-off")} />
+            {c.helper}&apos;s computer
+          </span>
+          <span className="mc-desk__menu">File · Edit · View · Window</span>
+          <span className="mc-desk__time">{time}</span>
         </div>
+        <div className="mc-desk__area">
+          <div className="mc-win mc-win--back" aria-hidden="true">
+            <TitleBar title="Shop book · Sheet" />
+            <table className="mc-sheet">
+              <tbody>
+                {SHEET.map((r, i) => (
+                  <tr key={i}>
+                    {r.map((x, j) => (i === 0 ? <th key={j}>{x}</th> : <td key={j}>{x}</td>))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mc-win mc-win--front">
+            <TitleBar title="GTBank Internet Banking" active />
+            <div className="mc-url">
+              <span aria-hidden="true">‹ ›</span>
+              <b>{c.url}</b>
+            </div>
+            <div className="mc-win__body">
         <div className="mc-bank">
           <div className="mc-bank__h">
             <div>
@@ -99,6 +168,23 @@ export function ComputerTab() {
               ))}
             </tbody>
           </table>
+        </div>
+            </div>
+          </div>
+        </div>
+        <div className="mc-desk__dock" aria-label="Apps open on the computer">
+          {(
+            [
+              ["search", "Browser", true],
+              ["sheet", "Sheet", true],
+              ["whatsapp", "WhatsApp", false],
+              ["folder", "Files", false],
+            ] as const
+          ).map(([icon, name, open]) => (
+            <span key={name} className={cx("mc-desk__app", open && "is-open")} title={name}>
+              <Icon name={icon} />
+            </span>
+          ))}
         </div>
       </div>
 

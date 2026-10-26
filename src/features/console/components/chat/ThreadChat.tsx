@@ -14,6 +14,7 @@ import { consoleRoutes } from "@/features/console/config";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   DEMO_SLUG,
+  openPanel,
   playDemo,
   resetDemo,
   setActiveThread,
@@ -37,6 +38,7 @@ export function ThreadChat({ slug }: { slug: string }) {
   const panelOpen = useDemo((s) => s.panel.open);
   const full = useDemo((s) => s.panel.full);
   const playing = useDemo((s) => s.playing);
+  const computer = useDemo((s) => s.computer);
   const sheetOpen = useDemo((s) => s.sheet?.slug === slug);
   const { toggleSidebar } = useShell();
   const host = useRef<HTMLDivElement>(null);
@@ -125,6 +127,9 @@ export function ThreadChat({ slug }: { slug: string }) {
   }
 
   const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
+  /* computer level 1: a live status line in the header while the panel is closed */
+  const compActive = computer.status === "live" || computer.status === "paused" || computer.status === "user";
+  const compHere = compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer"));
 
   return (
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
@@ -222,6 +227,20 @@ export function ThreadChat({ slug }: { slug: string }) {
             </div>
           </div>
           <div className="mc-hdr__r">
+            {compHere && !panelOpen && (
+              <button
+                type="button"
+                className="mc-cdot"
+                onClick={() => openPanel("Computer")}
+                aria-label={`${computer.helper} is ${computer.status === "user" ? "paused, you have the computer" : "using the computer"}: ${computer.activity}. Open the computer`}
+              >
+                <i className={cx("mc-dot", computer.status === "paused" && "is-off")} aria-hidden="true" />
+                <Icon name="monitor" />
+                <span className="mc-cdot__t mc-hide-phone">
+                  {computer.status === "user" ? "You have the computer" : computer.activity}
+                </span>
+              </button>
+            )}
             {playing && (
               <button type="button" className="mc-gb mc-gb--live" onClick={stopDemo}>
                 <i className="mc-dot" aria-hidden="true" />

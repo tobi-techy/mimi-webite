@@ -91,3 +91,73 @@
   justify-self: stretch; margin: 8px 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--muted);
   font-family: var(--msg-font, inherit);
 }
+
+/* ---------- computer, level 1: live status in the thread header ---------- */
+.mc-cdot {
+  height: 34px; max-width: 260px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px;
+  border: 1px solid var(--hair); border-radius: var(--radius-sm); color: var(--muted); font-size: 12.5px;
+  transition: background-color .15s var(--mech), color .15s var(--mech);
+}
+.mc-cdot:hover { background: var(--surface); color: var(--ink); }
+.mc-cdot .i { width: 15px; height: 15px; flex: none; }
+.mc-cdot .mc-dot { width: 6px; height: 6px; animation: mc-cpulse 1.6s var(--mech) infinite; }
+.mc-cdot__t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes mc-cpulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .mc-cdot .mc-dot { animation: none; } }
+.mc-cfull { margin-left: -2px; }
+
+/* ---------- computer, levels 2 and 3: a small desktop with windows (synthetic) ---------- */
+.mc-desk {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: #161514; color: var(--color-bone);
+}
+.mc-scr.is-user { box-shadow: none; outline: 2px solid var(--color-signal-orange); outline-offset: -2px; }
+.mc-desk__top {
+  flex: none; height: 24px; display: flex; align-items: center; gap: 14px; padding: 0 10px;
+  border-bottom: 1px solid rgba(238, 238, 238, .08); font-size: 11px; color: var(--color-pale-stone);
+}
+.mc-desk__who { display: inline-flex; align-items: center; gap: 6px; color: var(--color-bone); }
+.mc-desk__who .mc-dot { width: 6px; height: 6px; }
+.mc-desk__who .mc-dot.is-off { background: var(--color-warm-granite); }
+.mc-desk__menu { color: var(--color-warm-granite); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mc-desk__time { margin-left: auto; font: 400 11px var(--font-geist-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.mc-desk__area { position: relative; flex: 1; min-height: 0; padding: 34px 14px 10px 30px; }
+.mc-win {
+  border: 1px solid rgba(238, 238, 238, .14); border-radius: var(--radius-lg); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.mc-win--back {
+  position: absolute; top: 12px; left: 12px; width: min(62%, 420px); height: 46%;
+  background: var(--color-carbon-lift); opacity: .9;
+}
+.mc-win--front { position: relative; height: 100%; background: var(--color-chalk); color: var(--color-obsidian-canvas); }
+.mc-win__bar {
+  flex: none; height: 28px; display: flex; align-items: center; gap: 10px; padding: 0 10px;
+  background: var(--color-carbon-lift); color: var(--color-pale-stone); font-size: 11.5px;
+  border-bottom: 1px solid rgba(238, 238, 238, .08);
+}
+.mc-win__bar.is-active { color: var(--color-bone); }
+.mc-win__btns { display: inline-flex; gap: 5px; }
+.mc-win__btns i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(238, 238, 238, .28); }
+.mc-win__t { flex: 1; min-width: 0; text-align: center; margin-right: 37px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-win--front .mc-url { flex: none; }
+.mc-win__body { flex: 1; min-height: 0; overflow: auto; }
+.mc-sheet { width: 100%; border-collapse: collapse; font-size: 10.5px; color: var(--color-pale-stone); }
+.mc-sheet th, .mc-sheet td { padding: 4px 8px; border-bottom: 1px solid rgba(238, 238, 238, .07); border-right: 1px solid rgba(238, 238, 238, .07); text-align: left; font-weight: 400; }
+.mc-sheet th { color: var(--color-warm-granite); font: 400 9.5px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; }
+.mc-desk__dock {
+  flex: none; align-self: center; display: flex; gap: 6px; margin: 0 0 8px; padding: 4px 6px;
+  border: 1px solid rgba(238, 238, 238, .1); border-radius: var(--radius-lg);
+}
+.mc-desk__app {
+  position: relative; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px;
+  color: var(--color-pale-stone); border: 1px solid rgba(238, 238, 238, .08);
+}
+.mc-desk__app .i { width: 14px; height: 14px; }
+.mc-desk__app.is-open::after {
+  content: ""; position: absolute; bottom: -4px; width: 3px; height: 3px; border-radius: 50%; background: var(--color-pale-stone);
+}
+@media (max-width: 899px) {
+  .mc-desk__menu { display: none; }
+  .mc-desk__area { padding: 26px 8px 8px 16px; }
+}

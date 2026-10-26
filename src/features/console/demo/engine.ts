@@ -1419,7 +1419,14 @@ export function pauseComputer() {
 }
 export function takeControl() {
   sfx("console", "tap");
+  const before = getDemo().computer;
   setComputer((c) => ({ ...c, status: c.status === "user" ? (c.steps.some((s) => s.state === "run") ? "live" : "done") : "user" }));
+  /* both moves write a system event in the thread on screen (RAI-299) */
+  const slug = getDemo().active;
+  if (!slug) return;
+  const at = before.steps.findIndex((s) => s.state === "run");
+  if (before.status === "user") event(slug, `Handed back to ${before.helper} · resumes at step ${at >= 0 ? at + 1 : before.steps.length}`);
+  else event(slug, `You took control of ${before.helper}'s computer · ${before.helper} is paused`);
 }
 
 /* ---------- docs ---------- */
