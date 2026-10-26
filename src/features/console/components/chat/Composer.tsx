@@ -290,7 +290,6 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
             placeholder={`Message ${helper}`}
             aria-autocomplete="list"
             aria-controls={ac ? `ac-${slug}` : undefined}
-            aria-expanded={!!ac}
             onChange={(e) => {
               setText(e.target.value);
               setShut(null);
