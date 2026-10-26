@@ -12,6 +12,7 @@ import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { consoleRoutes } from "@/features/console/config";
 import { conversationHref } from "@/features/console/demo/engine";
 import { needCount } from "@/features/console/demo/needs";
+import { faceStateLabel, rosterNames, rosterRow, type RosterRow } from "@/features/console/demo/roster";
 import { owner } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
 import { helperNames, type Conversation, type HelperName } from "@/features/console/demo/types";
@@ -56,6 +57,57 @@ function ThreadRow({ c, on }: { c: Conversation; on: boolean }) {
   );
 }
 
+const nairaShort = (n: number) => `₦${n.toLocaleString("en-US")}`;
+
+/**
+ * One roster row (Grok Bot style): face with state, name, relative time, an outcome preview.
+ * Hover, focus or a long-press swaps the preview for the current step and today's cost.
+ */
+function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
+  const [peek, setPeek] = useState(false);
+  const press = useRef<number | undefined>(undefined);
+  const href = r.thread ? conversationHref(r.thread) : consoleRoutes.home;
+  const label = `${r.name}, ${faceStateLabel[r.state].toLowerCase()}${r.needs ? `, ${r.needs} waiting on you` : ""}. ${r.preview}. Now: ${r.step}. ${nairaShort(r.costToday)} today.`;
+  return (
+    <Link
+      href={href}
+      role="listitem"
+      className={cx("mc-ro", on && "is-on", peek && "is-peek")}
+      aria-current={on ? "page" : undefined}
+      aria-label={label}
+      onPointerDown={(e) => {
+        if (e.pointerType !== "touch") return;
+        press.current = window.setTimeout(() => setPeek(true), 420);
+      }}
+      onPointerUp={() => window.clearTimeout(press.current)}
+      onPointerLeave={() => {
+        window.clearTimeout(press.current);
+        setPeek(false);
+      }}
+      onContextMenu={(e) => peek && e.preventDefault()}
+      onClick={(e) => {
+        if (peek) {
+          e.preventDefault();
+          setPeek(false);
+        }
+      }}
+    >
+      <HelperFace name={r.name} size={28} state={r.state} dot={r.needs > 0} />
+      <span className="mc-ro__tx">
+        <span className="mc-ro__l1">
+          <span className="mc-ro__n">{r.name}</span>
+          <span className="mc-ro__ago">{r.state === "working" ? "now" : r.ago}</span>
+          <span className="mc-ro__cost">{nairaShort(r.costToday)} today</span>
+        </span>
+        <span className="mc-ro__l2">
+          <span className="mc-ro__pv">{r.preview}</span>
+          <span className="mc-ro__step">{r.step}</span>
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 /** Sidebar: workspace switcher, search row, helper faces, three links, threads by Needs you / Running / Done, the owner. Collapses to a rail. */
 export function SideNav({ settings }: { settings: ReactNode }) {
   const pathname = usePathname();
@@ -63,6 +115,12 @@ export function SideNav({ settings }: { settings: ReactNode }) {
   const conversations = useDemo((s) => s.conversations);
   const active = useDemo((s) => s.active);
   const autoCount = useDemo((s) => s.autos.length);
+  const typing = useDemo((s) => s.typing);
+  const computer = useDemo((s) => s.computer);
+  const roster = useMemo(
+    () => rosterNames.map((n) => rosterRow({ conversations, typing, computer }, n)),
+    [conversations, typing, computer],
+  );
   const [filter, setFilter] = useState<HelperName | "Mimi" | null>(null);
   const [moreDone, setMoreDone] = useState(false);
   const inSettings = pathname.startsWith(consoleRoutes.settings);
@@ -91,6 +149,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
     helperNames.map((h) => {
       const c = latest(h);
       const st = faceState(h);
+      const row = roster.find((r) => r.name === h);
       return (
         <Link
           key={h}
@@ -98,9 +157,9 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           className="mc-pin"
           href={c ? conversationHref(c) : consoleRoutes.home}
           aria-label={`${h}${st.needs ? ", needs you" : ""}${st.busy ? ", working" : ""}`}
-          title={rail ? h : undefined}
+          title={rail ? `${h} · ${row ? row.step : ""}` : undefined}
         >
-          <HelperFace name={h} size={28} dot={st.needs} busy={st.busy} />
+          <HelperFace name={h} size={28} dot={st.needs} state={row?.state} />
           {!rail && <span>{h}</span>}
         </Link>
       );
@@ -185,15 +244,17 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           </div>
         ) : (
           <>
-            <div className="mc-pins" role="list" aria-label="Helpers">
-              {faces(false)}
+            <div className="mc-side__scroll">
+            <div className="mc-roster" role="list" aria-label="Your team">
+              {roster.map((r) => (
+                <RosterItem key={r.name} r={r} on={inThread && !!r.thread && active === r.thread.slug} />
+              ))}
             </div>
             <nav className="mc-navs" aria-label="Main">
               <NavRow href={NEW_HREF} icon="plus" label="New thread" on={isNew} />
               <NavRow href={consoleRoutes.shops} icon="store" label="Shops" count={48} on={pathname.startsWith(consoleRoutes.shops) || pathname.startsWith(consoleRoutes.credit)} />
               <NavRow href={consoleRoutes.automations} icon="refresh-cw" label="Automations" count={autoCount} on={pathname.startsWith(consoleRoutes.automations)} />
             </nav>
-            <div className="mc-side__scroll">
               <div className="mc-thead">
                 <span>Threads</span>
                 <Link className="mc-ib mc-ib--sm" href={consoleRoutes.threads} aria-label="All threads">

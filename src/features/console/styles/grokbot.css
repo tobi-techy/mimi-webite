@@ -1,0 +1,63 @@
+/* =====================================================================================
+ * Grok Bot lessons (26 Oct 2026, RAI-298 / RAI-299). Structure only, inside the locked
+ * Factory skin: Geist + Geist Mono labels, 3px buttons, 10px cards, hairlines, no blur,
+ * no shadows, orange only for status and marks. Imported last.
+ * ===================================================================================== */
+
+/* ---------- sidebar width ---------- */
+.mc-side { width: 256px; }
+
+/* ---------- helper roster ---------- */
+.mc-roster { display: flex; flex-direction: column; gap: 1px; padding: 0 0 10px; }
+.mc-ro {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 8px 8px;
+  border-radius: 8px; color: var(--ink); transition: background-color .15s var(--mech);
+  -webkit-touch-callout: none; user-select: none;
+}
+.mc-ro:hover { background: var(--tint); }
+.mc-ro.is-on { background: var(--rf-sel, var(--tint2)); }
+.mc-ro .mc-face { width: 28px; height: 28px; }
+.mc-ro__tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mc-ro__l1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.mc-ro__n { flex: 1; min-width: 0; font-size: 14px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-ro__ago, .mc-ro__cost { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mc-ro__cost { display: none; }
+.mc-ro__l2 { display: grid; min-width: 0; }
+.mc-ro__pv, .mc-ro__step {
+  grid-area: 1 / 1; min-width: 0; font-size: 12.5px; line-height: 17px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .15s var(--mech);
+}
+.mc-ro__step { opacity: 0; color: var(--soft); }
+/* hover, keyboard focus or long-press: the current step and today's cost */
+.mc-ro:hover .mc-ro__pv, .mc-ro:focus-visible .mc-ro__pv, .mc-ro.is-peek .mc-ro__pv { opacity: 0; }
+.mc-ro:hover .mc-ro__step, .mc-ro:focus-visible .mc-ro__step, .mc-ro.is-peek .mc-ro__step { opacity: 1; }
+.mc-ro:hover .mc-ro__ago, .mc-ro:focus-visible .mc-ro__ago, .mc-ro.is-peek .mc-ro__ago { display: none; }
+.mc-ro:hover .mc-ro__cost, .mc-ro:focus-visible .mc-ro__cost, .mc-ro.is-peek .mc-ro__cost { display: inline; }
+.mc-ro.is-peek { background: var(--tint2); }
+.mc-roster + .mc-navs { padding-bottom: 4px; }
+@media (max-width: 899px) {
+  .mc-ro { min-height: 58px; }
+}
+
+/* ---------- face states ---------- */
+.mc-face__st {
+  position: absolute; right: -3px; bottom: -2px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--mc-side); display: grid; place-items: center;
+}
+.mc-face__st--working::after {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid var(--hair); border-top-color: var(--ink); animation: mc-sp .8s linear infinite;
+}
+.mc-face__st--blocked::after {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid var(--muted);
+  background: linear-gradient(135deg, transparent 42%, var(--muted) 42%, var(--muted) 58%, transparent 58%);
+}
+.mc-face__st--done svg { width: 9px; height: 9px; fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.mc-face--is-working > svg { animation: mc-bob 1.6s ease-in-out infinite; }
+.mc-face--is-idle > svg { opacity: .55; }
+.mc-face--is-blocked > svg { opacity: .7; filter: grayscale(.6); }
+@keyframes mc-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .mc-face--is-working > svg, .mc-face__st--working::after { animation: none; }
+}

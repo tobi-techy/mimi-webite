@@ -1,4 +1,5 @@
 import { helperFaces } from "@/features/console/components/helpers/faces.generated";
+import type { FaceState } from "@/features/console/demo/roster";
 import type { Speaker } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
@@ -35,6 +36,7 @@ export function HelperFace({
   ring,
   dot,
   busy,
+  state,
   className,
 }: {
   name: Exclude<Speaker, "me">;
@@ -43,6 +45,11 @@ export function HelperFace({
   dot?: boolean;
   /** Small green dot: this helper is working right now. */
   busy?: boolean;
+  /**
+   * What the helper is doing (roster, rail, helper view): working = a small spinner and a slow
+   * bob, waiting = the orange dot, blocked = a hairline slash mark, done = a check, idle = quiet.
+   */
+  state?: FaceState;
   className?: string;
 }) {
   const face =
@@ -59,13 +66,22 @@ export function HelperFace({
     );
   return (
     <span
-      className={cx("mc-face", !!ring && "mc-face--ring", `mc-face--${name}`, className)}
+      className={cx("mc-face", !!ring && "mc-face--ring", `mc-face--${name}`, state && `mc-face--is-${state}`, className)}
       style={ring ? { width: ring, height: ring } : undefined}
       aria-hidden="true"
     >
       {face}
-      {dot && <i className="mc-face__dot" />}
-      {busy && <i className="mc-face__busy" />}
+      {(dot || state === "waiting") && <i className="mc-face__dot" />}
+      {busy && !state && <i className="mc-face__busy" />}
+      {state === "working" && <i className="mc-face__st mc-face__st--working" />}
+      {state === "blocked" && <i className="mc-face__st mc-face__st--blocked" />}
+      {state === "done" && !dot && (
+        <i className="mc-face__st mc-face__st--done">
+          <svg viewBox="0 0 10 10">
+            <path d="M2.6 5.2 4.3 6.8 7.4 3.4" />
+          </svg>
+        </i>
+      )}
     </span>
   );
 }
