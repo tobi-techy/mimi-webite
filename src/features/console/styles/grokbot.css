@@ -224,10 +224,10 @@ html:not([data-theme="dark"]) .mc-side__full > .mc-me { border-top: 1px solid va
 
 /* tasks inside the conversation: a date line and a centred "New task" event between them */
 .mc-task { display: contents; }
-.mc-task + .mc-task > .mc-ts:first-child, .mc-task + .mc-task > .mc-ev--task:first-child { margin-top: 24px; }
+.mc-task + .mc-task > .mc-ts:first-child, .mc-task + .mc-task > .mc-ev--task:first-child { margin-top: 16px; }
 .mc-ev--task { margin: 4px 0 8px; }
 .mc-tv .mc-ev--task + .mc-ev { margin-top: -8px; }
-@media (max-width: 899px) { .mc-ws__h { padding: 4px 0; } }
+@media (max-width: 899px) { .mc-ws__h { padding: 4px 0; } .mc-tv .mc-ws--tool + .mc-ws--tool { margin-top: 8px; } }
 .mc-gs--feed {
   justify-self: center; align-self: center; width: fit-content; margin: 4px auto 16px; height: 32px; padding: 0 10px; gap: 8px;
   border: 1px solid var(--rf-hair, var(--hair)); border-radius: var(--radius-sm); display: inline-flex; align-items: center;
