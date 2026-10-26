@@ -34,7 +34,6 @@
 .mc-ro:hover .mc-ro__ago, .mc-ro:focus-visible .mc-ro__ago, .mc-ro.is-peek .mc-ro__ago { display: none; }
 .mc-ro:hover .mc-ro__cost, .mc-ro:focus-visible .mc-ro__cost, .mc-ro.is-peek .mc-ro__cost { display: inline; }
 .mc-ro.is-peek { background: var(--tint2); }
-.mc-roster + .mc-navs { padding-bottom: 4px; }
 @media (max-width: 899px) {
   .mc-ro { min-height: 58px; }
 }
@@ -188,9 +187,51 @@
   .mc-ws__h { align-items: flex-start; padding: 3px 0; }
   .mc-ws__i, .mc-ws__ok, .mc-ws__spin { margin-top: 3px; }
 }
-.mc-side__full > .mc-navs + .mc-side__scroll { margin-top: 6px; border-top: 1px solid var(--rf-hair, var(--line)); }
 /* phones and short screens: roster, links and threads scroll together */
 @media (max-width: 899px), (max-height: 700px) {
   .mc-side__full { overflow-y: auto; }
   .mc-side__full > .mc-side__scroll { flex: none; overflow: visible; min-height: auto; }
 }
+
+/* =====================================================================================
+ * One conversation per helper (26 Oct 2026, Tobi): the sidebar is the roster plus a quiet
+ * group above it. 8px rhythm, one left edge (8px inset) for every row, ellipsis everywhere.
+ * ===================================================================================== */
+.mc-side__full > .mc-side__team { flex: 1; min-height: 0; margin-top: 8px; padding-top: 8px; padding-bottom: 8px; border-top: 1px solid var(--rf-hair, var(--line)); }
+.mc-side__team .mc-roster { gap: 0; padding: 0; }
+.mc-side__team .mc-ro { min-height: 56px; padding: 8px; gap: 8px; }
+.mc-side__team .mc-ro .mc-face { margin-right: 2px; }
+.mc-ro__l2 { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; }
+.mc-ro__k { grid-area: 1 / 2; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
+.mc-navs--quiet { flex: none; margin-top: 8px; gap: 0; }
+.mc-navs--quiet .mc-nav { height: 32px; padding: 0 8px; gap: 16px; color: var(--muted); }
+.mc-navs--quiet .mc-nav .i { margin-left: 6px; }
+.mc-navs--quiet .mc-nav:hover, .mc-navs--quiet .mc-nav[aria-current="page"] { color: var(--ink); }
+.mc-navs--quiet .mc-badge { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
+.mc-side__full > .mc-me { padding: 8px 0 0 8px; border-top: 1px solid var(--rf-hair, var(--line)); }
+html:not([data-theme="dark"]) .mc-side__full > .mc-me { border-top: 1px solid var(--rf-hair, var(--hair)); }
+.mc-rail .mc-pin.is-on { background: var(--rf-sel, var(--tint2)); border-radius: 8px; }
+@media (max-width: 899px), (max-height: 700px) {
+  .mc-side__full > .mc-side__team { flex: none; overflow: visible; }
+  .mc-navs--quiet .mc-nav { height: 44px; }
+}
+
+/* thread header: the helper, her job and what she is doing now */
+.mc-tt__b .mc-face { width: 18px; height: 18px; flex: none; }
+.mc-tt__b { gap: 8px; }
+.mc-tt__job { white-space: nowrap; }
+.mc-rtn { white-space: nowrap; }
+
+/* tasks inside the conversation: a date line and a centred "New task" event between them */
+.mc-task { display: contents; }
+.mc-task + .mc-task > .mc-ts:first-child, .mc-task + .mc-task > .mc-ev--task:first-child { margin-top: 24px; }
+.mc-ev--task { margin: 4px 0 8px; }
+.mc-tv .mc-ev--task + .mc-ev { margin-top: -8px; }
+@media (max-width: 899px) { .mc-ws__h { padding: 4px 0; } }
+.mc-gs--feed {
+  justify-self: center; align-self: center; width: fit-content; margin: 4px auto 16px; height: 32px; padding: 0 10px; gap: 8px;
+  border: 1px solid var(--rf-hair, var(--hair)); border-radius: var(--radius-sm); display: inline-flex; align-items: center;
+  font-size: 13px; color: var(--soft);
+}
+.mc-gs--feed .i { width: 14px; height: 14px; color: var(--muted); }
+.mc-tv .mc-task > * { min-width: 0; }

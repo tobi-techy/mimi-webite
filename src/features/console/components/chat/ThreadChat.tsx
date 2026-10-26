@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/features/console/components/chat/Composer";
-import { EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/console/components/chat/Messages";
+import { DateLine, EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/console/components/chat/Messages";
 import { PlanSheet } from "@/features/console/components/chat/PlanSheet";
 import { PlanStrip } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
@@ -14,6 +14,7 @@ import { consoleRoutes, helperHref } from "@/features/console/config";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   DEMO_SLUG,
+  conversationHref,
   openPanel,
   playDemo,
   resetDemo,
@@ -24,17 +25,92 @@ import {
   stopDemo,
   togglePanel,
 } from "@/features/console/demo/engine";
+import { dayLabel, helperEntry, helperSections } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
+import type { Conversation, Speaker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { isSoundOn, setSound } from "@/lib/sound";
 import { cx } from "@/lib/cx";
 
-/** One helper thread: iMessage-style feed in the Factory skin, docked composer, workspace panel. */
+/** Demo setup progress: WhatsApp, Sheets and Paystack connected; shops import and team invite left. */
+const SETUP_DONE = 3;
+const SETUP_STEPS = 5;
+
+/** Setup progress, at the top of Mimi's conversation (it used to sit in the sidebar). */
+function GettingStarted() {
+  return (
+    <Link
+      href={`${consoleRoutes.settings}/connectors`}
+      className="mc-gs mc-gs--feed"
+      aria-label={`Getting started, ${SETUP_DONE} of ${SETUP_STEPS} done`}
+    >
+      <svg className="mc-gs__ring" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.25" />
+        <circle
+          cx="8"
+          cy="8"
+          r="6.25"
+          pathLength="100"
+          strokeDasharray={`${(SETUP_DONE / SETUP_STEPS) * 100} 100`}
+          transform="rotate(-90 8 8)"
+        />
+      </svg>
+      <span className="mc-gs__t">Getting started</span>
+      <span className="mc-gs__k">
+        {SETUP_DONE} of {SETUP_STEPS} done
+      </span>
+      <Icon name="chevron-right" />
+    </Link>
+  );
+}
+
+const labelOf = (c: Conversation) => {
+  const first = c.messages[0];
+  return first?.kind === "date" ? first.label : dayLabel(c.ago);
+};
+
+/**
+ * One task inside a helper's conversation: a date line (skipped when it repeats the one above),
+ * a centred "New task" event, then the task's messages. Cards, polls and chips act on this task.
+ */
+function TaskSection({
+  c,
+  open,
+  prevLabel,
+  typing,
+}: {
+  c: Conversation;
+  open: boolean;
+  prevLabel?: string;
+  typing: Speaker | null;
+}) {
+  const label = labelOf(c);
+  const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
+  return (
+    <div className={cx("mc-task", open && "is-open")} id={`task-${c.slug}`} data-task={c.slug}>
+      {label !== prevLabel && <DateLine label={label} />}
+      <p className="mc-ev mc-ev--task" role="note">
+        New task · {c.title}
+      </p>
+      {rest.length === 0 && !typing ? (
+        open ? (
+          <EmptyThread helper={c.helper} />
+        ) : null
+      ) : (
+        <MessageFeed slug={c.slug} messages={rest} typing={typing} />
+      )}
+    </div>
+  );
+}
+
+/** A helper's one conversation: iMessage-style feed of her tasks in the Factory skin, docked composer (on the open task), workspace panel. */
 export function ThreadChat({ slug }: { slug: string }) {
   const conv = useDemo((s) => findConversation(s, slug));
   const typing = useDemo((s) => (s.typing?.slug === slug ? s.typing.who : null));
+  const typingAny = useDemo((s) => s.typing);
+  const conversations = useDemo((s) => s.conversations);
   const panelOpen = useDemo((s) => s.panel.open);
   const full = useDemo((s) => s.panel.full);
   const playing = useDemo((s) => s.playing);
@@ -53,7 +129,8 @@ export function ThreadChat({ slug }: { slug: string }) {
   }, [slug]);
 
   /* keep the newest message in view, also while a reply streams in or chips appear (unless the owner scrolled up) */
-  const count = conv?.messages.length ?? 0;
+  /* the whole conversation (every task of this helper) */
+  const count = conversations.reduce((n, c) => (c.helper === conv?.helper ? n + c.messages.length : n), 0);
   const chips = conv?.replies?.length ?? 0;
   const stick = useRef(true);
   const autoUntil = useRef(0);
@@ -127,13 +204,16 @@ export function ThreadChat({ slug }: { slug: string }) {
   }
 
   const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
+  /* one conversation per helper: every task she has worked on, the open one last */
+  const sections = helperSections(conversations, conv.helper, slug);
+  const mimi = helperEntry(conversations, "Mimi");
   /* computer level 1: a live status line in the header while the panel is closed */
   const compActive = computer.status === "live" || computer.status === "paused" || computer.status === "user";
   const compHere = compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer" || ("from" in m && m.from === computer.helper)));
 
   return (
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
-      <section className="mc-thread" aria-label={conv.title}>
+      <section className="mc-thread" aria-label={`${conv.helper}: conversation`}>
         <header className="mc-hdr mc-hdr--title">
           <div className="mc-hdr__l">
             <button className="mc-gb mc-gb--icon mc-show-phone" type="button" aria-label="Open menu" onClick={toggleSidebar}>
@@ -148,14 +228,12 @@ export function ThreadChat({ slug }: { slug: string }) {
                 title={`${conv.helper} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <span className="mc-tt__t">{conv.title}</span>
+                <HelperFace name={conv.helper} size={18} />
+                <span className="mc-tt__t">{conv.helper}</span>
                 <Icon name="chevron-down" className="i mc-tt__c" />
               </button>
               <p className="mc-tt__s" aria-live="polite">
-                <HelperFace name={conv.helper} size={14} />
-                <Link className="mc-tt__h mc-tt__hl" href={helperHref(conv.helper)} title={`${conv.helper}'s view: routines and cost`}>
-                  {conv.helper}
-                </Link>
+                <span className="mc-tt__h mc-tt__job">{job}</span>
                 {conv.working && <i className="mc-spin" aria-hidden="true" />}
                 <span key={conv.status} className="mc-tt__st">
                   {(typing && typing !== "me") || conv.status === "typing" ? "writing the reply" : conv.status}
@@ -262,7 +340,20 @@ export function ThreadChat({ slug }: { slug: string }) {
             >
               <Icon name="panel-right-open" />
             </button>
-            <Link className="mc-btn mc-btn--pri mc-new" href={`${consoleRoutes.home}#new`} aria-label="New thread">
+            <Link className="mc-gb mc-gb--icon mc-hide-phone" href={helperHref(conv.helper)} aria-label={`${conv.helper}'s routines and cost`} title={`${conv.helper}'s routines and cost`}>
+              <Icon name="calendar-clock" />
+            </Link>
+            <Link
+              className="mc-btn mc-btn--pri mc-new"
+              href={mimi ? conversationHref(mimi) : consoleRoutes.home}
+              aria-label="New: ask Mimi"
+              title="Ask Mimi to start something new"
+              onClick={(e) => {
+                if (conv.helper !== "Mimi") return;
+                e.preventDefault();
+                document.querySelector<HTMLTextAreaElement>(".mc-cmp textarea")?.focus();
+              }}
+            >
               <Icon name="plus" />
               <span className="mc-new__t">New</span>
             </Link>
@@ -270,11 +361,16 @@ export function ThreadChat({ slug }: { slug: string }) {
         </header>
         <div className="mc-feed" ref={feed}>
           <div className="mc-col mc-fi">
-            {conv.messages.length === 0 && !typing ? (
-              <EmptyThread helper={conv.helper} />
-            ) : (
-              <MessageFeed slug={slug} messages={conv.messages} typing={typing} />
-            )}
+            {conv.helper === "Mimi" && <GettingStarted />}
+            {sections.map((c, i) => (
+              <TaskSection
+                key={c.slug}
+                c={c}
+                open={c.slug === slug}
+                prevLabel={i > 0 ? labelOf(sections[i - 1]!) : undefined}
+                typing={typingAny?.slug === c.slug ? typingAny.who : null}
+              />
+            ))}
             <Replies slug={slug} />
           </div>
         </div>

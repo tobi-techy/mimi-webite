@@ -613,7 +613,7 @@ export function EmptyThread({ helper, children }: { helper: string; children?: R
   );
 }
 
-function DateLine({ label }: { label: string }) {
+export function DateLine({ label }: { label: string }) {
   const [day, ...rest] = label.split(" ");
   return (
     <p className="mc-ts mc-mono">

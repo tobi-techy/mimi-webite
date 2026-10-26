@@ -144,3 +144,44 @@ export function rosterRow(s: Pick<DemoState, "conversations" | "typing" | "compu
   const thread = mine.find((c) => needsIn(c) > 0) ?? mine[0];
   return { name, state, needs, preview, step, ago: thread?.ago ?? "", costToday: seed.costToday, steps: seed.steps, thread };
 }
+
+/** Minutes behind now for a sidebar age ("2m", "3h", "1d", "1w"); new threads ("now", a clock) are 0. */
+export function ageMinutes(ago: string): number {
+  const m = /^(\d+)\s*([mhdw])$/.exec(ago.trim());
+  if (!m) return 0;
+  const n = Number(m[1]);
+  return n * { m: 1, h: 60, d: 1440, w: 10080 }[m[2] as "m" | "h" | "d" | "w"];
+}
+
+/** A day label for a task that has no date line of its own. */
+export function dayLabel(ago: string): string {
+  const min = ageMinutes(ago);
+  if (min < 1440) return "Today";
+  if (min < 2880) return "Yesterday";
+  if (min < 10080) return `${Math.round(min / 1440)} days ago`;
+  return "Last week";
+}
+
+/**
+ * A helper's one conversation (iMessage / Grok Bot): every task she has worked on, oldest first,
+ * with the open task (`activeSlug`) last so it sits right above the composer.
+ */
+export function helperSections(
+  conversations: Conversation[],
+  helper: RosterName,
+  activeSlug?: string,
+): Conversation[] {
+  const mine = conversations.map((c, i) => ({ c, i })).filter((x) => x.c.helper === helper);
+  mine.sort((a, b) => {
+    if (a.c.slug === activeSlug) return 1;
+    if (b.c.slug === activeSlug) return -1;
+    return ageMinutes(b.c.ago) - ageMinutes(a.c.ago) || b.i - a.i;
+  });
+  return mine.map((x) => x.c);
+}
+
+/** Where a helper's conversation opens: the newest task that needs the owner, else the newest task. */
+export function helperEntry(conversations: Conversation[], helper: RosterName): Conversation | undefined {
+  const mine = conversations.filter((c) => c.helper === helper);
+  return mine.find((c) => needsIn(c) > 0) ?? mine[0];
+}

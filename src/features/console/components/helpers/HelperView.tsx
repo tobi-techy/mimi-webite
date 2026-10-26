@@ -125,8 +125,8 @@ export function HelperView({ name }: { name: RosterName }) {
           <Icon name="chevron-right" />
         </Link>
 
-        <h2 className="mc-hv__h">Threads</h2>
-        <ul className="mc-hv__list" aria-label={`${name}'s threads`}>
+        <h2 className="mc-hv__h">Tasks in the conversation</h2>
+        <ul className="mc-hv__list" aria-label={`${name}'s tasks`}>
           {threads.map((c) => (
             <li key={c.slug}>
               <Link className="mc-hv__th" href={conversationHref(c)}>
