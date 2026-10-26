@@ -614,7 +614,7 @@ const liveConversations = (): Conversation[] => [
     preview: "Matched to invoice INV-2304 · 2 witnesses",
     messages: [
       { id: id(), kind: "date", label: "Today" },
-      { id: id(), kind: "step", from: "Proof", at: T(8, 58), variant: "tool", icon: "message-square", state: "done", text: "Read Mama Tunde's WhatsApp · \"I don send 42k\"", took: "0.6s", cost: 1 },
+      { id: id(), kind: "step", from: "Proof", at: T(8, 58), variant: "tool", icon: "message-square", state: "done", text: "Read Mama Tunde's WhatsApp · \"I've sent the 42k\"", took: "0.6s", cost: 1 },
       { id: id(), kind: "step", from: "Proof", at: T(8, 58), variant: "tool", icon: "landmark", tool: "Read bank alert", state: "done", text: "matched Mama Tunde ₦42,000", took: "1.2s", cost: 3 },
       { id: id(), kind: "step", from: "Proof", at: T(8, 59), variant: "tool", icon: "receipt", state: "done", text: "INV-2304 · ₦42,000 · due 24 Oct", took: "0.4s", cost: 1 },
       {
