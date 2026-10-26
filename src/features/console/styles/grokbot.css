@@ -74,13 +74,13 @@
   text-transform: uppercase; letter-spacing: .02em;
 }
 .mc-apc__h .mc-tier + .mc-nd { margin-left: 8px; }
-.mc-pf {
+.mc-prf {
   margin-left: 6px; font: 400 10.5px/1 var(--font-geist-mono), ui-monospace, monospace; font-style: normal;
   color: var(--muted); letter-spacing: .01em;
 }
-.mc-pf--verified { color: var(--soft); }
-.mc-pf--verified::before { content: "✓ "; }
-.mc-pf--likely::before, .mc-pf--estimated::before { content: "~ "; }
+.mc-prf--verified { color: var(--soft); }
+.mc-prf--verified::before { content: "✓ "; }
+.mc-prf--likely::before, .mc-prf--estimated::before { content: "~ "; }
 .mc-apc__mail { margin: 2px 16px 6px; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 6px; display: grid; gap: 4px; font-size: 13px; color: var(--ink); }
 .mc-apc__mail p { margin: 0; display: flex; gap: 8px; min-width: 0; }
 .mc-apc__mail p span { flex: none; width: 52px; color: var(--muted); font-size: 12px; }
@@ -233,3 +233,6 @@
   padding: 5px 8px; border: 1px solid var(--hair); border-radius: var(--radius-sm); background: var(--bg);
 }
 .mc-cstat__btns .mc-btn--pri[aria-pressed="true"] { background: var(--pri-bg); color: var(--pri-fg); border-color: var(--pri-bg); opacity: 1; }
+/* roster stays put; only the thread list scrolls */
+.mc-side__full > .mc-roster { flex: none; }
+@media (max-height: 760px) { .mc-ro { min-height: 46px; padding-block: 5px; } }

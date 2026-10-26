@@ -244,7 +244,6 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           </div>
         ) : (
           <>
-            <div className="mc-side__scroll">
             <div className="mc-roster" role="list" aria-label="Your team">
               {roster.map((r) => (
                 <RosterItem key={r.name} r={r} on={inThread && !!r.thread && active === r.thread.slug} />
@@ -255,6 +254,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
               <NavRow href={consoleRoutes.shops} icon="store" label="Shops" count={48} on={pathname.startsWith(consoleRoutes.shops) || pathname.startsWith(consoleRoutes.credit)} />
               <NavRow href={consoleRoutes.automations} icon="refresh-cw" label="Automations" count={autoCount} on={pathname.startsWith(consoleRoutes.automations)} />
             </nav>
+            <div className="mc-side__scroll">
               <div className="mc-thead">
                 <span>Threads</span>
                 <Link className="mc-ib mc-ib--sm" href={consoleRoutes.threads} aria-label="All threads">

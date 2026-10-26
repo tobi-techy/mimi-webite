@@ -329,7 +329,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
               {r.amount !== undefined && naira(r.amount)}
               {r.amount !== undefined && (r.tone || r.note) && " · "}
               {r.tone ?? r.note}
-              {r.proof && <em className={cx("mc-pf", `mc-pf--${r.proof}`)}>{proofWord[r.proof]}</em>}
+              {r.proof && <em className={cx("mc-prf", `mc-prf--${r.proof}`)}>{proofWord[r.proof]}</em>}
               {r.flag && <em className="mc-or"> · {r.flag}</em>}
             </span>
           </div>
