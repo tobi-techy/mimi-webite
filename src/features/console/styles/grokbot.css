@@ -236,3 +236,7 @@
 /* roster stays put; only the thread list scrolls */
 .mc-side__full > .mc-roster { flex: none; }
 @media (max-height: 760px) { .mc-ro { min-height: 46px; padding-block: 5px; } }
+@media (max-width: 899px) {
+  .mc-ws__h { align-items: flex-start; padding: 3px 0; }
+  .mc-ws__i, .mc-ws__ok, .mc-ws__spin { margin-top: 3px; }
+}
