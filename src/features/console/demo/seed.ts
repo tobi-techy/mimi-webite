@@ -9,6 +9,7 @@ import type {
   DemoState,
   Doc,
   HelperName,
+  Message,
   Reply,
   SideMessage,
   StatementRow,
@@ -310,8 +311,32 @@ const simple = (helper: HelperName, lines: [from: "me" | HelperName, text: strin
 
 export const seedConversations = (): Conversation[] => {
   const [first, ...rest] = liveConversations();
-  return [first!, ...answerConversations(), ...rest, ...archiveConversations()];
+  return [first!, ...answerConversations(), ...rest, ...archiveConversations()].map(withEvents);
 };
+
+/** Seeded system events (centred grey lines), placed relative to a message in the thread. */
+const SEED_EVENTS: Record<string, { where: "end" | "start" | ((m: Message) => boolean); after?: boolean; text: string }[]> = {
+  "chase-over-50k": [{ where: "end", text: "Created routine: morning chase" }],
+  "mama-bisi-40": [{ where: (m) => m.kind === "step" && m.variant === "handoff", after: true, text: "Handed to Credit" }],
+  "hypo-weekly": [{ where: (m) => m.kind === "card", text: "Approval expired, asked again on WhatsApp" }],
+  "mama-tunde-match": [{ where: "start", text: "Handed to Proof by Collector" }],
+  "kola-mart-alert": [{ where: "end", text: "Paused Kola Mart's reminders until you decide" }],
+};
+
+function withEvents(c: Conversation): Conversation {
+  const evs = SEED_EVENTS[c.slug];
+  if (!evs) return c;
+  const messages = [...c.messages];
+  for (const e of evs) {
+    let i = e.where === "end" ? messages.length : e.where === "start" ? 1 : messages.findIndex(e.where);
+    if (i < 0) continue;
+    if (e.after && typeof e.where === "function") i += 1;
+    const near = messages[Math.min(i, messages.length - 1)];
+    const t = near && "at" in near ? near.at : 0;
+    messages.splice(i, 0, { id: `${c.slug}-ev${i}`, kind: "event", text: e.text, at: t });
+  }
+  return { ...c, messages };
+}
 
 const liveConversations = (): Conversation[] => [
   {

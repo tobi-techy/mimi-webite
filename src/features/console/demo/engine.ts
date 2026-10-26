@@ -135,9 +135,15 @@ async function tool(slug: string, from: Worker, icon: ActivityIcon, text: string
   return wait(240, ep);
 }
 
+/** A centred grey system event in the thread ("Handed to Credit", "You took control"). */
+export function event(slug: string, text: string) {
+  push(slug, { kind: "event", text, at: Date.now() });
+}
+
 /** "Collector asked Proof to check Ade Stores." */
 async function handoff(slug: string, from: Worker, to: HelperName, text: string, ep: number): Promise<boolean> {
   push(slug, { kind: "step", from, variant: "handoff", to, text, state: "done", at: Date.now() });
+  event(slug, `Handed to ${to}`);
   return wait(500 * consoleMotion.pace, ep);
 }
 

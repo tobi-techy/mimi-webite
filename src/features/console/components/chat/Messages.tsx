@@ -31,6 +31,9 @@ export function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** Fresh check without a hook (event lines are rendered inline in the feed loop). */
+const isFreshAt = (at: number) => typeof window !== "undefined" && Date.now() - at < 1600 && consoleMotion.messageIn;
+
 /** True when this message was created moments ago (so it animates in). Client-only. */
 function useFresh(at: number | undefined): boolean {
   const [fresh] = useState(() => at === -1 || (typeof window !== "undefined" && !!at && Date.now() - at < 1600));
@@ -465,6 +468,14 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
     const next = i < messages.length - 1 ? speakerOf(messages[i + 1]!) : typing;
     if (m.kind === "date") {
       items.push(<DateLine key={m.id} label={m.label} />);
+      return;
+    }
+    if (m.kind === "event") {
+      items.push(
+        <p key={m.id} className={cx("mc-ev", isFreshAt(m.at) && "mc-in")} role="note">
+          {m.text}
+        </p>,
+      );
       return;
     }
     if (m.kind === "system") {

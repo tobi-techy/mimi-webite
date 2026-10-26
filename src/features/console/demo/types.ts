@@ -108,6 +108,8 @@ export type Message =
   | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }
+  /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
+  | { id: string; kind: "event"; text: string; at: number }
   /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
   | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
   /**
