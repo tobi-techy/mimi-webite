@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { HelperFace } from "@/features/console/components/helpers/HelperFace";
+import { shops } from "@/features/console/content/shops";
+import { runningIn } from "@/features/console/demo/roster";
+import { findConversation } from "@/features/console/demo/store";
+import { helperNames, type Speaker } from "@/features/console/demo/types";
 import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { consoleRoutes } from "@/features/console/config";
-import { fileInvoice, sendMessage, sendPhoto, sendVoice } from "@/features/console/demo/engine";
+import { fileInvoice, sendMessage, sendPhoto, sendVoice, steerMessage } from "@/features/console/demo/engine";
 import { useDemo } from "@/features/console/demo/store";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
@@ -17,13 +22,83 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2,
 
 type PlusItem = { icon: IconName; label: string; run: () => void };
 
+type Worker = Exclude<Speaker, "me">;
+type Skill = { cmd: string; text: string };
+/** What `/` offers: that helper's skills only (Mimi offers a team-wide set). Each fills the composer. */
+const SKILLS: Record<Worker, Skill[]> = {
+  Mimi: [
+    { cmd: "team", text: "What is everyone working on?" },
+    { cmd: "chase", text: "Chase everyone over ₦50k this week" },
+    { cmd: "check", text: "Check Joy's POS on GTBank" },
+  ],
+  Collector: [
+    { cmd: "chase", text: "Chase everyone over ₦50k this week" },
+    { cmd: "who-paid", text: "Who has paid so far?" },
+    { cmd: "plan", text: "Show me the plan" },
+    { cmd: "routine", text: "Do this every weekday morning" },
+  ],
+  Order: [
+    { cmd: "order", text: "Mama Bisi wants 20 cartons" },
+    { cmd: "route", text: "Plan Van 2's Saturday route" },
+  ],
+  Credit: [
+    { cmd: "limit", text: "Should I raise Iya Femi's limit?" },
+    { cmd: "review", text: "Review credit limits" },
+  ],
+  Stock: [
+    { cmd: "restock", text: "Draft a restock from Dufil" },
+    { cmd: "low", text: "Which shops are low?" },
+  ],
+  Brand: [
+    { cmd: "report", text: "Draft the Hypo weekly report" },
+    { cmd: "send", text: "Send it to Hypo" },
+  ],
+  Proof: [
+    { cmd: "check", text: "Check Joy's POS on GTBank" },
+    { cmd: "fake", text: "Is Kola Mart's alert fake?" },
+  ],
+};
+
+/** `@` offers helpers and the shops this distributor may see (the demo shop list is all consented). */
+type Mention = { label: string; kind: "helper" | "shop"; sub: string };
+const MENTIONS: Mention[] = [
+  ...(["Mimi", ...helperNames] as const).map((h) => ({ label: h, kind: "helper" as const, sub: "Helper" })),
+  ...shops.map((s) => ({ label: s.name, kind: "shop" as const, sub: s.area })),
+];
+
+type Menu = { kind: "slash"; items: Skill[] } | { kind: "at"; items: Mention[]; from: number };
+
+/** The `/` or `@` menu the text ends in, if any. */
+function menuFor(value: string, helper: Worker): Menu | null {
+  const slash = /^\/([\w-]*)$/.exec(value);
+  if (slash) {
+    const q = slash[1]!.toLowerCase();
+    const items = SKILLS[helper].filter((s) => s.cmd.startsWith(q));
+    return items.length ? { kind: "slash", items } : null;
+  }
+  const at = /(^|\s)@([^@\n]{0,24})$/.exec(value);
+  if (at) {
+    const q = at[2]!.toLowerCase();
+    const items = MENTIONS.filter((m) => m.label.toLowerCase().includes(q)).slice(0, 7);
+    return items.length ? { kind: "at", items, from: value.length - at[2]!.length - 1 } : null;
+  }
+  return null;
+}
+
 /** The docked pill composer: + menu, text, mic (voice note) and send. */
-export function Composer({ slug, helper }: { slug: string; helper: string }) {
+export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   const [text, setText] = useState("");
   const [menu, setMenu] = useState(false);
   const [rec, setRec] = useState(0);
   const draft = useDemo((s) => (s.draft?.slug === slug ? s.draft.text : null));
   const playing = useDemo((s) => s.playing);
+  /* the helper is mid-run: what the owner sends now steers her at the next step */
+  const running = useDemo((s) => {
+    const c = findConversation(s, slug);
+    return !!c && runningIn(s, c);
+  });
+  const [pick, setPick] = useState(0);
+  const [shut, setShut] = useState<string | null>(null);
   const say = useToast();
   const wrap = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -56,6 +131,17 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
   }, [rec]);
 
   const value = draft ?? text;
+  const ac = useMemo(() => (draft === null && shut !== text ? menuFor(text, helper) : null), [text, draft, helper, shut]);
+  const sel = ac ? Math.min(pick, ac.items.length - 1) : 0;
+
+  function choose(i: number) {
+    if (!ac) return;
+    if (ac.kind === "slash") setText(ac.items[i]!.text);
+    else setText(`${text.slice(0, ac.from)}@${ac.items[i]!.label} `);
+    setPick(0);
+    sfx("console", "select");
+    input.current?.focus();
+  }
 
   function cancelRec() {
     sfx("console", "close", { emphasis: "subtle" });
@@ -64,7 +150,8 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
 
   function send() {
     if (!value.trim() || playing) return;
-    sendMessage(slug, value);
+    if (running) steerMessage(slug, value);
+    else sendMessage(slug, value);
     setText("");
     input.current?.focus();
   }
@@ -127,6 +214,50 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
           </Link>
         </div>
       )}
+      {ac && (
+        <div className="mc-plus mc-ac" role="listbox" id={`ac-${slug}`} aria-label={ac.kind === "slash" ? `${helper}'s skills` : "Mention a helper or shop"}>
+          <p className="mc-ac__h">{ac.kind === "slash" ? `${helper}'s skills` : "Helpers and shops"}</p>
+          {ac.kind === "slash"
+            ? ac.items.map((s, i) => (
+                <button
+                  key={s.cmd}
+                  type="button"
+                  role="option"
+                  aria-selected={i === sel}
+                  className={cx(i === sel && "is-on")}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => choose(i)}
+                >
+                  <span className="mc-ac__cmd">/{s.cmd}</span>
+                  <span className="mc-ac__t">{s.text}</span>
+                </button>
+              ))
+            : ac.items.map((m, i) => (
+                <button
+                  key={`${m.kind}-${m.label}`}
+                  type="button"
+                  role="option"
+                  aria-selected={i === sel}
+                  className={cx(i === sel && "is-on")}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => choose(i)}
+                >
+                  {m.kind === "helper" ? (
+                    <HelperFace name={m.label as Worker} size={18} />
+                  ) : (
+                    <Icon name="store" className="i mc-ac__ic" />
+                  )}
+                  <span className="mc-ac__t">{m.label}</span>
+                  <span className="mc-ac__sub">{m.sub}</span>
+                </button>
+              ))}
+        </div>
+      )}
+      {running && value.trim() && (
+        <p className="mc-steer" role="status">
+          Will steer at next step
+        </p>
+      )}
       <div className={cx("mc-pill", rec > 0 && "is-rec")}>
         {rec > 0 ? (
           <div className="mc-rec">
@@ -146,6 +277,10 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
             </button>
           </div>
         ) : (
+          <>
+          <span className="mc-to" title={`Talking to ${helper}`} aria-hidden="true">
+            <HelperFace name={helper} size={16} />
+          </span>
           <textarea
             ref={input}
             rows={1}
@@ -153,14 +288,40 @@ export function Composer({ slug, helper }: { slug: string; helper: string }) {
             readOnly={draft !== null}
             aria-label={`Message ${helper}`}
             placeholder={`Message ${helper}`}
-            onChange={(e) => setText(e.target.value)}
+            aria-autocomplete="list"
+            aria-controls={ac ? `ac-${slug}` : undefined}
+            aria-expanded={!!ac}
+            onChange={(e) => {
+              setText(e.target.value);
+              setShut(null);
+              setPick(0);
+            }}
             onKeyDown={(e) => {
+              if (ac) {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  const n = ac.items.length;
+                  setPick((sel + (e.key === "ArrowDown" ? 1 : n - 1)) % n);
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  choose(sel);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setShut(text);
+                  return;
+                }
+              }
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 send();
               }
             }}
           />
+          </>
         )}
         {rec === 0 && (
           <>

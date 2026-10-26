@@ -36,6 +36,7 @@ import type {
   Tone,
 } from "@/features/console/demo/types";
 import { reactableKinds } from "@/features/console/demo/types";
+import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 
 /**
@@ -363,6 +364,34 @@ export function sendMessage(slug: string, text: string) {
   sfx("console", "tap");
   helperReacts(slug, mid, clean, epoch);
   void runStep(slug, step, clean, epoch);
+}
+
+/**
+ * The owner writes while the helper is mid-run: the message lands now, the thread says it will be
+ * taken at the next step, and the helper picks it up as soon as the current step ends (RAI-283).
+ */
+export function steerMessage(slug: string, text: string) {
+  const clean = text.trim();
+  if (!clean) return;
+  const c = findConversation(getDemo(), slug);
+  if (!c) return;
+  push(slug, { kind: "text", from: "me", text: clean, at: Date.now() });
+  sfx("console", "tap");
+  event(slug, `${c.helper} will take this at the next step`);
+  const ep = epoch;
+  const started = Date.now();
+  const poll = () => {
+    if (!alive(ep)) return;
+    const s = getDemo();
+    const now = findConversation(s, slug);
+    if (now && runningIn(s, now) && Date.now() - started < 30000) {
+      window.setTimeout(poll, 400);
+      return;
+    }
+    event(slug, `Steered by you · ${c.helper} took it at the next step`);
+    void runStep(slug, stepFor(slug, clean), clean, ep);
+  };
+  window.setTimeout(poll, 400);
 }
 
 /** Home composer: a new thread with the helper the words point at. Returns its slug. */
