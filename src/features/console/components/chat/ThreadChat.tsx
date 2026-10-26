@@ -151,7 +151,7 @@ export function ThreadChat({ slug }: { slug: string }) {
                 <span className="mc-tt__h">{conv.helper}</span>
                 {conv.working && <i className="mc-spin" aria-hidden="true" />}
                 <span key={conv.status} className="mc-tt__st">
-                  {typing && typing !== "me" ? `${typing} is working` : conv.status}
+                  {typing && typing !== "me" ? "writing the reply" : conv.status}
                 </span>
               </p>
               {menu && (

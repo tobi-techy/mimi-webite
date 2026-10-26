@@ -121,7 +121,15 @@ async function tool(slug: string, from: Worker, icon: ActivityIcon, text: string
   if (!(await wait((o.ms ?? 1100) * consoleMotion.pace, ep))) return false;
   patchMessage(slug, id, (m) =>
     m.kind === "step"
-      ? { ...m, state: o.fail ? "failed" : "done", variant: o.fail ? "error" : m.variant, text: o.done ?? m.text, meta: o.meta, detail: o.detail }
+      ? {
+          ...m,
+          state: o.fail ? "failed" : "done",
+          variant: o.fail ? "error" : m.variant,
+          text: o.done ?? m.text,
+          meta: o.meta,
+          detail: o.detail,
+          took: `${(((o.ms ?? 1100) * consoleMotion.pace) / 1000).toFixed(1)}s`,
+        }
       : m,
   );
   return wait(240, ep);

@@ -11,6 +11,7 @@ import { Inline, plainInline } from "@/features/console/components/chat/answer/I
 import { Icon } from "@/features/console/components/ui/Icon";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
+import { useDemo } from "@/features/console/demo/store";
 import {
   approveCard,
   declineCard,
@@ -513,8 +514,8 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   if (typing && typing !== "me") {
     const prev = speakerBefore(messages.length);
     items.push(
-      <Row key="typing" at={-1} kind="them" who={typing} showName={typing !== prev} turn={typing !== prev} tail>
-        <Working who={typing} />
+      <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} tail>
+        <Working who={typing} slug={slug} />
       </Row>,
     );
   }
@@ -541,15 +542,30 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   return <>{items}</>;
 }
 
-/** Factory-style loading line while a helper works: a quiet pulse and a shimmering muted label. */
-function Working({ who }: { who: Exclude<Speaker, "me"> }) {
+/**
+ * While a helper works: a live work-step line instead of a loader ("Reply → writing · 0.8s"),
+ * the same grey tool → result · time shape as finished steps. No dots, no "is working".
+ */
+function Working({ who, slug }: { who: Exclude<Speaker, "me">; slug: string }) {
+  const status = useDemo((s) => s.conversations.find((c) => c.slug === slug)?.status ?? "");
+  const [t0] = useState(() => Date.now());
+  const [now, setNow] = useState(t0);
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 100);
+    return () => window.clearInterval(t);
+  }, []);
+  const doing = !status || status === "typing" ? "writing the reply" : status;
   return (
-    <p className="mc-load" role="status" aria-live="polite">
-      <i className="mc-load__pulse" aria-hidden="true" />
-      <span className="mc-load__t">
-        {who} is working…
-      </span>
-    </p>
+    <div className="mc-ws mc-ws--tool is-run mc-ws--live" role="status" aria-live="polite" aria-label={`${who} is ${doing}`}>
+      <div className="mc-ws__h">
+        <i className="mc-spin mc-ws__spin" aria-hidden="true" />
+        <span className="mc-ws__t">
+          <span className="mc-ws__tool">{doing === "writing the reply" ? "Reply" : who} → </span>
+          {doing}
+          <span className="mc-ws__tr"> · {((now - t0) / 1000).toFixed(1)}s</span>
+        </span>
+      </div>
+    </div>
   );
 }
 

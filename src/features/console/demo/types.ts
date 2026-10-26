@@ -116,6 +116,12 @@ export type Message =
       state: WorkState;
       /** Short mono note after the text ("38 credits", "8.0s"). */
       meta?: string;
+      /** The tool the step used ("GTBank", "WhatsApp"); falls back to one named by the icon. */
+      tool?: string;
+      /** How long it took ("1.2s"), from the run trace. */
+      took?: string;
+      /** What the step cost in naira (model + tool), from the run trace. */
+      cost?: number;
       /** What opens under the step: inputs/outputs, a mini table or the grouped list. */
       detail?: WorkDetail;
       /** Handoffs: the helper asked. */

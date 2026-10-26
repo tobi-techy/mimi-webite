@@ -61,3 +61,8 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-face--is-working > svg, .mc-face__st--working::after { animation: none; }
 }
+
+/* ---------- work-step lines: tool → result · time · naira ---------- */
+.mc-ws__tool { color: var(--soft); }
+.mc-ws__tr { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mc-ws--live .mc-ws__h { display: flex; align-items: center; gap: 8px; }
