@@ -1,4 +1,5 @@
 import type { IconName } from "@/features/console/components/ui/icon-paths";
+import { consoleRoutes } from "@/features/console/config";
 
 export type SettingsControl =
   | { kind: "switch"; on: boolean }
@@ -382,4 +383,4 @@ export const findSettingsSection = (id: string): SettingsSection | undefined =>
   settingsSections.find((s) => s.id === id);
 
 export const settingsHref = (id: SettingsSectionId): string =>
-  id === "general" ? "/console/settings" : `/console/settings/${id}`;
+  id === "general" ? consoleRoutes.settings : `${consoleRoutes.settings}/${id}`;

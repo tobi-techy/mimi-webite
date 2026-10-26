@@ -7,6 +7,7 @@ import { PageMenu } from "@/features/console/components/ui/PageMenu";
 import { ToastButton } from "@/features/console/components/ui/ToastButton";
 import { creditKpis } from "@/features/console/content/credit";
 import { Page } from "@/features/console/components/ui/Page";
+import { consoleRoutes } from "@/features/console/config";
 
 export const metadata: Metadata = { title: "Credit" };
 
@@ -23,7 +24,7 @@ export default function CreditPage() {
           </ToastButton>
         </div>
         <p className="x-sub">
-          <Link href="/console/shops">Shops</Link> · Coral Lane sets every limit. Mimi recommends.
+          <Link href={consoleRoutes.shops}>Shops</Link> · Coral Lane sets every limit. Mimi recommends.
         </p>
         <div className="x-kpis">
           {creditKpis.map((k) => (

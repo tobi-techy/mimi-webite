@@ -4,6 +4,8 @@
 # next.js
 /.next/
 /out/
+/out-console/
+/.console-build/
 next-env.d.ts
 *.tsbuildinfo
 

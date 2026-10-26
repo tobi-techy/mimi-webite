@@ -38,6 +38,7 @@ import type {
 import { reactableKinds } from "@/features/console/demo/types";
 import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
+import { consoleRoutes, threadHref } from "@/features/console/config";
 
 /**
  * The demo engine: keyword-matched scripts that make helpers type, answer, build cards, drive the
@@ -426,7 +427,7 @@ export function startThread(text: string, pick?: HelperName | "Mimi"): string {
 }
 
 export const conversationHref = (c: Pick<Conversation, "slug" | "created">) =>
-  c.created ? `/console/threads/new?id=${c.slug}` : `/console/threads/${c.slug}`;
+  c.created ? `${consoleRoutes.threads}/new?id=${c.slug}` : threadHref(c.slug);
 
 /* ---------- scripted steps (every chip leads to one) ---------- */
 
@@ -1685,7 +1686,7 @@ export async function playDemo(go: (href: string) => void) {
   stageStory(true);
   const ep = epoch;
   const slug = DEMO_SLUG;
-  go(`/console/threads/${slug}`);
+  go(threadHref(slug));
   if (!(await wait(1200, ep))) return;
   if (!(await tapStep(slug, "col.start", ep))) return;
   if (!(await tapStep(slug, "col.joy", ep))) return;

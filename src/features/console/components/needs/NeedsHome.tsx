@@ -12,6 +12,7 @@ import { owner } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
 import type { HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
+import { consoleRoutes } from "@/features/console/config";
 
 const VISIBLE = 4;
 type Starter = { helper: HelperName; label: string; text: string };
@@ -113,7 +114,7 @@ export function NeedsHome() {
     const slug = startThread(text);
     setText("");
     setPick(null);
-    router.push(`/console/threads/new?id=${slug}`);
+    router.push(`${consoleRoutes.threads}/new?id=${slug}`);
   }
 
   return (

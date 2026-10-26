@@ -16,7 +16,7 @@ const config = [
     },
   },
   {
-    ignores: [".next/**", "out/**", "node_modules/**", "next-env.d.ts"],
+    ignores: [".next/**", "out/**", "out-console/**", ".console-build/**", "node_modules/**", "next-env.d.ts"],
   },
 ];
 

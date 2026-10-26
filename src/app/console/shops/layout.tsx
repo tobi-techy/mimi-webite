@@ -6,6 +6,7 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import { PageMenu } from "@/features/console/components/ui/PageMenu";
 import { ToastButton } from "@/features/console/components/ui/ToastButton";
 import { Page } from "@/features/console/components/ui/Page";
+import { consoleRoutes } from "@/features/console/config";
 
 /** The shops list stays mounted while a shop's drawer (/console/shops/[id]) opens over it. */
 export default function ShopsLayout({ children }: { children: ReactNode }) {
@@ -16,7 +17,7 @@ export default function ShopsLayout({ children }: { children: ReactNode }) {
           <div className="x-lhd">
             <h1 className="x-title">Shops</h1>
             <PageMenu page="Shops" />
-            <ButtonLink href="/console/credit">
+            <ButtonLink href={consoleRoutes.credit}>
               <Icon name="landmark" />
               Credit limits
             </ButtonLink>

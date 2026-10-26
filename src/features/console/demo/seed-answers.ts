@@ -1,4 +1,5 @@
 import type { Conversation, Doc, Message, WorkLine } from "@/features/console/demo/types";
+import { shopHref } from "@/features/console/config";
 
 /**
  * Threads whose helper replies are structured answers (25 Oct 2026): Worked for, the one-line
@@ -112,10 +113,10 @@ const riskAnswer = (): Message => ({
       label: "Shops at risk this week",
       columns: [{ label: "Shop" }, { label: "Credit score" }, { label: "Owes", align: "right" }, { label: "Days late", align: "right" }, { label: "Shop page" }],
       rows: [
-        [{ entity: { kind: "shop", label: "Joy Provisions" } }, { score: 44 }, { money: 259000 }, "33", { link: "Open", href: "/console/shops/joy-provisions" }],
-        [{ entity: { kind: "shop", label: "Ade & Kemi Ventures" } }, { score: 49 }, { money: 336900 }, "35", { link: "Open", href: "/console/shops/ade-and-kemi-ventures" }],
-        [{ entity: { kind: "shop", label: "Alhaji Musa & Sons" } }, { score: 58 }, { money: 412000 }, "29", { link: "Open", href: "/console/shops/alhaji-musa-and-sons" }],
-        [{ entity: { kind: "shop", label: "Sule & Co Wholesale" } }, { score: 61 }, { money: 488000 }, "22", { link: "Open", href: "/console/shops/sule-and-co-wholesale" }],
+        [{ entity: { kind: "shop", label: "Joy Provisions" } }, { score: 44 }, { money: 259000 }, "33", { link: "Open", href: shopHref("joy-provisions") }],
+        [{ entity: { kind: "shop", label: "Ade & Kemi Ventures" } }, { score: 49 }, { money: 336900 }, "35", { link: "Open", href: shopHref("ade-and-kemi-ventures") }],
+        [{ entity: { kind: "shop", label: "Alhaji Musa & Sons" } }, { score: 58 }, { money: 412000 }, "29", { link: "Open", href: shopHref("alhaji-musa-and-sons") }],
+        [{ entity: { kind: "shop", label: "Sule & Co Wholesale" } }, { score: 61 }, { money: 488000 }, "22", { link: "Open", href: shopHref("sule-and-co-wholesale") }],
       ],
       files: [{ kind: "file", name: "credit-rules.md", docId: "doc-credit-rules" }],
     },

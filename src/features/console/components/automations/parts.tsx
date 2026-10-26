@@ -8,14 +8,15 @@ import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { channelName, type Channel } from "@/features/console/content/automations";
 import type { HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
+import { consoleRoutes } from "@/features/console/config";
 
 /** Shared pieces of the Automations flow: crumbs, channel icons, the trigger → helper → result diagram, the welcome tour. */
 
 export const autoRoutes = {
-  list: "/console/automations",
-  templates: "/console/automations/templates",
-  newFrom: (template?: string) => `/console/automations/new${template ? `?template=${template}` : ""}`,
-  detail: (id: string, created?: boolean) => (created ? `/console/automations/view?id=${id}` : `/console/automations/${id}`),
+  list: consoleRoutes.automations,
+  templates: `${consoleRoutes.automations}/templates`,
+  newFrom: (template?: string) => `${consoleRoutes.automations}/new${template ? `?template=${template}` : ""}`,
+  detail: (id: string, created?: boolean) => (created ? `${consoleRoutes.automations}/view?id=${id}` : `${consoleRoutes.automations}/${id}`),
 };
 
 export function Crumbs({ items }: { items: { label: string; href?: string }[] }) {

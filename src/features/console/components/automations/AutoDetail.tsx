@@ -13,6 +13,7 @@ import { useDemo } from "@/features/console/demo/store";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
+import { consoleRoutes } from "@/features/console/config";
 
 const statusWord = { done: "Done", needs: "Needs you", failed: "Failed", run: "Running" } as const;
 
@@ -64,7 +65,7 @@ export function AutoDetail({ id }: { id: string }) {
             className="x-abtn x-abtn--or"
             onClick={() => {
               const slug = runAutomation(a.id);
-              if (slug) router.push(`/console/threads/new?id=${slug}`);
+              if (slug) router.push(`${consoleRoutes.threads}/new?id=${slug}`);
             }}
           >
             <Icon name="play" />

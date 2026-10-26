@@ -1,5 +1,6 @@
 import { motionConfig } from "@/config/motion";
 import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/config/theme";
+import { CONSOLE_ONLY } from "@/config/routes";
 import { CONSOLE_LOADER_KEY } from "@/features/console/config";
 
 /**
@@ -19,13 +20,15 @@ const MIN_MS = 400;
 const CAP_MS = 1000;
 const OUT_MS = 500;
 const OUT_REDUCED_MS = 220;
+/* the console-only build (console.userail.money) has no marketing pages: every path is the console */
+const isConsoleTest = CONSOLE_ONLY ? "true" : "/^\\/console(\\/|$)/.test(location.pathname)";
 
 export const bootScript = `(function(){
 var d=document.documentElement,c=d.classList;c.add("js","motion-ready");
 var t="${DEFAULT_THEME}";try{var s=localStorage.getItem("${THEME_STORAGE_KEY}");if(s==="light"||s==="dark")t=s}catch(e){}
 d.setAttribute("data-theme",t);
 var rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
-var con=/^\\/console(\\/|$)/.test(location.pathname);
+var con=${isConsoleTest};
 if(!con)addEventListener("load",function(){setTimeout(function(){if(!window.__mimiMotion)c.remove("motion-ready")},1500)});
 if(!con&&!${showLoader})return;
 var k=con?"${CONSOLE_LOADER_KEY}":"mimi-loaded",seen=false;
