@@ -232,3 +232,4 @@
   font: 400 11px/1 var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; color: var(--muted);
   padding: 5px 8px; border: 1px solid var(--hair); border-radius: var(--radius-sm); background: var(--bg);
 }
+.mc-cstat__btns .mc-btn--pri[aria-pressed="true"] { background: var(--pri-bg); color: var(--pri-fg); border-color: var(--pri-bg); opacity: 1; }
