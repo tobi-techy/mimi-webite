@@ -11,6 +11,7 @@ import { Inline, plainInline } from "@/features/console/components/chat/answer/I
 import { Icon } from "@/features/console/components/ui/Icon";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
+import { useDemo } from "@/features/console/demo/store";
 import {
   approveCard,
   declineCard,
@@ -20,7 +21,8 @@ import {
   toggleFan,
   votePoll,
 } from "@/features/console/demo/engine";
-import { reactableKinds, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
+import { cardActions, tierOf } from "@/features/console/demo/needs";
+import { reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
@@ -28,6 +30,9 @@ const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
 export function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+/** Fresh check without a hook (event lines are rendered inline in the feed loop). */
+const isFreshAt = (at: number) => typeof window !== "undefined" && Date.now() - at < 1600 && consoleMotion.messageIn;
 
 /** True when this message was created moments ago (so it animates in). Client-only. */
 function useFresh(at: number | undefined): boolean {
@@ -272,7 +277,10 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
   stock: "bar-chart",
   brand: "share",
   flag: "triangle-alert",
+  match: "shield-check",
 };
+
+const proofWord: Record<ProofLevel, string> = { verified: "verified", likely: "likely", estimated: "estimated" };
 
 function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx }) {
   const c: DecisionCard = m.card;
@@ -282,6 +290,8 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
   const rows = plan ? live.slice(0, 2) : c.rows;
   const more = plan ? live.length - rows.length : 0;
   const icon = cardIcon[c.kind];
+  const act = cardActions(c);
+  const tier = tierOf(c);
   return (
     <div className={cx("mc-apc", c.status === "needs" && fresh && consoleMotion.approvalAttention && "is-attn")}>
       <div className="mc-apc__h">
@@ -290,11 +300,27 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           {c.title}
           <small className="mc-mono">{c.sub}</small>
         </div>
+        <span className={cx("mc-tier", `mc-tier--${tier.toLowerCase()}`)} title={`Risk tier: ${tier}`}>
+          {tier}
+        </span>
         {c.status === "needs" && <span className="mc-nd">Needs you</span>}
         {c.status === "sending" && <span className="mc-nd mc-nd--run">Sending</span>}
         {c.status === "sent" && <span className="mc-nd mc-nd--ok">{plan || c.kind === "brand" ? "Sent" : "Done"}</span>}
-        {c.status === "declined" && <span className="mc-nd mc-nd--off">Declined</span>}
+        {c.status === "declined" && <span className="mc-nd mc-nd--off">Discarded</span>}
       </div>
+      {c.email && (
+        <div className="mc-apc__mail">
+          <p>
+            <span>To</span>
+            {c.email.to}
+          </p>
+          <p>
+            <span>Subject</span>
+            {c.email.subject}
+          </p>
+          <p className="mc-apc__body">{c.email.body}</p>
+        </div>
+      )}
       <div className="mc-apc__rows">
         {rows.map((r) => (
           <div key={r.label} className="mc-apc__rw">
@@ -303,6 +329,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
               {r.amount !== undefined && naira(r.amount)}
               {r.amount !== undefined && (r.tone || r.note) && " · "}
               {r.tone ?? r.note}
+              {r.proof && <em className={cx("mc-prf", `mc-prf--${r.proof}`)}>{proofWord[r.proof]}</em>}
               {r.flag && <em className="mc-or"> · {r.flag}</em>}
             </span>
           </div>
@@ -319,12 +346,12 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           <button
             type="button"
             className="mc-btn"
-            onClick={() => (c.secondary === "Review" ? openSheet(ctx.slug, m.id) : declineCard(ctx.slug, m.id))}
+            onClick={() => (act.secondary === "Review" ? openSheet(ctx.slug, m.id) : declineCard(ctx.slug, m.id))}
           >
-            {c.secondary}
+            {act.secondary}
           </button>
           <button type="button" className="mc-btn mc-btn--pri" onClick={() => approveCard(ctx.slug, m.id)}>
-            {c.primary}
+            {act.primary}
           </button>
         </div>
       )}
@@ -443,6 +470,14 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
       items.push(<DateLine key={m.id} label={m.label} />);
       return;
     }
+    if (m.kind === "event") {
+      items.push(
+        <p key={m.id} className={cx("mc-ev", isFreshAt(m.at) && "mc-in")} role="note">
+          {m.text}
+        </p>,
+      );
+      return;
+    }
     if (m.kind === "system") {
       items.push(
         <Row key={m.id} at={m.at} kind="system" turn={prev === "me"}>
@@ -513,8 +548,8 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   if (typing && typing !== "me") {
     const prev = speakerBefore(messages.length);
     items.push(
-      <Row key="typing" at={-1} kind="them" who={typing} showName={typing !== prev} turn={typing !== prev} tail>
-        <Working who={typing} />
+      <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} tail>
+        <Working who={typing} slug={slug} />
       </Row>,
     );
   }
@@ -541,15 +576,30 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   return <>{items}</>;
 }
 
-/** Factory-style loading line while a helper works: a quiet pulse and a shimmering muted label. */
-function Working({ who }: { who: Exclude<Speaker, "me"> }) {
+/**
+ * While a helper works: a live work-step line instead of a loader ("Reply → writing · 0.8s"),
+ * the same grey tool → result · time shape as finished steps. No dots, no "is working".
+ */
+function Working({ who, slug }: { who: Exclude<Speaker, "me">; slug: string }) {
+  const status = useDemo((s) => s.conversations.find((c) => c.slug === slug)?.status ?? "");
+  const [t0] = useState(() => Date.now());
+  const [now, setNow] = useState(t0);
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 100);
+    return () => window.clearInterval(t);
+  }, []);
+  const doing = !status || status === "typing" ? "writing the reply" : status;
   return (
-    <p className="mc-load" role="status" aria-live="polite">
-      <i className="mc-load__pulse" aria-hidden="true" />
-      <span className="mc-load__t">
-        {who} is working…
-      </span>
-    </p>
+    <div className="mc-ws mc-ws--tool is-run mc-ws--live" role="status" aria-live="polite" aria-label={`${who} is ${doing}`}>
+      <div className="mc-ws__h">
+        <i className="mc-spin mc-ws__spin" aria-hidden="true" />
+        <span className="mc-ws__t">
+          <span className="mc-ws__tool">{doing === "writing the reply" ? "Reply" : who} → </span>
+          {doing}
+          <span className="mc-ws__tr"> · {((now - t0) / 1000).toFixed(1)}s</span>
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -563,7 +613,7 @@ export function EmptyThread({ helper, children }: { helper: string; children?: R
   );
 }
 
-function DateLine({ label }: { label: string }) {
+export function DateLine({ label }: { label: string }) {
   const [day, ...rest] = label.split(" ");
   return (
     <p className="mc-ts mc-mono">

@@ -9,6 +9,7 @@ import type {
   DemoState,
   Doc,
   HelperName,
+  Message,
   Reply,
   SideMessage,
   StatementRow,
@@ -16,7 +17,7 @@ import type {
 } from "@/features/console/demo/types";
 
 /** Sample data for the Wigmore Trading demo. Times are Lagos time on Fri 23 Oct 2026. */
-export const DEMO_VERSION = 8;
+export const DEMO_VERSION = 9;
 export const owner = { name: "Martin Nwike", first: "Martin", initials: "MN", company: "Wigmore Trading" };
 
 const T = (h: number, m: number) => new Date(2026, 9, 23, h, m).getTime();
@@ -310,8 +311,32 @@ const simple = (helper: HelperName, lines: [from: "me" | HelperName, text: strin
 
 export const seedConversations = (): Conversation[] => {
   const [first, ...rest] = liveConversations();
-  return [first!, ...answerConversations(), ...rest, ...archiveConversations()];
+  return [first!, ...answerConversations(), ...rest, ...archiveConversations()].map(withEvents);
 };
+
+/** Seeded system events (centred grey lines), placed relative to a message in the thread. */
+const SEED_EVENTS: Record<string, { where: "end" | "start" | ((m: Message) => boolean); after?: boolean; text: string }[]> = {
+  "chase-over-50k": [{ where: "end", text: "Created routine: morning chase" }],
+  "mama-bisi-40": [{ where: (m) => m.kind === "step" && m.variant === "handoff", after: true, text: "Handed to Credit" }],
+  "hypo-weekly": [{ where: (m) => m.kind === "card", text: "Approval expired, asked again on WhatsApp" }],
+  "mama-tunde-match": [{ where: "start", text: "Handed to Proof by Collector" }],
+  "kola-mart-alert": [{ where: "end", text: "Paused Kola Mart's reminders until you decide" }],
+};
+
+function withEvents(c: Conversation): Conversation {
+  const evs = SEED_EVENTS[c.slug];
+  if (!evs) return c;
+  const messages = [...c.messages];
+  for (const e of evs) {
+    let i = e.where === "end" ? messages.length : e.where === "start" ? 1 : messages.findIndex(e.where);
+    if (i < 0) continue;
+    if (e.after && typeof e.where === "function") i += 1;
+    const near = messages[Math.min(i, messages.length - 1)];
+    const t = near && "at" in near ? near.at : 0;
+    messages.splice(i, 0, { id: `${c.slug}-ev${i}`, kind: "event", text: e.text, at: t });
+  }
+  return { ...c, messages };
+}
 
 const liveConversations = (): Conversation[] => [
   {
@@ -499,9 +524,9 @@ const liveConversations = (): Conversation[] => [
           title: "New limit · Iya Femi Provisions",
           sub: "₦100,000 → ₦150,000",
           rows: [
-            { label: "Paid on time", note: "8 of 8 weeks" },
-            { label: "Hits her limit", note: "Most Fridays" },
-            { label: "Average invoice", amount: 84000 },
+            { label: "Paid on time", note: "8 of 8 weeks", proof: "verified" },
+            { label: "Hits her limit", note: "6 of 8 Fridays", proof: "verified" },
+            { label: "Average invoice", amount: 84000, proof: "verified" },
           ],
           primary: "Approve limit",
           secondary: "Decline",
@@ -577,6 +602,55 @@ const liveConversations = (): Conversation[] => [
     ],
   },
   {
+    slug: "mama-tunde-match",
+    title: "Mama Tunde's ₦42,000 transfer",
+    helper: "Proof",
+    folder: "Proof",
+    code: "PRF-8",
+    state: "needs",
+    status: "match waiting on you",
+    working: false,
+    ago: "4m",
+    preview: "Matched to invoice INV-2304 · 2 witnesses",
+    messages: [
+      { id: id(), kind: "date", label: "Today" },
+      { id: id(), kind: "step", from: "Proof", at: T(8, 58), variant: "tool", icon: "message-square", state: "done", text: "Read Mama Tunde's WhatsApp · \"I've sent the 42k\"", took: "0.6s", cost: 1 },
+      { id: id(), kind: "step", from: "Proof", at: T(8, 58), variant: "tool", icon: "landmark", tool: "Read bank alert", state: "done", text: "matched Mama Tunde ₦42,000", took: "1.2s", cost: 3 },
+      { id: id(), kind: "step", from: "Proof", at: T(8, 59), variant: "tool", icon: "receipt", state: "done", text: "INV-2304 · ₦42,000 · due 24 Oct", took: "0.4s", cost: 1 },
+      {
+        id: id(),
+        kind: "text",
+        from: "Proof",
+        at: T(8, 59),
+        text: "Mama Tunde's **₦42,000** landed in GTB at 8:51 and it matches invoice INV-2304 exactly. Want me to mark it paid in the book?",
+      },
+      {
+        id: "mt-card",
+        kind: "card",
+        from: "Proof",
+        at: T(8, 59),
+        card: {
+          kind: "match",
+          shop: "Mama Tunde Stores",
+          amount: 42000,
+          why: "Bank alert matches INV-2304",
+          title: "Payment match · Mama Tunde Stores",
+          sub: "₦42,000 → INV-2304 · not marked yet",
+          rows: [
+            { label: "GTBank credit 8:51", amount: 42000, proof: "verified" },
+            { label: "Shop's WhatsApp", note: "says she sent 42k", proof: "likely" },
+            { label: "Invoice INV-2304", amount: 42000, note: "due 24 Oct", proof: "verified" },
+          ],
+          primary: "Mark paid",
+          secondary: "Decline",
+          status: "needs",
+          doneText: "Marked paid in the book",
+        },
+      },
+      { id: id(), kind: "step", from: "Proof", at: T(8, 59), variant: "gate", icon: "hand", state: "wait", text: "Waiting on you to approve", link: "mt-card" },
+    ],
+  },
+  {
     slug: "indomie-low",
     title: "Indomie running low",
     helper: "Stock",
@@ -607,10 +681,14 @@ export function brandCard(name: string): DecisionCard {
     title: `Send to ${name} · weekly report`,
     sub: "Email draft · nothing sent yet",
     rows: [
-      { label: "To", note: `${name} area manager` },
-      { label: "Attached", note: "Weekly report PDF" },
-      { label: "Best area", note: "Idumota +11%" },
+      { label: "Cartons sold this week", note: "1,326", proof: "verified" },
+      { label: "Best area", note: "Idumota +11%", proof: "verified" },
     ],
+    email: {
+      to: `${name} area manager · Lagos mainland`,
+      subject: `${name} weekly sell-out · 214 shops · week of 19 Oct`,
+      body: `Hello, this week's sell-out for ${name} across our 214 shops is attached. Mushin led on volume and Idumota grew 11% after the new van route. Happy to talk through any area.`,
+    },
     primary: `Send to ${name}`,
     secondary: "Decline",
     status: "needs",
@@ -628,8 +706,8 @@ export function flagCard(): DecisionCard {
     sub: "₦120,000 · fake alert",
     rows: [
       { label: "Alert sent", note: "22 Oct 16:05" },
-      { label: "In GTB", note: "Nothing landed", flag: "Fake alert" },
-      { label: "Next order", amount: 86000, note: "Saturday" },
+      { label: "In GTB", note: "Nothing landed", flag: "Fake alert", proof: "verified" },
+      { label: "Next order", amount: 86000, note: "Saturday", proof: "estimated" },
     ],
     primary: "Hold their orders",
     secondary: "Decline",
@@ -768,6 +846,9 @@ export const seedAutomations = (): Record<string, boolean> => ({
   "friday-reminders": true,
   "low-stock": false,
   "brand-report": true,
+  "morning-chase": true,
+  "credit-review": true,
+  "quiet-reorder": false,
 });
 
 export function seedState(): DemoState {

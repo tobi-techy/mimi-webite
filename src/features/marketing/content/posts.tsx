@@ -18,8 +18,181 @@ export type Post = {
   body: ReactNode;
 };
 
+/** A screenshot inside a post body: plain image (pre-optimised in public/blog/<slug>/), caption below. */
+function Shot({
+  src,
+  alt,
+  caption,
+  width,
+  height,
+}: {
+  src: string;
+  alt: string;
+  caption: string;
+  width: number;
+  height: number;
+}) {
+  return (
+    <figure className="x-post__fig">
+      <img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+      <figcaption>{caption}</figcaption>
+    </figure>
+  );
+}
+
 /** Blog posts, newest first. The first post is featured on the blog index and the home page. */
 export const posts: Post[] = [
+  {
+    slug: "how-we-designed-mimis-helpers",
+    title: "How we designed Mimi's helpers, after studying Grok Bot",
+    excerpt:
+      "I spent a morning taking apart how xAI designed Grok Bot. Here's what we borrowed for Mimi, and where shops in Nigeria need us to go further.",
+    date: "2026-10-26",
+    readMins: 6,
+    tag: "Product",
+    author: "Tobi Omotade",
+    image: {
+      src: "post-helpers-cover",
+      alt: "The Mimi console: the helper roster on the left, Collector's conversation in the middle and Proof's computer open on a GTBank statement",
+    },
+    body: (
+      <>
+        <p>
+          Mimi is an AI helper for distributors and the shops they supply. This morning I sat down with xAI's{" "}
+          <a href="https://x.ai/news/designing-grok-bot">write-up on designing Grok Bot</a> and their{" "}
+          <a href="https://x.ai/bot">product page</a>, and took both apart screen by screen. It's one of the
+          clearest pieces I've read on how people should work with AI agents. A lot of what you'll now see in
+          the Mimi console came from it. Some of it we changed, because a shop in Oshodi is not an office in
+          San Francisco.
+        </p>
+        <p>
+          Quick honesty first. The console is a demo. The shops, the money and the messages are sample data,
+          and no distributor is live on Mimi yet. I'm sharing it early because the design decisions matter
+          more right now than the polish.
+        </p>
+        <h2>You manage helpers, not chats</h2>
+        <p>
+          Grok Bot's biggest idea is a roster of bots instead of a long list of chat history. We copied that.
+          Mimi has six helpers: Order, Collector, Credit, Stock, Brand and Proof, with Mimi on top handing out
+          the work. Each helper has one conversation, like a contact in your messages.
+        </p>
+        <p>
+          Our first version had a separate thread for every task, and the sidebar got crowded fast. So now
+          each helper's tasks sit inside her one conversation, with a small line marking where each new task
+          starts.
+        </p>
+        <p>
+          The sidebar shows each helper with a one-line outcome, not the last thing somebody typed. Collector
+          says "Chased 5 shops, ₦385,900 owed · plan waiting". When a helper needs you, her row gets a small
+          orange count. You can tell what your team is doing without opening anything.
+        </p>
+        <Shot
+          src="/blog/how-we-designed-mimis-helpers/roster-match.webp"
+          width={1440}
+          height={900}
+          alt="Proof's conversation in the Mimi console. Step lines show she read Mama Tunde's WhatsApp, matched a ₦42,000 bank alert and found the invoice, then a payment match card waits for approval"
+          caption="Proof matched Mama Tunde's ₦42,000 transfer to her invoice and is waiting for a yes. Sample data."
+        />
+        <h2>Faces that show state</h2>
+        <p>
+          Grok Bot gives every bot a simple face that changes with what it's doing. We did the same. Each
+          helper's face shows if she's idle, working, waiting on you, blocked or done. Hover a row, or
+          long-press it on your phone, and you see the step she's on and what she has cost today. It sounds
+          small. It's the difference between opening seven chats and glancing once.
+        </p>
+        <h2>Step lines instead of three dots</h2>
+        <p>
+          The three dots that mean "typing" tell you nothing. Grok Bot swapped them for a list of the steps
+          the bot actually took. Ours read like this: the tool, what came back, how long it took and what it
+          cost. "Read bank alert → matched Mama Tunde ₦42,000 · 1.2s · ₦3." You see what she did, and you see
+          it in money you actually spend.
+        </p>
+        <p>
+          When something goes wrong, you see that too. The bank page timed out, she tried again, it loaded.
+          Nothing is hidden behind a spinner.
+        </p>
+        <h2>Cards you approve in the conversation</h2>
+        <p>
+          When a helper wants to do something that matters, she puts a card in the conversation. A reminder
+          plan, an order, a new credit limit, a payment match. You approve or discard it right there, without
+          going to another page. Every card shows its risk tier, and every number on it says how sure we are.
+        </p>
+        <Shot
+          src="/blog/how-we-designed-mimis-helpers/approve.webp"
+          width={1440}
+          height={900}
+          alt="Credit's conversation after approval: Iya Femi's credit limit change card marked as approved"
+          caption="Approving Iya Femi's new credit limit inside Credit's conversation. Sample data."
+        />
+        <h2>Her computer, in a side panel</h2>
+        <p>
+          Grok Bot treats the bot's computer as the bot's own, with three levels. A status, a preview and a
+          full takeover. We kept all three. There's a small status in the header while she works, a side panel
+          that shows her screen, and full screen when you want a closer look. Take control pauses her and
+          gives you the mouse. "I'm done" hands it back.
+        </p>
+        <p>
+          We drew her computer as a Windows desktop, with a taskbar, a browser on the bank statement and a
+          spreadsheet behind it. Most owners here use Windows every day, so it should feel familiar.
+        </p>
+        <Shot
+          src="/blog/how-we-designed-mimis-helpers/computer.webp"
+          width={1440}
+          height={900}
+          alt="Proof's computer open in the side panel: a Windows-style desktop with a browser on a GTBank statement, one row highlighted with the cursor on it, and a spreadsheet window behind"
+          caption="Proof checking a POS payment on the bank statement. Take control is one tap away."
+        />
+        <h2>Routines and the composer</h2>
+        <p>
+          Routines live with the helper that runs them, not in a settings page. Collector's morning chase sits
+          on Collector's own page, with its last run, its history and an on/off switch.
+        </p>
+        <p>
+          In the composer, / shows that helper's skills and @ brings in another helper or a shop. If you type
+          while she's working, she doesn't start over. She takes your message at her next step.
+        </p>
+        <h2>Where Mimi has to go further</h2>
+        <p>
+          Grok Bot is built for people at a desk. Our users are a distributor in a warehouse and shop owners
+          behind a counter. So a few things had to be different.
+        </p>
+        <ul>
+          <li>
+            Shops install nothing. They talk to Mimi on WhatsApp, where they already are. A shop owner
+            shouldn't need a new app to answer a reminder. The console is for the distributor.
+          </li>
+          <li>
+            Risk tiers are fixed in code, not left to the model. Some things just happen, some tell you after,
+            some wait for your yes. Moving money is always Never. Mimi doesn't move anyone's money.
+          </li>
+          <li>Every figure carries a proof label: verified, likely or estimated.</li>
+          <li>
+            Approvals expire. If you don't answer in time, Mimi doesn't go ahead. She asks you again on
+            WhatsApp.
+          </li>
+          <li>Cost shows in naira, per step and per day.</li>
+        </ul>
+        <Shot
+          src="/blog/how-we-designed-mimis-helpers/phone.webp"
+          width={780}
+          height={1688}
+          alt="The Mimi console on a phone: the menu with Needs you, Shops and Automations above the helper roster, each helper with a face, an outcome and an orange count"
+          caption="The same team on a phone."
+        />
+        <h2>What we're building next</h2>
+        <p>
+          The part you can't see in a demo is the runtime. For Mimi to be useful she has to keep working when
+          nobody is watching. So that's the work now: jobs that survive a crash and carry on from the last
+          step, budgets that park the work and ask you when they run out, and checks so no reminder ever goes
+          out twice.
+        </p>
+        <p>
+          Big thanks to the xAI team for writing their thinking down in public. If you're building agents,
+          read it. And if you run a distribution business in Nigeria and want to try Mimi early, talk to me.
+        </p>
+      </>
+    ),
+  },
   {
     slug: "why-distributors-run-on-notebooks",
     title: "Why distributors still run on notebooks",
@@ -173,6 +346,11 @@ export const posts: Post[] = [
     ),
   },
 ];
+
+/** The post's 1200x630 link-preview banner (public/blog/<slug>/og.png), used for og:image and twitter:image. */
+export function postOgImage(post: Post): { url: string; width: number; height: number; alt: string } {
+  return { url: `/blog/${post.slug}/og.png`, width: 1200, height: 630, alt: `Mimi blog: ${post.title}` };
+}
 
 export function getPost(slug: string): Post | undefined {
   return posts.find((p) => p.slug === slug);

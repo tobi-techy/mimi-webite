@@ -1,0 +1,283 @@
+/* =====================================================================================
+ * Grok Bot lessons (26 Oct 2026, RAI-298 / RAI-299). Structure only, inside the locked
+ * Factory skin: Geist + Geist Mono labels, 3px buttons, 10px cards, hairlines, no blur,
+ * no shadows, orange only for status and marks. Imported last.
+ * ===================================================================================== */
+
+/* ---------- sidebar width ---------- */
+.mc-side { width: 256px; }
+
+/* ---------- helper roster ---------- */
+.mc-roster { display: flex; flex-direction: column; gap: 1px; padding: 0 0 10px; }
+.mc-ro {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 8px 8px;
+  border-radius: 8px; color: var(--ink); transition: background-color .15s var(--mech);
+  -webkit-touch-callout: none; user-select: none;
+}
+.mc-ro:hover { background: var(--tint); }
+.mc-ro.is-on { background: var(--rf-sel, var(--tint2)); }
+.mc-ro .mc-face { width: 28px; height: 28px; }
+.mc-ro__tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mc-ro__l1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.mc-ro__n { flex: 1; min-width: 0; font-size: 14px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-ro__ago, .mc-ro__cost { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mc-ro__cost { display: none; }
+.mc-ro__l2 { display: grid; min-width: 0; }
+.mc-ro__pv, .mc-ro__step {
+  grid-area: 1 / 1; min-width: 0; font-size: 12.5px; line-height: 17px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .15s var(--mech);
+}
+.mc-ro__step { opacity: 0; color: var(--soft); }
+/* hover, keyboard focus or long-press: the current step and today's cost */
+.mc-ro:hover .mc-ro__pv, .mc-ro:focus-visible .mc-ro__pv, .mc-ro.is-peek .mc-ro__pv { opacity: 0; }
+.mc-ro:hover .mc-ro__step, .mc-ro:focus-visible .mc-ro__step, .mc-ro.is-peek .mc-ro__step { opacity: 1; }
+.mc-ro:hover .mc-ro__ago, .mc-ro:focus-visible .mc-ro__ago, .mc-ro.is-peek .mc-ro__ago { display: none; }
+.mc-ro:hover .mc-ro__cost, .mc-ro:focus-visible .mc-ro__cost, .mc-ro.is-peek .mc-ro__cost { display: inline; }
+.mc-ro.is-peek { background: var(--tint2); }
+@media (max-width: 899px) {
+  .mc-ro { min-height: 58px; }
+}
+
+/* ---------- face states ---------- */
+.mc-face__st {
+  position: absolute; right: -3px; bottom: -2px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--mc-side); display: grid; place-items: center;
+}
+.mc-face__st--working::after {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid var(--hair); border-top-color: var(--ink); animation: mc-sp .8s linear infinite;
+}
+.mc-face__st--blocked::after {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid var(--muted);
+  background: linear-gradient(135deg, transparent 42%, var(--muted) 42%, var(--muted) 58%, transparent 58%);
+}
+.mc-face__st--done svg { width: 9px; height: 9px; fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.mc-face--is-working > svg { animation: mc-bob 1.6s ease-in-out infinite; }
+.mc-face--is-idle > svg { opacity: .55; }
+.mc-face--is-blocked > svg { opacity: .7; filter: grayscale(.6); }
+@keyframes mc-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .mc-face--is-working > svg, .mc-face__st--working::after { animation: none; }
+}
+
+/* ---------- work-step lines: tool → result · time · naira ---------- */
+.mc-ws__tool { color: var(--soft); }
+.mc-ws__tr { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mc-ws--live .mc-ws__h { display: flex; align-items: center; gap: 8px; }
+
+/* ---------- inline action cards: risk tier, proof labels, email draft ---------- */
+.mc-tier {
+  flex: none; height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border: 1px solid var(--hair);
+  border-radius: var(--radius-sm); font: 400 10.5px/1 var(--font-geist-mono), ui-monospace, monospace; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .02em;
+}
+.mc-apc__h .mc-tier + .mc-nd { margin-left: 8px; }
+.mc-prf {
+  margin-left: 6px; font: 400 10.5px/1 var(--font-geist-mono), ui-monospace, monospace; font-style: normal;
+  color: var(--muted); letter-spacing: .01em;
+}
+.mc-prf--verified { color: var(--soft); }
+.mc-prf--verified::before { content: "✓ "; }
+.mc-prf--likely::before, .mc-prf--estimated::before { content: "~ "; }
+.mc-apc__mail { margin: 2px 16px 6px; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 6px; display: grid; gap: 4px; font-size: 13px; color: var(--ink); }
+.mc-apc__mail p { margin: 0; display: flex; gap: 8px; min-width: 0; }
+.mc-apc__mail p span { flex: none; width: 52px; color: var(--muted); font-size: 12px; }
+.mc-apc__mail .mc-apc__body { display: block; color: var(--soft); line-height: 1.55; padding-top: 4px; border-top: 1px solid var(--line); margin-top: 4px; }
+
+/* ---------- system events: centred grey lines ---------- */
+.mc-ev {
+  justify-self: stretch; margin: 8px 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--muted);
+  font-family: var(--msg-font, inherit);
+}
+
+/* ---------- computer, level 1: live status in the thread header ---------- */
+.mc-cdot {
+  height: 34px; max-width: 260px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px;
+  border: 1px solid var(--hair); border-radius: var(--radius-sm); color: var(--muted); font-size: 12.5px;
+  transition: background-color .15s var(--mech), color .15s var(--mech);
+}
+.mc-cdot:hover { background: var(--surface); color: var(--ink); }
+.mc-cdot .i { width: 15px; height: 15px; flex: none; }
+.mc-cdot .mc-dot { width: 6px; height: 6px; animation: mc-cpulse 1.6s var(--mech) infinite; }
+.mc-cdot__t { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes mc-cpulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .mc-cdot .mc-dot { animation: none; } }
+.mc-cfull { margin-left: -2px; }
+
+.mc-ws__go { white-space: nowrap; flex: none; width: max-content; max-width: none; padding: 0 12px; }
+.mc-apc__rw > span:first-child { min-width: 0; }
+.mc-apc__rw > span:last-child { flex: none; white-space: nowrap; text-align: right; }
+@media (max-width: 899px) { .mc-apc__rw > span:last-child { white-space: normal; flex: 0 1 auto; } }
+
+/* the computer desktop (Windows-style) lives in computer-win.css */
+.mc-scr.is-user { box-shadow: none; outline: 2px solid var(--color-signal-orange); outline-offset: -2px; }
+
+/* ---------- a helper's own view: now, today's cost, routines, threads ---------- */
+.mc-hv { max-width: 720px; margin: 0 auto; padding: 8px 0 48px; }
+.mc-hv__id { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--hair); }
+.mc-hv__id .mc-face { width: 48px; height: 48px; }
+.mc-hv__who { flex: 1; min-width: 0; }
+.mc-hv__who h1 { margin: 0; font-size: 17px; font-weight: 500; color: var(--ink); }
+.mc-hv__who p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+.mc-hv__facts { margin: 0; display: grid; gap: 0; border-bottom: 1px solid var(--hair); }
+.mc-hv__facts > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.mc-hv__facts > div:first-child { border-top: 0; }
+.mc-hv__facts dt { font: 400 11px/20px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; color: var(--muted); }
+.mc-hv__facts dd { margin: 0; font-size: 14px; line-height: 20px; color: var(--ink); }
+.mc-hv__st {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 6px; margin-right: 8px; border: 1px solid var(--hair);
+  border-radius: var(--radius-sm); font: 400 10.5px/1 var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; color: var(--muted);
+}
+.mc-hv__st.is-waiting { color: var(--color-signal-orange); border-color: color-mix(in srgb, var(--color-signal-orange) 45%, transparent); }
+.mc-hv__h { margin: 28px 0 8px; font-size: 13px; font-weight: 400; color: var(--muted); }
+.mc-hv__list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--hair); border-radius: var(--radius-lg); }
+.mc-hv__list > li + li { border-top: 1px solid var(--line); }
+.mc-rt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.mc-rt > .i { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.mc-rt__tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.mc-rt__t { font-size: 14px; color: var(--ink); }
+.mc-rt__t:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mc-rt__tx small { font-size: 12.5px; color: var(--muted); }
+.mc-rt__runs { display: flex; gap: 3px; padding-top: 2px; }
+.mc-rt__r { width: 14px; height: 4px; border-radius: 2px; background: var(--hair); }
+.mc-rt__r.is-done { background: var(--soft); }
+.mc-rt__r.is-needs { background: var(--color-signal-orange); }
+.mc-rt__r.is-failed { background: var(--muted); }
+.mc-rt__sw { display: flex; align-items: center; gap: 8px; flex: none; }
+.mc-rt__on { font-size: 12.5px; color: var(--muted); }
+.mc-hv__none { margin: 0; padding: 14px; border: 1px solid var(--hair); border-radius: var(--radius-lg); font-size: 14px; color: var(--muted); }
+.mc-hv__all { display: inline-flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.mc-hv__all:hover { color: var(--ink); }
+.mc-hv__all .i { width: 14px; height: 14px; }
+.mc-hv__th { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 14px; }
+.mc-hv__th:hover { background: var(--tint); }
+.mc-hv__tt { font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-hv__th small { grid-column: 1; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-hv__ago { grid-column: 2; grid-row: 1; font-size: 12px; color: var(--muted); }
+@media (max-width: 899px) {
+  .mc-hv__id { flex-wrap: wrap; }
+  .mc-hv__id .mc-btn { width: 100%; justify-content: center; }
+  .mc-hv__facts > div { grid-template-columns: 72px minmax(0, 1fr); }
+  .mc-rt { align-items: flex-start; }
+}
+.mc-tt__hl:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- composer: who you're talking to, / skills, @ mentions, steering ---------- */
+.mc-to { flex: none; display: grid; place-items: center; width: 20px; margin-left: -4px; }
+.mc-ac { width: min(360px, calc(100% - 48px)); max-height: 300px; overflow-y: auto; }
+.mc-ac__h { margin: 0; padding: 6px 8px 4px; font-size: 12px; color: var(--muted); }
+.mc-ac > button { gap: 10px; min-height: 32px; }
+.mc-ac > button.is-on { background: var(--tint2); }
+.mc-ac__cmd { flex: none; font: 400 12px var(--font-geist-mono), ui-monospace, monospace; color: var(--ink); }
+.mc-ac__t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--soft); }
+.mc-ac__sub { flex: none; font-size: 12px; color: var(--muted); }
+.mc-ac .mc-ac__ic { width: 16px; height: 16px; color: var(--muted); }
+.mc-ac .mc-face { width: 18px; height: 18px; }
+.mc-steer {
+  position: absolute; left: 0; right: 0; bottom: calc(100% - 4px); margin: 0 auto; width: fit-content;
+  font: 400 11px/1 var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; color: var(--muted);
+  padding: 5px 8px; border: 1px solid var(--hair); border-radius: var(--radius-sm); background: var(--bg);
+}
+.mc-cstat__btns .mc-btn--pri[aria-pressed="true"] { background: var(--pri-bg); color: var(--pri-fg); border-color: var(--pri-bg); opacity: 1; }
+/* roster stays put; only the thread list scrolls */
+.mc-side__full > .mc-roster { flex: none; }
+@media (max-height: 760px) { .mc-ro { min-height: 46px; padding-block: 5px; } }
+@media (max-width: 899px) {
+  .mc-ws__h { align-items: flex-start; padding: 3px 0; }
+  .mc-ws__i, .mc-ws__ok, .mc-ws__spin { margin-top: 3px; }
+}
+/* phones and short screens: roster, links and threads scroll together */
+@media (max-width: 899px), (max-height: 700px) {
+  .mc-side__full { overflow-y: auto; }
+  .mc-side__full > .mc-side__scroll { flex: none; overflow: visible; min-height: auto; }
+}
+
+/* =====================================================================================
+ * One conversation per helper (26 Oct 2026, Tobi): the sidebar is the roster plus a quiet
+ * group above it. 8px rhythm, one left edge (8px inset) for every row, ellipsis everywhere.
+ * ===================================================================================== */
+.mc-side__full > .mc-side__team { flex: 1; min-height: 0; margin-top: 8px; padding-top: 8px; padding-bottom: 8px; border-top: 1px solid var(--rf-hair, var(--line)); }
+.mc-side__team .mc-roster { gap: 0; padding: 0; }
+.mc-side__team .mc-ro { min-height: 56px; padding: 8px; gap: 8px; }
+.mc-side__team .mc-ro .mc-face { margin-right: 2px; }
+.mc-ro__l2 { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; }
+.mc-ro__k { grid-area: 1 / 2; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
+.mc-navs--quiet { flex: none; margin-top: 8px; gap: 0; }
+.mc-navs--quiet .mc-nav { height: 32px; padding: 0 8px; gap: 16px; color: var(--muted); }
+.mc-navs--quiet .mc-nav .i { margin-left: 6px; }
+.mc-navs--quiet .mc-nav:hover, .mc-navs--quiet .mc-nav[aria-current="page"] { color: var(--ink); }
+.mc-side__full > .mc-me { padding: 8px 0 0 8px; border-top: 1px solid var(--rf-hair, var(--line)); }
+html:not([data-theme="dark"]) .mc-side__full > .mc-me { border-top: 1px solid var(--rf-hair, var(--hair)); }
+.mc-rail .mc-pin.is-on { background: var(--rf-sel, var(--tint2)); border-radius: 8px; }
+@media (max-width: 899px), (max-height: 700px) {
+  .mc-side__full > .mc-side__team { flex: none; overflow: visible; }
+  .mc-navs--quiet .mc-nav { height: 44px; }
+}
+
+/* thread header: the helper, her job and what she is doing now */
+.mc-tt__b .mc-face { width: 18px; height: 18px; flex: none; }
+.mc-tt__b { gap: 8px; }
+.mc-tt__job { white-space: nowrap; }
+.mc-rtn { white-space: nowrap; }
+
+/* tasks inside the conversation: a date line and a centred "New task" event between them */
+.mc-task { display: contents; }
+.mc-task + .mc-task > .mc-ts:first-child, .mc-task + .mc-task > .mc-ev--task:first-child { margin-top: 16px; }
+.mc-ev--task { margin: 4px 0 8px; }
+.mc-tv .mc-ev--task + .mc-ev { margin-top: -8px; }
+@media (max-width: 899px) { .mc-ws__h { padding: 4px 0; } .mc-tv .mc-r--work + .mc-r--work { margin-top: 6px; } }
+.mc-gs--feed {
+  justify-self: center; align-self: center; width: fit-content; margin: 4px auto 16px; height: 32px; padding: 0 10px; gap: 8px;
+  border: 1px solid var(--rf-hair, var(--hair)); border-radius: var(--radius-sm); display: inline-flex; align-items: center;
+  font-size: 13px; color: var(--soft);
+}
+.mc-gs--feed .i { width: 14px; height: 14px; color: var(--muted); }
+.mc-tv .mc-task > * { min-width: 0; }
+
+/* ---------- Mimi's roll-up: everything waiting on the owner (replaces the sidebar's Needs you row) ---------- */
+.mc-wl__box { border: 1px solid var(--rf-hair, var(--hair)); border-radius: 10px; overflow: hidden; }
+.mc-wl__h { display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 12px 16px 8px; font-size: 14px; line-height: 20px; }
+.mc-wl__h b { font-weight: 500; color: var(--ink); }
+.mc-wl__h span { color: var(--muted); font-size: 13px; }
+.mc-wl__l { list-style: none; margin: 0; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 1px; }
+.mc-wl__r {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 8px; border-radius: 8px;
+  color: var(--ink); transition: background-color .15s var(--mech), opacity .2s var(--mech);
+}
+.mc-wl__r:hover, .mc-wl__r:focus-visible { background: var(--tint); }
+.mc-wl__r.is-sending { opacity: .6; }
+.mc-wl__tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mc-wl__what, .mc-wl__why { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-wl__what { font-size: 14px; line-height: 18px; }
+.mc-wl__what b { font-weight: 500; }
+.mc-wl__why { font-size: 12.5px; line-height: 17px; color: var(--muted); }
+.mc-wl__go { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
+.mc-wl__go .i { width: 14px; height: 14px; }
+.mc-wl__r:hover .mc-wl__go, .mc-wl__r:focus-visible .mc-wl__go { color: var(--ink); }
+.mc-wl__all {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 40px; padding: 0 16px;
+  border-top: 1px solid var(--rf-hair, var(--hair)); font-size: 13px; color: var(--muted);
+  transition: color .15s var(--mech), background-color .15s var(--mech);
+}
+.mc-wl__all:hover, .mc-wl__all:focus-visible { color: var(--ink); background: var(--tint); }
+.mc-wl__all .i { width: 14px; height: 14px; }
+@media (max-width: 899px) {
+  .mc-wl__h { padding: 12px 12px 8px; }
+  .mc-wl__l { padding: 0 4px 4px; }
+  .mc-wl__r { min-height: 56px; }
+  .mc-wl__go { font-size: 0; gap: 0; }
+  .mc-wl__all { height: 44px; padding: 0 12px; }
+}
+
+/* ---------- wide conversation (Tobi, 26 Oct 2026): everything spans the one 880px column ----------
+ * --msg-col (messages.css) sets the column; it is a max-width, so it shrinks fluidly when the
+ * workspace panel is open. Owner bubbles stay at most 85% of it. */
+.mc-tv .mc-r--them .mc-rx--card,
+.mc-tv .mc-r--them .mc-rx--poll { width: 100%; }
+.mc-tv .mc-apc, .mc-tv .mc-poll { width: 100%; max-width: 100%; }
+.mc-tv .mc-ws__d { max-width: 100%; }
+.mc-tv .mc-wl__box { width: 100%; box-sizing: border-box; }
+.mc-tv .mc-rp { width: 100%; margin-left: 0; }
+/* helper step lines never run past a narrowed column (panel open at 1280); their text ellipsises */
+.mc-tv .mc-r--work, .mc-tv .mc-r--work > .mc-ws { max-width: 100%; }

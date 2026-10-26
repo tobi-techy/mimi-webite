@@ -1,0 +1,137 @@
+/* =====================================================================================
+ * The helper's computer (26 Oct 2026, Tobi): a familiar Windows-style desktop, because shop
+ * owners and distributors here know Windows. It is a screen inside our UI, so the wallpaper
+ * may use a soft gradient and the app icons their own colours. Generic icons only, no real
+ * logos or trademarks. Our own chrome around it (status row, step strip) stays Factory.
+ * ===================================================================================== */
+.mc-pc {
+  --pc-chrome: #202020;
+  --pc-chrome-2: #2b2b2b;
+  --pc-line: rgba(255, 255, 255, .08);
+  --pc-text: #e8e8e8;
+  --pc-dim: #a3a3a3;
+  display: flex; flex-direction: column; overflow: hidden; color: var(--pc-text);
+  font-family: "Segoe UI", var(--font-geist-sans), system-ui, sans-serif;
+  background:
+    radial-gradient(120% 90% at 78% 108%, #1d3a66 0%, rgba(29, 58, 102, 0) 55%),
+    radial-gradient(90% 70% at 18% 92%, #16294a 0%, rgba(22, 41, 74, 0) 60%),
+    radial-gradient(70% 60% at 60% 40%, #121c30 0%, rgba(18, 28, 48, 0) 70%),
+    linear-gradient(180deg, #0b0f17 0%, #0d1320 100%);
+}
+.mc-pc__desk { position: relative; flex: 1; min-height: 0; }
+
+/* ---------- windows ---------- */
+.mc-pc__win {
+  position: absolute; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .12); border-radius: 8px; background: var(--pc-chrome);
+}
+.mc-pc__win--sheet { top: 4%; left: 3%; width: 62%; height: 54%; }
+.mc-pc__win--web { top: 17%; left: 13%; right: 3%; bottom: 3%; }
+.mc-pc__tb {
+  flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding-left: 10px;
+  font-size: 11.5px; color: var(--pc-dim); background: var(--pc-chrome);
+}
+.mc-pc__t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-pc__ic { width: 16px; height: 16px; flex: none; display: block; }
+.mc-pc__tb > .mc-pc__ic { width: 14px; height: 14px; }
+.mc-pc__cap { flex: none; display: flex; align-self: stretch; margin-left: auto; }
+.mc-pc__cap svg {
+  width: 40px; height: 100%; padding: 0 15px; box-sizing: border-box; fill: none; stroke: var(--pc-dim); stroke-width: 1;
+}
+.mc-pc__win--web .mc-pc__cap svg { stroke: var(--pc-text); }
+
+/* spreadsheet window (behind) */
+.mc-pc__menu {
+  flex: none; display: flex; gap: 14px; padding: 0 10px; height: 24px; align-items: center;
+  font-size: 10.5px; color: var(--pc-dim); border-bottom: 1px solid var(--pc-line);
+}
+.mc-pc__menu .is-on { color: var(--pc-text); box-shadow: inset 0 -2px 0 #4caf7d; height: 100%; display: inline-flex; align-items: center; }
+.mc-pc__fx {
+  flex: none; display: flex; align-items: center; gap: 8px; height: 22px; padding: 0 8px;
+  font-size: 10.5px; color: var(--pc-text); background: #1a1a1a; border-bottom: 1px solid var(--pc-line);
+}
+.mc-pc__fx i { font-style: italic; color: var(--pc-dim); padding: 0 6px; border-left: 1px solid var(--pc-line); border-right: 1px solid var(--pc-line); }
+.mc-pc__cell { width: 34px; color: var(--pc-dim); }
+.mc-pc__grid { width: 100%; border-collapse: collapse; font-size: 10.5px; background: #1a1a1a; table-layout: fixed; }
+.mc-pc__grid th, .mc-pc__grid td {
+  height: 20px; padding: 0 6px; border: 1px solid rgba(255, 255, 255, .06); text-align: left; font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mc-pc__grid th { width: 22px; color: var(--pc-dim); background: #242424; text-align: center; font-size: 9.5px; }
+.mc-pc__grid thead th:not(:first-child) { width: auto; }
+.mc-pc__grid td.is-h { color: var(--pc-dim); }
+.mc-pc__grid td.is-sel { outline: 2px solid #4caf7d; outline-offset: -2px; }
+.mc-pc__tabs { margin-top: auto; flex: none; display: flex; gap: 2px; padding: 0 8px; height: 22px; align-items: stretch; font-size: 10.5px; color: var(--pc-dim); background: var(--pc-chrome); border-top: 1px solid var(--pc-line); }
+.mc-pc__tabs span { display: inline-flex; align-items: center; padding: 0 10px; }
+.mc-pc__tabs .is-on { color: var(--pc-text); background: #1a1a1a; box-shadow: inset 0 -2px 0 #4caf7d; }
+
+/* browser window (front): tabs in the title bar, then the address bar */
+.mc-pc__win--web { background: var(--pc-chrome-2); border-color: rgba(255, 255, 255, .16); }
+.mc-pc__tb--tabs { gap: 2px; padding-left: 6px; background: #1c1c1c; }
+.mc-pc__tab {
+  min-width: 0; max-width: 200px; flex: 0 1 200px; height: 24px; align-self: flex-end; display: flex; align-items: center; gap: 6px;
+  padding: 0 8px; border-radius: 6px 6px 0 0; color: var(--pc-dim);
+}
+.mc-pc__tab.is-on { background: var(--pc-chrome-2); color: var(--pc-text); }
+.mc-pc__tab + .mc-pc__tab { flex-basis: 120px; }
+.mc-pc__tabt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-pc__fav {
+  width: 14px; height: 14px; flex: none; border-radius: 3px; display: grid; place-items: center;
+  background: var(--color-signal-orange); color: #fff; font: 600 7px/1 var(--font-geist-sans), sans-serif;
+}
+.mc-pc__fav--wa { border-radius: 50%; background: #3fa66b; }
+.mc-pc__x { color: var(--pc-dim); font-size: 13px; line-height: 1; }
+.mc-pc__plus { flex: none; width: 24px; text-align: center; color: var(--pc-dim); font-size: 14px; }
+.mc-pc__nav { flex: none; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px; background: var(--pc-chrome-2); border-bottom: 1px solid var(--pc-line); }
+.mc-pc__navb { display: flex; gap: 4px; }
+.mc-pc__navb svg, .mc-pc__url svg { width: 14px; height: 14px; fill: none; stroke: var(--pc-dim); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.mc-pc__navb svg { width: 22px; height: 22px; padding: 4px; box-sizing: border-box; }
+.mc-pc__url {
+  flex: 1; min-width: 0; height: 24px; display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  border-radius: 12px; background: #1c1c1c; font-size: 11.5px;
+}
+.mc-pc__url b { min-width: 0; font-weight: 400; color: var(--pc-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-pc__body { flex: 1; min-height: 0; overflow: auto; background: var(--color-chalk); color: var(--color-obsidian-canvas); font-family: var(--font-geist-sans), system-ui, sans-serif; }
+.mc-pc__body .mc-bank { padding: 14px 16px 20px; }
+
+/* Windows-style pointer: white arrow, dark outline */
+.mc-pc .mc-cur path { fill: #fff; stroke: #101010; }
+
+/* ---------- taskbar ---------- */
+.mc-pc__bar {
+  position: relative; flex: none; height: 38px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 0 8px;
+  background: #1c1c1c; border-top: 1px solid rgba(255, 255, 255, .08);
+}
+.mc-pc__dock { grid-column: 2; display: flex; align-items: center; gap: 2px; }
+.mc-pc__start, .mc-pc__app {
+  position: relative; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 4px;
+}
+.mc-pc__start svg { width: 18px; height: 18px; fill: none; stroke: #7fb3ff; stroke-width: 1.6; }
+.mc-pc__start svg circle { fill: #7fb3ff; stroke: none; }
+.mc-pc__app .mc-pc__ic { width: 18px; height: 18px; }
+.mc-pc__app.is-focus { background: rgba(255, 255, 255, .08); }
+.mc-pc__app.is-open::after, .mc-pc__app.is-focus::after {
+  content: ""; position: absolute; bottom: 1px; left: 50%; width: 6px; height: 3px; margin-left: -3px; border-radius: 2px; background: var(--pc-dim);
+}
+.mc-pc__app.is-focus::after { width: 14px; margin-left: -7px; background: #7fb3ff; }
+.mc-pc__search {
+  height: 26px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px 0 10px; margin: 0 4px;
+  border-radius: 13px; background: #2b2b2b; color: var(--pc-dim); font-size: 11px; width: 110px;
+}
+.mc-pc__search svg { width: 12px; height: 12px; fill: none; stroke: var(--pc-text); stroke-width: 1.3; stroke-linecap: round; }
+.mc-pc__tray { grid-column: 3; justify-self: end; display: flex; align-items: center; gap: 8px; color: var(--pc-text); }
+.mc-pc__tray svg { width: 13px; height: 12px; fill: none; stroke: var(--pc-text); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.mc-pc__clock { display: flex; flex-direction: column; align-items: flex-end; font-size: 10px; line-height: 13px; font-variant-numeric: tabular-nums; margin-left: 2px; }
+
+/* narrow screens (the side panel on smaller desktops, phones): fewer extras */
+@container pcscreen (max-width: 640px) {
+  .mc-pc__search { width: auto; padding: 0 8px; font-size: 0; gap: 0; }
+  .mc-pc__tray > svg:nth-child(-n + 2) { display: none; }
+}
+.mc-pc { container: pcscreen / inline-size; }
+@media (max-width: 899px) {
+  .mc-pc__win--sheet { width: 74%; }
+  .mc-pc__win--web { top: 9%; left: 5%; right: 3%; }
+  .mc-pc__tray > svg { display: none; }
+  .mc-pc__search { display: none; }
+}

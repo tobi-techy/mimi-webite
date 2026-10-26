@@ -5287,3 +5287,62 @@ html.x-menu-open body {
   outline: 2px solid #101010;
   outline-offset: -4px;
 }
+
+/* screenshots inside a post: a little wider than the text column, hairline, 10px corners, caption below */
+.x-site .x-post__body > .x-post__fig {
+  position: relative;
+  left: 50%;
+  translate: -50% 0;
+  width: min(880px, calc(100vw - 40px));
+  margin-block: 40px;
+}
+.x-post__fig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--x-photo-line);
+  border-radius: var(--radius-cards);
+  background: var(--x-raised);
+}
+.x-post__fig figcaption {
+  margin-top: 12px;
+  font: 400 14px/1.5 var(--x-sans);
+  color: var(--x-tertiary);
+}
+.x-site .x-post__body > .x-post__fig:has(img[height="1688"]) {
+  width: min(390px, calc(100vw - 40px));
+}
+
+/* Mimi socials (footer, contact): small mono links with hairline-free icons */
+.x-socials {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.x-socials a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  text-decoration: none;
+  color: var(--x-muted);
+  font: 400 12px/1.2 var(--x-mono);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  transition: color 0.12s linear;
+}
+.x-socials a:hover,
+.x-socials a:focus-visible {
+  color: var(--x-text);
+}
+.x-socials svg {
+  flex: none;
+}
+.x-contact__socials {
+  margin-top: 32px;
+  display: grid;
+  gap: 8px;
+}

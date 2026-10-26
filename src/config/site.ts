@@ -30,6 +30,12 @@ export const site = {
     alt: "Mimi: the route, the shop, the money. One book.",
   },
   themeColor: "#101010",
+  /** Mimi's own social accounts: footer, contact page, Organization sameAs and twitter:site. */
+  socials: [
+    { key: "x", label: "X", handle: "@meetmimi_ng", href: "https://x.com/meetmimi_ng" },
+    { key: "linkedin", label: "LinkedIn", handle: "Mimi", href: "https://www.linkedin.com/company/meetmimi" },
+  ],
+  twitterHandle: "@meetmimi_ng",
 } as const;
 
 export function whatsappLink(message: string): string {

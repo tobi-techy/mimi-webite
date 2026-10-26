@@ -36,6 +36,7 @@ import type {
   Tone,
 } from "@/features/console/demo/types";
 import { reactableKinds } from "@/features/console/demo/types";
+import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 
 /**
@@ -121,15 +122,29 @@ async function tool(slug: string, from: Worker, icon: ActivityIcon, text: string
   if (!(await wait((o.ms ?? 1100) * consoleMotion.pace, ep))) return false;
   patchMessage(slug, id, (m) =>
     m.kind === "step"
-      ? { ...m, state: o.fail ? "failed" : "done", variant: o.fail ? "error" : m.variant, text: o.done ?? m.text, meta: o.meta, detail: o.detail }
+      ? {
+          ...m,
+          state: o.fail ? "failed" : "done",
+          variant: o.fail ? "error" : m.variant,
+          text: o.done ?? m.text,
+          meta: o.meta,
+          detail: o.detail,
+          took: `${(((o.ms ?? 1100) * consoleMotion.pace) / 1000).toFixed(1)}s`,
+        }
       : m,
   );
   return wait(240, ep);
 }
 
+/** A centred grey system event in the thread ("Handed to Credit", "You took control"). */
+export function event(slug: string, text: string) {
+  push(slug, { kind: "event", text, at: Date.now() });
+}
+
 /** "Collector asked Proof to check Ade Stores." */
 async function handoff(slug: string, from: Worker, to: HelperName, text: string, ep: number): Promise<boolean> {
   push(slug, { kind: "step", from, variant: "handoff", to, text, state: "done", at: Date.now() });
+  event(slug, `Handed to ${to}`);
   return wait(500 * consoleMotion.pace, ep);
 }
 
@@ -349,6 +364,34 @@ export function sendMessage(slug: string, text: string) {
   sfx("console", "tap");
   helperReacts(slug, mid, clean, epoch);
   void runStep(slug, step, clean, epoch);
+}
+
+/**
+ * The owner writes while the helper is mid-run: the message lands now, the thread says it will be
+ * taken at the next step, and the helper picks it up as soon as the current step ends (RAI-283).
+ */
+export function steerMessage(slug: string, text: string) {
+  const clean = text.trim();
+  if (!clean) return;
+  const c = findConversation(getDemo(), slug);
+  if (!c) return;
+  push(slug, { kind: "text", from: "me", text: clean, at: Date.now() });
+  sfx("console", "tap");
+  event(slug, `${c.helper} will take this at the next step`);
+  const ep = epoch;
+  const started = Date.now();
+  const poll = () => {
+    if (!alive(ep)) return;
+    const s = getDemo();
+    const now = findConversation(s, slug);
+    if (now && runningIn(s, now) && Date.now() - started < 30000) {
+      window.setTimeout(poll, 400);
+      return;
+    }
+    event(slug, `Steered by you · ${c.helper} took it at the next step`);
+    void runStep(slug, stepFor(slug, clean), clean, ep);
+  };
+  window.setTimeout(poll, 400);
 }
 
 /** Home composer: a new thread with the helper the words point at. Returns its slug. */
@@ -875,7 +918,7 @@ function orderCard(shop: string, cartons: number): DecisionCard {
     title: `Order · ${shop}`,
     sub: `${naira(total)} · delivery Saturday`,
     rows: [
-      { label: `Indomie Chicken 70g (${cartons})`, amount: total, note: `${cartons} cartons` },
+      { label: `Indomie Chicken 70g (${cartons})`, amount: total, note: `${cartons} cartons`, proof: "verified" },
       { label: "Van 2 · Saturday", note: "Mushin first" },
     ],
     primary: "Confirm order",
@@ -944,9 +987,9 @@ async function stock(slug: string, ep: number) {
     title: "Restock · Indomie Chicken 70g",
     sub: "120 cartons · ₦384,000",
     rows: [
-      { label: "In the warehouse", note: "86 cartons" },
-      { label: "Selling", note: "21 a day" },
-      { label: "Order from Dufil", amount: 384000 },
+      { label: "In the warehouse", note: "86 cartons", proof: "verified" },
+      { label: "Runs out", note: "Thursday", proof: "estimated" },
+      { label: "Indomie 70g × 120 cartons", amount: 384000, note: "price list", proof: "verified" },
     ],
     primary: "Approve restock",
     secondary: "Decline",
@@ -1196,6 +1239,9 @@ async function afterApprove(slug: string, card: DecisionCard, ep: number) {
     case "flag":
       if (!(await say(slug, "Proof", "Done. Kola Mart's orders are on hold until cash lands in GTB.", ep, 900))) return;
       return offer(slug, [{ label: "Draft a message to Kola Mart", step: "prf.msg" }]);
+    case "match":
+      await say(slug, "Proof", `Marked paid in the book: ${shop}, ${naira(card.amount ?? 0)}. No money moved, I only recorded it.`, ep, 900);
+      return;
   }
 }
 
@@ -1402,7 +1448,14 @@ export function pauseComputer() {
 }
 export function takeControl() {
   sfx("console", "tap");
+  const before = getDemo().computer;
   setComputer((c) => ({ ...c, status: c.status === "user" ? (c.steps.some((s) => s.state === "run") ? "live" : "done") : "user" }));
+  /* both moves write a system event in the thread on screen (RAI-299) */
+  const slug = getDemo().active;
+  if (!slug) return;
+  const at = before.steps.findIndex((s) => s.state === "run");
+  if (before.status === "user") event(slug, `Handed back to ${before.helper} · resumes at step ${at >= 0 ? at + 1 : before.steps.length}`);
+  else event(slug, `You took control of ${before.helper}'s computer · ${before.helper} is paused`);
 }
 
 /* ---------- docs ---------- */

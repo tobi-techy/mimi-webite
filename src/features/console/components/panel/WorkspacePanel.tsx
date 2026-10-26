@@ -142,6 +142,8 @@ export function WorkspacePanel({ slug, host }: { slug: string; host: React.RefOb
         <button type="button" className="mc-ib" aria-label="Open something else" onClick={() => setPanelTab("Launcher")}>
           <Icon name="plus" />
         </button>
+        {/* the Computer tab has its own full-screen control (level 3) next to Take control */}
+        {panel.tab !== "Computer" && (
         <button
           type="button"
           className="mc-ib mc-hide-phone"
@@ -150,6 +152,7 @@ export function WorkspacePanel({ slug, host }: { slug: string; host: React.RefOb
         >
           <Icon name={panel.full ? "minimize-2" : "maximize-2"} />
         </button>
+        )}
         <button type="button" className="mc-ib" aria-label="Close the workspace panel" onClick={closePanel}>
           <Icon name="x" />
         </button>

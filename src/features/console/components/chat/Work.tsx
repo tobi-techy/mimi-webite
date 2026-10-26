@@ -152,7 +152,7 @@ function StateMark({ state }: { state: StepMsg["state"] }) {
 }
 
 /** Scrolls the decision card a gate waits on into view and flashes it. */
-function goTo(messageId: string) {
+export function goToCard(messageId: string) {
   const el = document.getElementById(`m-${messageId}`);
   if (!el) return;
   el.scrollIntoView({ block: "center", behavior: reduced() ? "auto" : "smooth" });
@@ -161,6 +161,54 @@ function goTo(messageId: string) {
   el.classList.add("is-flash");
   window.setTimeout(() => el.classList.remove("is-flash"), 1400);
   (el.querySelector(".mc-apc__ft .mc-btn--pri") as HTMLElement | null)?.focus({ preventScroll: true });
+}
+
+/** The tool a step used, named from its icon when the step doesn't say. */
+const TOOL_OF: Partial<Record<string, string>> = {
+  landmark: "GTBank",
+  "book-text": "Shop book",
+  "message-square": "WhatsApp",
+  send: "WhatsApp",
+  monitor: "Computer",
+  sheet: "Sheet",
+  "file-text": "Docs",
+  package: "Stock",
+  search: "Search",
+  "shield-check": "Proof check",
+  "bar-chart": "Sales",
+  store: "Shop list",
+  receipt: "Invoices",
+  "refresh-cw": "Retry",
+  pen: "Draft",
+  users: "Shops",
+  truck: "Van route",
+  "map-pin": "Map",
+  folder: "Files",
+  "list-checks": "Plan",
+  "circle-x": "Error",
+};
+
+/**
+ * Timing and naira for a step. Steps run in this demo carry their own; seeded steps get a stable
+ * sample value from their id (synthetic demo data, the product reads it from the run trace).
+ */
+export function traceOf(m: { id: string; took?: string; cost?: number; icon?: string }): { took: string; cost: number } {
+  let h = 2166136261;
+  for (let i = 0; i < m.id.length; i++) h = Math.imul(h ^ m.id.charCodeAt(i), 16777619) >>> 0;
+  const heavy = m.icon === "monitor" || m.icon === "landmark";
+  const secs = ((h % 37) + 4) / 10 + (heavy ? 1.6 : 0);
+  return { took: m.took ?? `${secs.toFixed(1)}s`, cost: m.cost ?? ((h >>> 7) % 4) + (heavy ? 3 : 1) };
+}
+
+/** Grey trace after a step: "· 1.2s · ₦3". */
+function Trace({ m }: { m: StepMsg }) {
+  if (m.state === "run") return <span className="mc-ws__tr"> · running</span>;
+  const t = traceOf(m);
+  return (
+    <span className="mc-ws__tr">
+      {" "}· {t.took} · ₦{t.cost}
+    </span>
+  );
 }
 
 export function StepLine({ m }: { m: StepMsg }) {
@@ -178,12 +226,20 @@ export function StepLine({ m }: { m: StepMsg }) {
     ) : (
       <Icon name={icon} className="i mc-ws__i" />
     );
+  const traced = m.variant === "tool" || m.variant === "retry" || m.variant === "error";
+  const toolName = traced ? (m.tool ?? TOOL_OF[m.icon ?? ""] ?? "Tool") : undefined;
   const body = (
     <>
       {lead}
       <span className="mc-ws__t">
+        {toolName && (
+          <span className="mc-ws__tool">
+            {toolName} <span aria-label="gave">→</span>{" "}
+          </span>
+        )}
         <Rich text={m.text} />
         {m.meta && <span className="mc-ws__m"> {m.meta}</span>}
+        {traced && <Trace m={m} />}
       </span>
       {m.variant !== "handoff" && !(m.variant === "gate" && m.state === "wait") && <StateMark state={m.state} />}
       {can && <Icon name="chevron-right" className="i mc-ws__c" />}
@@ -199,7 +255,7 @@ export function StepLine({ m }: { m: StepMsg }) {
         <div className="mc-ws__h">{body}</div>
       )}
       {m.variant === "gate" && m.link && m.state === "wait" && (
-        <button type="button" className="mc-ws__go" onClick={() => goTo(m.link!)}>
+        <button type="button" className="mc-ws__go" onClick={() => goToCard(m.link!)}>
           Go to the decision
           <Icon name="arrow-up" />
         </button>

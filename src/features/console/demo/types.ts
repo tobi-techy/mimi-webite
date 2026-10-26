@@ -26,13 +26,24 @@ export type CardRow = {
   edited?: boolean;
   /** Orange note, e.g. "Fake alert". */
   flag?: string;
+  /** How sure the figure is (RAI-295): verified (bank or signed), likely, estimated. */
+  proof?: ProofLevel;
 };
+
+/** How sure a figure is. Credit uses verified only. */
+export type ProofLevel = "verified" | "likely" | "estimated";
+/** What a card may do on its own: Auto (just does it), Notify (does it, tells you), Approve (asks first), Never (Mimi never does it). */
+export type RiskTier = "Auto" | "Notify" | "Approve" | "Never";
 
 export type CardStatus = "needs" | "sending" | "sent" | "declined";
 
 /** A plan or approval card: reminder plan, order draft, credit change, restock, brand draft, flagged payment. */
 export type DecisionCard = {
-  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag";
+  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match";
+  /** Risk tier label; cards that wait on the owner are Approve. */
+  tier?: RiskTier;
+  /** Brand emails: the draft itself (stays a draft until the owner taps Send). */
+  email?: { to: string; subject: string; body: string };
   /** Shop (or "4 shops") the card is about, for the Needs you pile. */
   shop?: string;
   /** Headline amount; plans and orders fall back to the sum of their live rows. */
@@ -97,6 +108,8 @@ export type Message =
   | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }
+  /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
+  | { id: string; kind: "event"; text: string; at: number }
   /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
   | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
   /**
@@ -116,6 +129,12 @@ export type Message =
       state: WorkState;
       /** Short mono note after the text ("38 credits", "8.0s"). */
       meta?: string;
+      /** The tool the step used ("GTBank", "WhatsApp"); falls back to one named by the icon. */
+      tool?: string;
+      /** How long it took ("1.2s"), from the run trace. */
+      took?: string;
+      /** What the step cost in naira (model + tool), from the run trace. */
+      cost?: number;
       /** What opens under the step: inputs/outputs, a mini table or the grouped list. */
       detail?: WorkDetail;
       /** Handoffs: the helper asked. */

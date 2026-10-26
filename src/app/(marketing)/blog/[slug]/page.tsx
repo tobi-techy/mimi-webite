@@ -7,7 +7,7 @@ import { RouteView } from "@/features/marketing/components/layout/RouteView";
 import { PostCta } from "@/features/marketing/sections/post/PostCta";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { Photo, photoOgImage } from "@/components/ui/Photo";
-import { getPost, morePosts, posts } from "@/features/marketing/content/posts";
+import { getPost, morePosts, postOgImage, posts } from "@/features/marketing/content/posts";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import { absoluteUrl, site } from "@/config/site";
 
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     type: "article",
     publishedTime: post.date,
     authors: [post.author],
-    image: { ...photoOgImage(post.image.src), alt: post.image.alt },
+    image: postOgImage(post),
   });
 }
 

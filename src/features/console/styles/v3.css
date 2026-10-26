@@ -712,8 +712,6 @@ html:not([data-theme="dark"]) .mc-nr + .mc-nr { border-top-color: var(--hair); }
   .mc-app.is-collapsed .mc-side__full { display: none; }
   .mc-app.is-collapsed .mc-rail { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .mc-rail .mc-ib { width: 36px; height: 36px; }
-  .mc-rail__needs { position: relative; }
-  .mc-badge--dot { position: absolute; top: -2px; right: -4px; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
   .mc-rail__faces { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; margin: 4px 0; border-block: 1px solid var(--line); }
   html:not([data-theme="dark"]) .mc-rail__faces { border-color: var(--hair); }
   .mc-rail .mc-pin { width: 36px; padding: 4px 0; }

@@ -24,9 +24,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: site.twitterHandle,
     title: site.shareTitle,
     description: site.description,
-    images: [site.ogImage.url],
+    images: [site.ogImage],
   },
   formatDetection: { telephone: false, email: false, address: false },
 };
