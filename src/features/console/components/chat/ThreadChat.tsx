@@ -10,7 +10,7 @@ import { PlanStrip } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { consoleRoutes } from "@/features/console/config";
+import { consoleRoutes, helperHref } from "@/features/console/config";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   DEMO_SLUG,
@@ -153,7 +153,9 @@ export function ThreadChat({ slug }: { slug: string }) {
               </button>
               <p className="mc-tt__s" aria-live="polite">
                 <HelperFace name={conv.helper} size={14} />
-                <span className="mc-tt__h">{conv.helper}</span>
+                <Link className="mc-tt__h mc-tt__hl" href={helperHref(conv.helper)} title={`${conv.helper}'s view: routines and cost`}>
+                  {conv.helper}
+                </Link>
                 {conv.working && <i className="mc-spin" aria-hidden="true" />}
                 <span key={conv.status} className="mc-tt__st">
                   {(typing && typing !== "me") || conv.status === "typing" ? "writing the reply" : conv.status}
@@ -197,6 +199,10 @@ export function ThreadChat({ slug }: { slug: string }) {
                 Reset demo
               </button>
               <hr />
+              <Link role="menuitem" href={helperHref(conv.helper)} onClick={() => setMenu(false)}>
+                <Icon name="calendar-clock" />
+                {conv.helper}&apos;s routines
+              </Link>
               <button role="menuitem" type="button" onClick={() => (setMenu(false), setPanelTab("Side chat"))}>
                 <Icon name="message-square" />
                 Side chat

@@ -846,6 +846,9 @@ export const seedAutomations = (): Record<string, boolean> => ({
   "friday-reminders": true,
   "low-stock": false,
   "brand-report": true,
+  "morning-chase": true,
+  "credit-review": true,
+  "quiet-reorder": false,
 });
 
 export function seedState(): DemoState {

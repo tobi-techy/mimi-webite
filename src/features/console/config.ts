@@ -5,10 +5,12 @@ export const consoleRoutes = {
   shops: "/console/shops",
   credit: "/console/credit",
   automations: "/console/automations",
+  helpers: "/console/helpers",
   settings: "/console/settings",
 } as const;
 
 export const threadHref = (slug: string): string => `${consoleRoutes.threads}/${slug}`;
+export const helperHref = (name: string): string => `/console/helpers/${name.toLowerCase()}`;
 export const shopHref = (id: string): string => `${consoleRoutes.shops}/${id}`;
 
 /** First console visit in a session shows "Opening your book" (see lib/boot-script.ts, components/layout/BootLoader.tsx). */
