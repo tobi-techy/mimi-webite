@@ -161,3 +161,7 @@
   .mc-desk__menu { display: none; }
   .mc-desk__area { padding: 26px 8px 8px 16px; }
 }
+.mc-ws__go { white-space: nowrap; flex: none; }
+.mc-apc__rw > span:first-child { min-width: 0; }
+.mc-apc__rw > span:last-child { flex: none; white-space: nowrap; text-align: right; }
+@media (max-width: 899px) { .mc-apc__rw > span:last-child { white-space: normal; flex: 0 1 auto; } }

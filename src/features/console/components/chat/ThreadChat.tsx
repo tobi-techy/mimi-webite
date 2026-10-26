@@ -129,7 +129,7 @@ export function ThreadChat({ slug }: { slug: string }) {
   const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
   /* computer level 1: a live status line in the header while the panel is closed */
   const compActive = computer.status === "live" || computer.status === "paused" || computer.status === "user";
-  const compHere = compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer"));
+  const compHere = compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer" || ("from" in m && m.from === computer.helper)));
 
   return (
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
@@ -156,7 +156,7 @@ export function ThreadChat({ slug }: { slug: string }) {
                 <span className="mc-tt__h">{conv.helper}</span>
                 {conv.working && <i className="mc-spin" aria-hidden="true" />}
                 <span key={conv.status} className="mc-tt__st">
-                  {typing && typing !== "me" ? "writing the reply" : conv.status}
+                  {(typing && typing !== "me") || conv.status === "typing" ? "writing the reply" : conv.status}
                 </span>
               </p>
               {menu && (
