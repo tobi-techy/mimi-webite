@@ -16,7 +16,7 @@ const WORKSPACES = [
   { name: "Funmi Distribution", detail: "22 shops · Ibadan", initials: "FD" },
   { name: "Lagos Mainland Depot", detail: "31 shops · Yaba", initials: "LM" },
 ] as const;
-const OWNER_EMAIL = "martin@corallane.example";
+const OWNER_EMAIL = "emeka@corallane.example";
 
 /**
  * The sidebar workspace switcher: a button that opens a small card under it with the current

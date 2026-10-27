@@ -18,7 +18,7 @@ import type {
 
 /** Sample data for the Coral Lane Trading demo. Times are Lagos time on Fri 23 Oct 2026. */
 export const DEMO_VERSION = 9;
-export const owner = { name: "Martin Nwike", first: "Martin", initials: "MN", company: "Coral Lane Trading" };
+export const owner = { name: "Emeka Obi", first: "Emeka", initials: "EO", company: "Coral Lane Trading" };
 
 const T = (h: number, m: number) => new Date(2026, 9, 23, h, m).getTime();
 
@@ -144,7 +144,7 @@ export const planReplies = (joyChecked: boolean): Reply[] =>
 
 /** Reasoning and step copy shared by the seeded chase thread (the live run streams the same words). */
 export const CHASE_THOUGHT =
-  "Martin wants everyone over **₦50,000** chased this week: polite, but firm past 7 days.\n\n1. Check GTBank first, so nobody who already paid gets a reminder.\n2. Pull balances from the shop book and keep shops over ₦50,000.\n3. Firm for 7+ days late, Soft otherwise. Anything self-reported goes to Proof.\n\nNothing goes out before he approves.";
+  "Emeka wants everyone over **₦50,000** chased this week: polite, but firm past 7 days.\n\n1. Check GTBank first, so nobody who already paid gets a reminder.\n2. Pull balances from the shop book and keep shops over ₦50,000.\n3. Firm for 7+ days late, Soft otherwise. Anything self-reported goes to Proof.\n\nNothing goes out before he approves.";
 
 const chaseMessages = (): Conversation["messages"] => {
   const planId = id();

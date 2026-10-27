@@ -43,7 +43,7 @@ const isHelper = (by: string) => by === "Mimi" || (helperNames as readonly strin
 const nameOf = (by: string) => (by === "me" ? "You" : by);
 const initials = (by: string) =>
   by === "me"
-    ? "MN"
+    ? "EO"
     : by
         .split(/\s+/)
         .filter((w) => /^[A-Za-z]/.test(w))

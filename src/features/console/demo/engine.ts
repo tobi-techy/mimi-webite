@@ -1642,7 +1642,7 @@ export function stageStory(playing = false) {
     plan: undefined,
     messages: [
       { id: "story-d", kind: "date", label: `Today ${clock()}` },
-      { id: "story-hi", kind: "text", from: "Collector", at: 0, text: "Morning, Martin. 6 shops owe you over ₦50k. Want me to start?" },
+      { id: "story-hi", kind: "text", from: "Collector", at: 0, text: "Morning, Emeka. 6 shops owe you over ₦50k. Want me to start?" },
     ],
     replies: [
       { label: "Chase everyone over ₦50k", text: STORY_ASK, step: "col.start" },
