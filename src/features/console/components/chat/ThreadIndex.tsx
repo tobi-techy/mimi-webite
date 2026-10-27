@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { conversationHref } from "@/features/console/demo/engine";
+import { threadFaceState } from "@/features/console/demo/roster";
 import { useDemo } from "@/features/console/demo/store";
 import type { Conversation } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
@@ -28,10 +29,10 @@ export function ThreadIndex() {
         ))}
       </div>
       <ul className="mc-hl__card mc-ti">
-        {list.map((c) => (
+        {list.map((c, i) => (
           <li key={c.slug}>
             <Link href={conversationHref(c)} className="mc-hl__r">
-              <HelperFace name={c.helper} size={18} />
+              <HelperFace name={c.helper} size={24} state={threadFaceState(c)} quiet stagger={i} />
               <span className="mc-hl__tx">
                 {c.title}
                 <small>

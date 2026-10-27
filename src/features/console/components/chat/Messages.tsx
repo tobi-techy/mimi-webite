@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { consoleMotion } from "@/config/console-motion";
 import { ReactTarget, ReactionLayer, type LayerState } from "@/features/console/components/chat/Tapbacks";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
+import type { FaceState } from "@/features/console/demo/roster";
 import { Markdown } from "@/features/console/components/panel/Markdown";
 import { StepLine, ThoughtBlock } from "@/features/console/components/chat/Work";
 import { Answer } from "@/features/console/components/chat/answer/Answer";
@@ -22,7 +23,7 @@ import {
   votePoll,
 } from "@/features/console/demo/engine";
 import { cardActions, tierOf } from "@/features/console/demo/needs";
-import { reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
+import { helperNames, reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
@@ -462,6 +463,19 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
     }
     return null;
   };
+  /** The turn header face: working while this turn runs, waiting while it holds a pending approval. */
+  const turnFace = (i: number, who: Speaker): FaceState => {
+    let waiting = false;
+    for (let j = i; j < messages.length; j++) {
+      const x = messages[j]!;
+      const s = speakerOf(x);
+      if (s && s !== who) return waiting ? "waiting" : "idle";
+      if ((x.kind === "thought" && x.live) || (x.kind === "step" && x.state === "run")) return "working";
+      if ((x.kind === "card" && x.card.status === "needs") || (x.kind === "step" && x.variant === "gate" && x.state === "wait")) waiting = true;
+    }
+    if (typing === who) return "working";
+    return waiting ? "waiting" : "idle";
+  };
   messages.forEach((m, i) => {
     const who = speakerOf(m);
     const prev = speakerBefore(i);
@@ -493,7 +507,16 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
     }
     if (m.kind === "thought" || m.kind === "step") {
       items.push(
-        <Row key={m.id} id={m.id} at={m.at} kind="work" who={m.from} showName={m.from !== prev} turn={m.from !== prev}>
+        <Row
+          key={m.id}
+          id={m.id}
+          at={m.at}
+          kind="work"
+          who={m.from}
+          showName={m.from !== prev}
+          turn={m.from !== prev}
+          face={m.from !== prev ? turnFace(i, m.from) : undefined}
+        >
           {m.kind === "thought" ? <ThoughtBlock m={m} /> : <StepLine m={m} />}
         </Row>,
       );
@@ -530,6 +553,7 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
         kind={me ? "me" : "them"}
         who={who}
         showName={showName}
+        face={showName ? turnFace(i, who) : undefined}
         turn={who !== prev}
         tail={tail}
         reacted={isReactable(m) && !!m.reactions?.length}
@@ -548,7 +572,7 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   if (typing && typing !== "me") {
     const prev = speakerBefore(messages.length);
     items.push(
-      <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} tail>
+      <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
         <Working who={typing} slug={slug} />
       </Row>,
     );
@@ -604,10 +628,16 @@ function Working({ who, slug }: { who: Exclude<Speaker, "me">; slug: string }) {
 }
 
 /** A clean empty thread: generous space, Mimi looking around, one muted line. */
+const isHelperName = (v: string): v is (typeof helperNames)[number] => (helperNames as readonly string[]).includes(v);
+
 export function EmptyThread({ helper, children }: { helper: string; children?: ReactNode }) {
   return (
     <div className="mc-void">
-      <MimiLooking size="sm" className="mc-void__mimi" />
+      {isHelperName(helper) ? (
+        <HelperFace name={helper} size={72} className="mc-void__helper" />
+      ) : (
+        <MimiLooking size="sm" className="mc-void__mimi" />
+      )}
       <p className="mc-void__t">{children ?? `Nothing here yet. Ask ${helper} anything to get started.`}</p>
     </div>
   );
@@ -632,6 +662,7 @@ function Row({
   tail,
   reacted,
   wide,
+  face,
   children,
 }: {
   /** Message id: the row gets `id="m-…"` so approval gates can scroll to their card. */
@@ -647,6 +678,8 @@ function Row({
   reacted?: boolean;
   /** A structured answer: takes the full column. */
   wide?: boolean;
+  /** The turn header face's state (working / waiting), from the turn's live steps and pending cards. */
+  face?: FaceState;
   children: ReactNode;
 }) {
   const fresh = useFresh(at);
@@ -657,7 +690,7 @@ function Row({
       <div id={id ? `m-${id}` : undefined} className={cx("mc-grp mc-grp--them mc-grp--work", turn && "mc-grp--turn", anim && "mc-in")}>
         {showName && who && who !== "me" && (
           <p className="mc-mh">
-            <HelperFace name={who} size={18} />
+            <HelperFace name={who} size={18} state={face} quiet />
             <span className="mc-mh__n">{who}</span>
           </p>
         )}
@@ -672,7 +705,7 @@ function Row({
     >
       {showName && who && who !== "me" && (
         <p className="mc-mh">
-          <HelperFace name={who} size={18} />
+          <HelperFace name={who} size={18} state={face} quiet />
           <span className="mc-mh__n">{who}</span>
         </p>
       )}

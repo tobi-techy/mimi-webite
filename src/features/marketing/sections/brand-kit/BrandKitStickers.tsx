@@ -25,7 +25,7 @@ export function BrandKitStickers() {
     <Section id="bk-stickers">
       <Wrap>
         <SectionHeader
-          label="06 / Stickers"
+          label="07 / Stickers"
           title="The sticker set."
           lead="Die-cut objects from the route: vans, crates, receipts, POS. Use a few at a time, slightly tilted, around plain layouts."
         />

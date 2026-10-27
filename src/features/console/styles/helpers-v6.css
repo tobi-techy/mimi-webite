@@ -1,0 +1,42 @@
+/*
+ * Helpers v6 in the console: the rig (src/components/helpers) replaces the old flat faces.
+ * The rig carries its own motion, so the old bob on working faces is off; surfaces tell the rig
+ * which colour its cuts are (--h-surface), so the one gap per accessory reads on every background.
+ */
+.mc-face > .mimi-helper { overflow: visible; }
+.mc-face--is-working > .mimi-helper { animation: none; }
+.mc-side, .mc-rail, .mc-drawer { --h-surface: var(--mc-side); }
+.mc-tt__b .mc-face { width: 28px; height: 28px; }
+.mc-tt__b .mc-face .mimi-helper { width: 28px; height: 28px; }
+.mc-void__helper { width: 72px; height: 72px; color: var(--ink); }
+
+/*
+ * Helper colours in the console (27 Oct 2026, Tobi: "change color to something bright and smooth").
+ * Each helper gets its own flat, soft-vivid fill: the v6 family brightened (marigold -> sunflower so it
+ * never reads as the orange status mark, cocoa -> leaf). Brighter on the dark canvas, a touch deeper on
+ * light so the shapes hold against #fafafa. Eyes are near-black on every fill; cuts stay the surface
+ * colour. Orange stays for status marks only, and Mimi keeps her own mark.
+ */
+.mc-app {
+  --helper-order: #f2b01e;
+  --helper-collector: #3d86f5;
+  --helper-credit: #9a6bf7;
+  --helper-stock: #34b862;
+  --helper-brand: #f55a9f;
+  --helper-proof: #17b8a8;
+}
+html[data-theme="dark"] .mc-app {
+  --helper-order: #ffcf4d;
+  --helper-collector: #5ea2ff;
+  --helper-credit: #b18cff;
+  --helper-stock: #6fd98c;
+  --helper-brand: #ff7db8;
+  --helper-proof: #3fd9c7;
+}
+.mc-app .mimi-helper[data-helper="order"] { --h-fg: var(--helper-order); }
+.mc-app .mimi-helper[data-helper="collector"] { --h-fg: var(--helper-collector); }
+.mc-app .mimi-helper[data-helper="credit"] { --h-fg: var(--helper-credit); }
+.mc-app .mimi-helper[data-helper="stock"] { --h-fg: var(--helper-stock); }
+.mc-app .mimi-helper[data-helper="brand"] { --h-fg: var(--helper-brand); }
+.mc-app .mimi-helper[data-helper="proof"] { --h-fg: var(--helper-proof); }
+.mc-app .mimi-helper:not([data-helper="mimi"]) { --h-eye: #101010; }

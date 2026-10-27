@@ -8,7 +8,7 @@ export function BrandKitColour() {
     <Section id="bk-colour">
       <Wrap>
         <SectionHeader
-          label="04 / Colour"
+          label="05 / Colour"
           title="Mostly black and white."
           lead="Warm greys do the work. Signal orange is kept for status and marks, never for decoration. Tap a swatch to copy it."
         />

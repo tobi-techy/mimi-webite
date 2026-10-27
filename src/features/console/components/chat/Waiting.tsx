@@ -37,7 +37,7 @@ export function Waiting() {
           <span>across the team</span>
         </p>
         <ul className="mc-wl__l">
-          {items.map((it) => (
+          {items.map((it, n) => (
             <li key={it.key}>
               <Link
                 className={cx("mc-wl__r", it.status === "sending" && "is-sending")}
@@ -49,7 +49,7 @@ export function Waiting() {
                   goToCard(it.messageId);
                 }}
               >
-                <HelperFace name={it.helper} size={20} />
+                <HelperFace name={it.helper} size={24} state={it.status === "sending" ? "working" : "waiting"} quiet stagger={n} />
                 <span className="mc-wl__tx">
                   <span className="mc-wl__what">
                     {it.what}

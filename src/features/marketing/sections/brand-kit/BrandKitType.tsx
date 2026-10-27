@@ -7,7 +7,7 @@ export function BrandKitType() {
     <Section tone="cream" id="bk-type">
       <Wrap>
         <SectionHeader
-          label="05 / Type"
+          label="06 / Type"
           title="Geist and Geist Mono."
           lead="Geist Regular for everything people read. Geist Mono, small and uppercase, for labels."
         />

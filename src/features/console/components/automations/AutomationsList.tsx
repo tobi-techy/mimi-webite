@@ -113,7 +113,7 @@ export function AutomationsList() {
           return (
             <div key={a.id} role="row" className={cx("x-atbl__r", !live && "is-off")} onClick={() => router.push(autoRoutes.detail(a.id, a.created))}>
               <span role="cell" className="x-atbl__ti">
-                <HelperFace name={a.helper} size={20} />
+                <HelperFace name={a.helper} size={24} />
                 <span>
                   <Link href={autoRoutes.detail(a.id, a.created)} onClick={(e) => e.stopPropagation()}>
                     {a.title}
