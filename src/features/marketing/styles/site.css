@@ -5566,3 +5566,27 @@ html.x-menu-open body {
   flex-direction: column;
   align-items: flex-start;
 }
+/* Bright helpers (27 Oct 2026): each helper in its own soft-vivid colour, same set as the console. */
+.x-bk-hset {
+  --helper-order: #ffcf4d;
+  --helper-collector: #5ea2ff;
+  --helper-credit: #b18cff;
+  --helper-stock: #6fd98c;
+  --helper-brand: #ff7db8;
+  --helper-proof: #3fd9c7;
+}
+[data-theme="light"] .x-bk-hset {
+  --helper-order: #f2b01e;
+  --helper-collector: #3d86f5;
+  --helper-credit: #9a6bf7;
+  --helper-stock: #34b862;
+  --helper-brand: #f55a9f;
+  --helper-proof: #17b8a8;
+}
+.x-bk-hset.is-bright .mimi-helper[data-helper="order"] { --h-fg: var(--helper-order); }
+.x-bk-hset.is-bright .mimi-helper[data-helper="collector"] { --h-fg: var(--helper-collector); }
+.x-bk-hset.is-bright .mimi-helper[data-helper="credit"] { --h-fg: var(--helper-credit); }
+.x-bk-hset.is-bright .mimi-helper[data-helper="stock"] { --h-fg: var(--helper-stock); }
+.x-bk-hset.is-bright .mimi-helper[data-helper="brand"] { --h-fg: var(--helper-brand); }
+.x-bk-hset.is-bright .mimi-helper[data-helper="proof"] { --h-fg: var(--helper-proof); }
+.x-bk-hset.is-bright .mimi-helper:not([data-helper="mimi"]) { --h-eye: #101010; }

@@ -11,7 +11,7 @@ export function BrandKitHelpers() {
         <SectionHeader
           label="04 / Helpers"
           title="Mimi and her six helpers."
-          lead="One chunky shape each, one colour, a Nigerian cue in the outline and one move of their own. Their eyes and one orange mark say what they are doing."
+          lead="One chunky shape each, one bright colour, a Nigerian cue in the outline and one move of their own. Their eyes and one orange mark say what they are doing."
         />
         <HelpersStage />
         <div className="x-bk-hrules x-rv">

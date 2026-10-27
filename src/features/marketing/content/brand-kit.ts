@@ -219,8 +219,8 @@ export const helpersMotion = { href: `${helperKit}/mimi-helpers-motion.mp4`, siz
 export const helpersSystem = { href: `${helperKit}/mimi-helpers-system.pdf`, size: "0.3 MB" };
 
 export const helperDo = [
-  "One colour in product UI: the text colour of the surface. Cuts take the surface colour.",
-  "Orange only for status: a dot while working, a ring while waiting on you.",
-  "Family colours only on tiles, stickers, video and posters.",
+  "Each helper has its own bright, smooth colour in product UI, a touch deeper on light. Eyes stay near-black, cuts take the surface colour.",
+  "Orange only for status: a dot while working, a ring while waiting on you. No helper is orange.",
+  "Mimi keeps her own mark. One colour (the text colour) is for print and single-ink use.",
   "Keep motion quick and small. Hold still under reduced motion.",
 ];

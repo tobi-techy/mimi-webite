@@ -24,7 +24,7 @@ export const isHelperKey = (v: string): v is HelperKey =>
   (helperKeys as readonly string[]).includes(v.toLowerCase());
 
 /**
- * One of Mimi's six helpers (v6 rig: Order, Collector, Credit, Stock, Brand, Proof), drawn in one colour
+ * One of Mimi's six helpers (v6 rig: Order, Collector, Credit, Stock, Brand, Proof), drawn in --h-fg (each surface sets a bright per-helper colour; default is one colour)
  * (the text colour by default) with its cuts painted in the surface colour (`--h-surface`, else `--bg`).
  * Motion is CSS only (helpers.css, generated from the same tracks as the motion sheet): idle breathes and
  * blinks, working hops, waiting sways with the eyes up, done pops once. A face that is already done when

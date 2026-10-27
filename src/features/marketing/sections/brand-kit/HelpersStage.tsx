@@ -14,7 +14,7 @@ import {
 } from "@/features/marketing/content/brand-kit";
 import { cx } from "@/lib/cx";
 
-type Look = "ink" | "colour";
+type Look = "bright" | "ink" | "colour";
 
 /**
  * The live helper set: pick a state (or let it cycle) and ink or colour tiles. Below it, the four states
@@ -22,7 +22,7 @@ type Look = "ink" | "colour";
  */
 export function HelpersStage() {
   const [state, setState] = useState<HelperState>("idle");
-  const [look, setLook] = useState<Look>("ink");
+  const [look, setLook] = useState<Look>("bright");
   const [expr, setExpr] = useState<HelperExpression>("happy");
 
   return (
@@ -47,6 +47,14 @@ export function HelpersStage() {
           <button
             className="x-bchip"
             type="button"
+            aria-pressed={look === "bright"}
+            onClick={() => setLook("bright")}
+          >
+            Bright
+          </button>{" "}
+          <button
+            className="x-bchip"
+            type="button"
             aria-pressed={look === "ink"}
             onClick={() => setLook("ink")}
           >
@@ -64,7 +72,7 @@ export function HelpersStage() {
       </div>
 
       {/* the reveal script owns the list's classes, so the colour switch lives on a wrapper */}
-      <div className={cx("x-bk-hset", look === "colour" && "is-colour")}>
+      <div className={cx("x-bk-hset", look === "colour" && "is-colour", look === "bright" && "is-bright")}>
         <ul className="x-bk-helpers x-rv x-stag" aria-label="Mimi and her six helpers">
           <li className="x-bk-helper x-bk-helper--mimi">
             <div className="x-bk-helper__stage">
@@ -75,7 +83,7 @@ export function HelpersStage() {
                 <b>Mimi</b>
                 <span className="x-mono">Routes your asks</span>
               </div>
-              <p>The parent mark. She stays one colour, on every tile.</p>
+              <p>The parent mark. She keeps her own mark, one colour on every tile.</p>
               <Downloads k="mimi" />
             </div>
           </li>
