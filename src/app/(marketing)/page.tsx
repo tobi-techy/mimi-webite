@@ -15,7 +15,10 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { pageMetadata, softwareJsonLd } from "@/lib/seo";
 import { site } from "@/config/site";
 
-export const metadata = pageMetadata({ absoluteTitle: site.title, path: "/" });
+export const metadata = pageMetadata({
+  absoluteTitle: site.title,
+  path: "/",
+});
 
 export default function HomePage() {
   return (

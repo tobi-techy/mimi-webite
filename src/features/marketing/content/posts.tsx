@@ -188,7 +188,8 @@ export const posts: Post[] = [
         </p>
         <p>
           Big thanks to the xAI team for writing their thinking down in public. If you're building agents,
-          read it. And if you run a distribution business in Nigeria and want to try Mimi early, talk to me.
+          read it. And if you run a distribution business in Nigeria and want to try Mimi early,{" "}
+          <Link href="/contact">talk to me</Link>.
         </p>
       </>
     ),
@@ -231,6 +232,10 @@ export const posts: Post[] = [
           that everyone can trust.
         </p>
         <p>The goal isn't to replace the notebook. It's to make sure what's in it never gets lost again.</p>
+        <p>
+          See <Link href="/distributors">how Mimi works for distributors</Link>, or how it compares with{" "}
+          <Link href="/compare/the-old-way">the notebook, WhatsApp and Excel</Link>.
+        </p>
       </>
     ),
   },
@@ -267,6 +272,10 @@ export const posts: Post[] = [
         <p>
           Mimi never moves money and never sets credit limits. It just makes sure everyone is looking at the
           same facts.
+        </p>
+        <p>
+          That is also how Mimi catches fake transfer alerts.{" "}
+          <Link href="/distributors">See what it does for distributors</Link>.
         </p>
       </>
     ),
@@ -305,7 +314,8 @@ export const posts: Post[] = [
           They're how the system works at all.
         </p>
         <p>
-          You can read the full version on our <Link href="/security">Security and data</Link> page.
+          You can read the full version on our <Link href="/security">Security and data</Link> page, and see{" "}
+          <Link href="/shops">what Mimi does for shops</Link>.
         </p>
       </>
     ),
@@ -342,14 +352,21 @@ export const posts: Post[] = [
           Never nag. If Mimi needs more than one question a week to be useful, that's our problem to fix, not
           the shop's.
         </p>
+        <p>
+          Read <Link href="/shops">what Mimi does for shops</Link>, and how the same data becomes{" "}
+          <Link href="/brands">sell-through for brands</Link>.
+        </p>
       </>
     ),
   },
 ];
 
-/** The post's 1200x630 link-preview banner (public/blog/<slug>/og.png), used for og:image and twitter:image. */
+/**
+ * The post's 1200x630 link-preview banner (public/og/blog-<slug>.png, from src/config/share-banners.json
+ * and scripts/render-share-banners.mjs), used for og:image and twitter:image.
+ */
 export function postOgImage(post: Post): { url: string; width: number; height: number; alt: string } {
-  return { url: `/blog/${post.slug}/og.png`, width: 1200, height: 630, alt: `Mimi blog: ${post.title}` };
+  return { url: `/og/blog-${post.slug}.png`, width: 1200, height: 630, alt: `Mimi blog: ${post.title}` };
 }
 
 export function getPost(slug: string): Post | undefined {

@@ -1,21 +1,33 @@
 # Mimi
 
-> Mimi is a team of AI agents on WhatsApp for FMCG distributors and brands in Nigeria. It collects what shops owe, catches leaks on the route, and shows brands what really sold. Shops use it free.
+> Mimi is a team of AI agents on WhatsApp for FMCG distributors and brands in Nigeria. It collects what shops owe, checks every transfer with the bank to catch fake alerts, checks each van against what shops received, and shows brands what really sold, shop by shop. Shops use it free.
 
-Mimi is built by Rail Technology Concepts Ltd (RC 9322751), Ado-Ekiti, Nigeria. Mimi is in early access and pilots are by invitation.
+Mimi is built by Rail Technology Concepts Ltd (RC 9322751), Ado-Ekiti, Nigeria. The company was called Rail Money before; Rail Money is now Mimi (https://userail.money/new-name). Mimi is in early access and pilots are by invitation. Website: https://userail.money
 
 ## Key facts
-- Who it is for: FMCG distributors, the brands they carry, and the retail shops they supply.
-- Where it works: inside WhatsApp. Reps and shops keep using the app they already use.
-- One shop book: deliveries, payments and debts for each shop are kept in one shared record.
-- Three witnesses for every naira: a payment counts as verified only when the rep, the shop and the bank agree. Fake alerts get flagged.
+- Who it is for: FMCG distributors, the brands they carry, and the retail shops (provision stores, kiosks, supermarkets) they supply.
+- What it is: distributor software that runs on WhatsApp, with a web console for the distributor's team. Not an ERP and not a payment app.
+- Where it works: inside WhatsApp. Reps and shops keep using the app they already use: text, voice notes, notebook photos, forwarded bank alerts.
+- Collections: Mimi reminds shops what they owe and matches each payment to the right shop.
+- Fake bank alerts: a payment counts as verified only when the rep, the shop and the bank agree ("three witnesses for every naira"). Fake alerts get flagged.
+- Route checks: each van's delivery is checked against what shops say they received.
+- Sell-through for brands: with each shop's consent, brands see weekly sell-through and promo proof. Brands see totals by default, never another brand's sales.
 - Mimi never holds or moves money. Payments settle straight to the distributor's own account.
-- Distributors set credit limits. Mimi informs, people decide.
-- Shops own their data. Brands see totals by default, never another brand's sales, and shop-level data only with the shop's consent.
+- Distributors set credit limits. Mimi suggests, people decide. Nothing goes out without a person approving it.
+- Shops own their data, and Mimi is built with the Nigeria Data Protection Act 2023 (NDPA) in mind.
 - Free for shops, always.
 
+## Pricing (pilot pricing, to be confirmed with pilot distributors)
+- Growth: ₦2,000 per active shop per month, ₦100,000 monthly minimum. Collector, fake-alert checks, WhatsApp reorders, stock-out alerts, owner brief.
+- Pro: ₦3,500 per active shop per month, ₦200,000 monthly minimum. Adds Proof (van checks), credit-limit suggestions, receivables aging, exports and API.
+- Shops: free.
+- A free pilot comes first. Details: https://userail.money/pricing
+
+## The helpers
+Mimi routes each ask to one of six helpers: Order (takes orders), Collector (chases payments), Credit (watches limits), Stock (counts stock), Brand (reports to brands) and Proof (checks receipts).
+
 ## The console
-Distributor teams work with Mimi in a web console:
+Distributor teams work with Mimi in a web console (live demo with sample data: https://console.userail.money):
 - Threads: ask Mimi in plain language (collections, restock, onboarding, credit) and follow each run step by step, including what its cloud computer is doing on screen.
 - Approvals: every payment plan, restock order or brand email waits as a draft until a person approves it.
 - Shops: each shop's sell-through, outstanding balance, payments (verified or self-reported) and credit score.
@@ -23,28 +35,32 @@ Distributor teams work with Mimi in a web console:
 - Settings: connectors (WhatsApp Business, Google Sheets, Gmail, Paystack and more), computers, members, shop access rules and usage.
 
 ## Pages
-- [Home](/): what Mimi does and how it works
-- [Distributors](/distributors): collections, credit, route leaks
-- [Brands](/brands): sell-through visibility from real shop data
-- [Shops](/shops): the free shop book
-- [Pricing](/pricing): plans and the free pilot
-- [Compare](/compare): honest, cited comparison of Mimi with other distributor tools
-- [Brand kit](/brand-kit): logo, mascot, colours, type and press descriptions
-- [Security](/security): how data and money are protected
-- [About](/about): the team and why Mimi exists
-- [Blog](/blog): notes on distribution, trust and product
-- [Contact](/contact): request a pilot
+- [Home](https://userail.money/): what Mimi does and how it works
+- [Distributors](https://userail.money/distributors): collections, fake alerts, route checks and credit for FMCG distributors
+- [Brands](https://userail.money/brands): sell-through and promo proof from real shop books
+- [Shops](https://userail.money/shops): the free shop book on WhatsApp (debts, stock, reorders)
+- [Pricing](https://userail.money/pricing): pilot plans, the savings calculator and the free pilot
+- [Compare](https://userail.money/compare): honest, cited comparison of Mimi with other distributor tools
+- [Security](https://userail.money/security): how data and money are protected
+- [About](https://userail.money/about): the team and why Mimi exists
+- [Blog](https://userail.money/blog): notes on distribution, trust and product
+- [Brand kit](https://userail.money/brand-kit): logo, mascot, helpers, colours, type and press descriptions
+- [Contact](https://userail.money/contact): book a free pilot
 
 ## Compare
 Competitor details as listed on each company's own website, checked 24 Oct 2026. "Not listed" means not found on their public site.
-- [Mimi vs the tools distributors use](/compare): the matrix, a 100-shop cost example, and tools that sit alongside Mimi
-- [F6C Distro vs Mimi](/compare/f6c-distro): AI sales agent on WhatsApp; strong on reorders and invoices
-- [DistroOS vs Mimi](/compare/distroos): distributor ERP (also known as VFG Distro)
-- [ZöTok vs Mimi](/compare/zotok): WhatsApp order to cash, built for India
-- [The old way vs Mimi](/compare/the-old-way): notebook, WhatsApp groups and Excel
+- [Mimi vs the tools distributors use](https://userail.money/compare): the matrix, a 100-shop cost example, and tools that sit alongside Mimi
+- [F6C Distro vs Mimi](https://userail.money/compare/f6c-distro): AI sales agent on WhatsApp; strong on reorders and invoices
+- [DistroOS vs Mimi](https://userail.money/compare/distroos): distributor ERP (also known as VFG Distro)
+- [ZöTok vs Mimi](https://userail.money/compare/zotok): WhatsApp order to cash, built for India
+- [The old way vs Mimi](https://userail.money/compare/the-old-way): notebook, WhatsApp groups and Excel
 
 ## Blog
-- [Why distributors still run on notebooks](/blog/why-distributors-run-on-notebooks)
-- [Three witnesses for every naira](/blog/three-witnesses-for-every-naira)
-- [Shops own their data. Here's what that means.](/blog/shops-own-their-data)
-- [One question a week, and no more](/blog/one-question-a-week)
+- [How we designed Mimi's helpers, after studying Grok Bot](https://userail.money/blog/how-we-designed-mimis-helpers)
+- [Why distributors still run on notebooks](https://userail.money/blog/why-distributors-run-on-notebooks)
+- [Three witnesses for every naira](https://userail.money/blog/three-witnesses-for-every-naira)
+- [Shops own their data. Here's what that means.](https://userail.money/blog/shops-own-their-data)
+- [One question a week, and no more](https://userail.money/blog/one-question-a-week)
+
+## Contact
+Email: tobilobaomotade@userail.money · X: https://x.com/meetmimi_ng · LinkedIn: https://www.linkedin.com/company/meetmimi

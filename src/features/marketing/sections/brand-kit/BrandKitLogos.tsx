@@ -16,7 +16,12 @@ export function BrandKitLogos() {
           {brandAssets.map((a) => (
             <figure key={a.name} className={cx("x-bk-asset", a.wide && "x-bk-asset--wide")}>
               <div className={cx("x-bk-asset__tile", `x-bk-asset__tile--${a.bg}`)}>
-                <img src={a.preview} alt={a.name} loading="lazy" />
+                <img
+                  src={a.preview}
+                  alt={`Mimi ${a.name.toLowerCase()} preview`}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
               <figcaption>
                 <div>

@@ -28,6 +28,7 @@ Requires Node 20.9 or newer.
 | `npm run optimize:images` | Rebuild photo, sticker and poster variants from their sources         |
 | `npm run optimize:svg`    | Rebuild brand and console SVGs from `assets-src/` (`svgo.config.cjs`) |
 | `npm run encode:video`    | Re-encode the home hero video (needs ffmpeg)                          |
+| `npm run og:banners`      | Re-render the 1200x630 share banners into `public/og/` (see below)    |
 
 ## Environment variables
 
@@ -188,3 +189,22 @@ Static hosts: run `npm run build:export` and upload `out/`.
 - Confirm pricing.
 - Legal review of Terms and Privacy (NDPA).
 - Decide on analytics and cookie notice.
+
+## Share banners and SEO
+
+Every indexable page has its own 1200x630 Open Graph / Twitter banner in `public/og/<file>.png`.
+The list (path, label, headline, one short line, art) is `src/config/share-banners.json`;
+`pageMetadata()` in `src/lib/seo.ts` picks the banner for the page's path, so a page with no entry
+falls back to `site.ogImage`. After changing a headline or adding a page, add or edit its entry and
+re-render:
+
+```bash
+npm i --no-save playwright-core@1.49
+CHROME_PATH=/path/to/chrome npm run og:banners          # all banners
+CHROME_PATH=/path/to/chrome npm run og:banners -- home  # one banner, by file name
+```
+
+`NEXT_PUBLIC_SITE_URL` (default `https://userail.money`) drives canonical links, Open Graph URLs,
+the sitemap and robots.txt. JSON-LD builders (Organization, WebSite, SoftwareApplication with the
+pilot offers, BreadcrumbList, FAQPage) live in `src/lib/seo.ts`; `public/llms.txt` is the plain-text
+summary for AI crawlers.

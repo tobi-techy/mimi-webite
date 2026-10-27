@@ -11,9 +11,9 @@ import { brandsFaq } from "@/features/marketing/content/faq";
 import { breadcrumbJsonLd, faqJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Brands",
+  title: "Sell-through tracking for FMCG brands in Nigeria",
   description:
-    "Mimi turns consented shop books across your distributors into weekly sell-through, promo proof and claims you can trust.",
+    "See secondary sales shop by shop. Mimi turns consented shop books across your distributors into weekly sell-through, trade promo proof and claims you can check.",
   path: "/brands",
 });
 

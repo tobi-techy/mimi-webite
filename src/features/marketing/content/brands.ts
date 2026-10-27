@@ -3,7 +3,7 @@ import type { NumberedItem } from "@/components/ui/Cards";
 import type { PhotoSpec } from "@/components/ui/Photo";
 
 export const brandsHero = {
-  label: "For brands",
+  label: "For FMCG brands",
   title: "See what really sold. Shop by shop.",
   lead: "Mimi turns consented shop books across your distributors into weekly sell-through, promo proof and claims you can trust.",
   photo: {

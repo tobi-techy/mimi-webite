@@ -16,6 +16,7 @@
     "optimize:images": "node scripts/optimize-images.mjs",
     "optimize:svg": "svgo --config svgo.config.cjs -f assets-src/brand -o public/brand",
     "encode:video": "sh scripts/encode-hero-video.sh",
+    "og:banners": "node scripts/render-share-banners.mjs",
     "knip": "npx -y knip@5"
   },
   "dependencies": {

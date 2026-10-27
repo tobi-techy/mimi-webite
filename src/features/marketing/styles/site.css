@@ -2225,6 +2225,9 @@ body {
   border-top: 1px solid var(--x-ink);
 }
 .x-outc > div {
+  /* a long word (the contact email on /new-name) must not widen the column past a phone screen */
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 28px 28px 8px 0;
   display: grid;
   gap: 12px;
@@ -3215,7 +3218,8 @@ body {
   padding-block: clamp(80px, 8vw, 104px) 32px;
 }
 .x-foot__top {
-  column-gap: 36px;
+  /* 11 gaps of 36px are wider than a phone; scale the gap down so the 12-col grid fits */
+  column-gap: clamp(12px, 3vw, 36px);
 }
 .x-foot__logo img {
   height: 28px;
@@ -4794,11 +4798,15 @@ body {
     grid-column: span 3;
   }
 }
+/* The preview art is pinned inside its tile (absolute, object-fit: contain), so an SVG with only a
+   viewBox can never size the tile from its own intrinsic size. iOS Safari did exactly that: the
+   mark grew past the card and sat on top of the caption. */
 .x-bk-asset__tile {
+  position: relative;
+  flex: none;
+  width: 100%;
   aspect-ratio: 16 / 9;
-  display: grid;
-  place-items: center;
-  padding: 12%;
+  overflow: hidden;
   border-bottom: 1px solid var(--x-line);
 }
 .x-bk-asset__tile--dark {
@@ -4808,16 +4816,18 @@ body {
   background: #fafafa;
 }
 .x-bk-asset__tile img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  position: absolute;
+  inset: 18% 12%;
+  width: 76%;
+  height: 64%;
+  max-width: none;
+  object-fit: contain;
+  object-position: center;
 }
 .x-bk-asset--wide .x-bk-asset__tile img {
+  inset: 24% 11%;
   width: 78%;
-}
-.x-bk-asset:not(.x-bk-asset--wide) .x-bk-asset__tile img {
-  height: 100%;
+  height: 52%;
 }
 .x-bk-asset figcaption {
   display: flex;
@@ -5023,6 +5033,13 @@ body {
   .x-bk-asset figcaption {
     flex-direction: column;
     align-items: flex-start;
+    flex: none;
+  }
+  .x-bk-asset figcaption > div {
+    min-width: 0;
+  }
+  .x-bk-dl {
+    flex-wrap: wrap;
   }
 }
 
@@ -5204,14 +5221,52 @@ body {
     display: none;
   }
 }
-.x-rename,.x-site a.x-rename{display:block;text-decoration:none;background:#ee6018;color:#101010;border-bottom:1px solid #c94f12;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
-.x-rename__in{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 20px;text-align:center}
-.x-rename__dot{width:7px;height:7px;background:#101010;flex:none}
-.x-rename b{font-weight:400;color:#3a1a08}
-[data-theme="light"] .x-rename{background:#ee6018}
-.x-rename:hover .x-rename__more{border-bottom-color:#101010}
-.x-rename__more{color:#101010;border-bottom:1px solid rgba(16,16,16,.45);padding-bottom:1px}
-@media(max-width:560px){.x-rename b{display:none}}
+.x-rename,
+.x-site a.x-rename {
+  display: block;
+  text-decoration: none;
+  background: #ee6018;
+  color: #101010;
+  border-bottom: 1px solid #c94f12;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.x-rename__in {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 20px;
+  text-align: center;
+}
+.x-rename__dot {
+  width: 7px;
+  height: 7px;
+  background: #101010;
+  flex: none;
+}
+.x-rename b {
+  font-weight: 400;
+  color: #3a1a08;
+}
+[data-theme="light"] .x-rename {
+  background: #ee6018;
+}
+.x-rename:hover .x-rename__more {
+  border-bottom-color: #101010;
+}
+.x-rename__more {
+  color: #101010;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.45);
+  padding-bottom: 1px;
+}
+@media (max-width: 560px) {
+  .x-rename b {
+    display: none;
+  }
+}
 
 /* ===== UX pass 2026-10-25 ===== */
 /* mobile menu: the page behind it does not scroll; a short (landscape) screen scrolls the menu itself */
@@ -5583,10 +5638,24 @@ html.x-menu-open body {
   --helper-brand: #f55a9f;
   --helper-proof: #17b8a8;
 }
-.x-bk-hset.is-bright .mimi-helper[data-helper="order"] { --h-fg: var(--helper-order); }
-.x-bk-hset.is-bright .mimi-helper[data-helper="collector"] { --h-fg: var(--helper-collector); }
-.x-bk-hset.is-bright .mimi-helper[data-helper="credit"] { --h-fg: var(--helper-credit); }
-.x-bk-hset.is-bright .mimi-helper[data-helper="stock"] { --h-fg: var(--helper-stock); }
-.x-bk-hset.is-bright .mimi-helper[data-helper="brand"] { --h-fg: var(--helper-brand); }
-.x-bk-hset.is-bright .mimi-helper[data-helper="proof"] { --h-fg: var(--helper-proof); }
-.x-bk-hset.is-bright .mimi-helper:not([data-helper="mimi"]) { --h-eye: #101010; }
+.x-bk-hset.is-bright .mimi-helper[data-helper="order"] {
+  --h-fg: var(--helper-order);
+}
+.x-bk-hset.is-bright .mimi-helper[data-helper="collector"] {
+  --h-fg: var(--helper-collector);
+}
+.x-bk-hset.is-bright .mimi-helper[data-helper="credit"] {
+  --h-fg: var(--helper-credit);
+}
+.x-bk-hset.is-bright .mimi-helper[data-helper="stock"] {
+  --h-fg: var(--helper-stock);
+}
+.x-bk-hset.is-bright .mimi-helper[data-helper="brand"] {
+  --h-fg: var(--helper-brand);
+}
+.x-bk-hset.is-bright .mimi-helper[data-helper="proof"] {
+  --h-fg: var(--helper-proof);
+}
+.x-bk-hset.is-bright .mimi-helper:not([data-helper="mimi"]) {
+  --h-eye: #101010;
+}

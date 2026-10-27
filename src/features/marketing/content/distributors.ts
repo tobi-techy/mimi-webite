@@ -3,7 +3,7 @@ import type { NumberedItem } from "@/components/ui/Cards";
 import type { PhotoSpec } from "@/components/ui/Photo";
 
 export const distributorsHero = {
-  label: "For distributors",
+  label: "For FMCG distributors",
   title: "Know where every naira and every carton is. Every day.",
   lead: "Mimi runs on WhatsApp. It reminds shops what they owe, confirms every transfer with the bank, and checks each van against what shops say they received. You get paid sooner and see every gap before the day ends.",
   photo: {

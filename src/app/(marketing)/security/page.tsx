@@ -8,9 +8,9 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Security and data",
+  title: "Security and data: shops own their data",
   description:
-    "Shops own their data. Mimi never touches the money. The rules Mimi keeps, how approvals work and how shop data is handled.",
+    "Shops own their data and Mimi never touches the money. The four rules Mimi keeps, how approvals work and how shop data is handled, with the NDPA in mind.",
   path: "/security",
 });
 

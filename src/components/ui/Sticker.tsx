@@ -17,6 +17,24 @@ export type StickerName =
   | "sticker-sugar"
   | "sticker-van";
 
+/** Intrinsic size of each sticker file (public/stickers), so the browser reserves the right box. */
+const stickerSize: Record<StickerName, readonly [number, number]> = {
+  "sticker-cash": [500, 350],
+  "sticker-crate": [500, 434],
+  "sticker-goods": [500, 441],
+  "sticker-keke": [500, 444],
+  "sticker-notebook": [500, 374],
+  "sticker-oil": [500, 599],
+  "sticker-phone": [484, 595],
+  "sticker-pin": [451, 555],
+  "sticker-pos": [500, 501],
+  "sticker-receipt": [438, 630],
+  "sticker-sachet": [500, 503],
+  "sticker-stamp": [500, 510],
+  "sticker-sugar": [500, 517],
+  "sticker-van": [500, 323],
+};
+
 /**
  * Where a sticker sits: a corner of its section (tl/tr/bl/br), on a section header (hd), inside a
  * card (in), at a percentage point (at, uses x/y), or in the normal flow (flow).
@@ -88,7 +106,15 @@ export function Sticker({
       <span className="x-st__d">
         <span className="x-st__p">
           <span className="x-st__b">
-            <img src={`/stickers/${src}.webp`} alt="" draggable={false} loading={lazy ? "lazy" : undefined} />
+            <img
+              src={`/stickers/${src}.webp`}
+              alt=""
+              width={stickerSize[src][0]}
+              height={stickerSize[src][1]}
+              decoding="async"
+              draggable={false}
+              loading={lazy ? "lazy" : undefined}
+            />
           </span>
         </span>
       </span>

@@ -1,0 +1,206 @@
+{
+  "$comment": "One 1200x630 share banner (Open Graph + Twitter) per indexable page. Rendered by scripts/render-share-banners.mjs into public/og/<file>.png. pageMetadata() picks the banner by path. Keep words few and plain: a label, the page's own headline, one short line at most. Art keys: sticker-<name> (public/stickers), helper-<order|collector|credit|stock|brand|proof>, mimi.",
+  "banners": [
+    {
+      "path": "/",
+      "file": "home",
+      "label": "AI agents on WhatsApp",
+      "title": "The route, the shop, the money. One book.",
+      "underline": "One book.",
+      "sub": "For FMCG distributors and brands. Free for shops.",
+      "art": ["mimi", "sticker-crate", "sticker-cash", "sticker-keke"]
+    },
+    {
+      "path": "/distributors",
+      "file": "distributors",
+      "label": "For distributors",
+      "title": "Know where every naira and every carton is.",
+      "sub": "Collections, fake alerts and van checks on WhatsApp.",
+      "art": ["helper-collector", "sticker-van", "sticker-cash", "sticker-receipt"]
+    },
+    {
+      "path": "/brands",
+      "file": "brands",
+      "label": "For brands",
+      "title": "See what really sold. Shop by shop.",
+      "sub": "Weekly sell-through and promo proof from real shop books.",
+      "art": ["helper-brand", "sticker-stamp", "sticker-sachet", "sticker-oil"]
+    },
+    {
+      "path": "/shops",
+      "file": "shops",
+      "label": "For shops · Free",
+      "title": "Your shop, in one chat.",
+      "sub": "Debt book, stock book and reorders on WhatsApp.",
+      "art": ["helper-credit", "sticker-notebook", "sticker-phone", "sticker-sugar"]
+    },
+    {
+      "path": "/pricing",
+      "file": "pricing",
+      "label": "Pricing",
+      "title": "Priced per shop. Pays for itself on the route.",
+      "sub": "Free pilot. Shops always use Mimi free.",
+      "art": ["helper-order", "sticker-pos", "sticker-cash"]
+    },
+    {
+      "path": "/about",
+      "file": "about",
+      "label": "About",
+      "title": "Built in Nigeria for the people who keep shelves full.",
+      "sub": "",
+      "art": ["mimi", "sticker-pin", "sticker-crate"]
+    },
+    {
+      "path": "/security",
+      "file": "security",
+      "label": "Security and data",
+      "title": "Shops own their data. Mimi never touches the money.",
+      "sub": "",
+      "art": ["helper-proof", "sticker-stamp"]
+    },
+    {
+      "path": "/contact",
+      "file": "contact",
+      "label": "Book a pilot",
+      "title": "Book a free pilot.",
+      "sub": "Tell us about your routes. We reply in two working days.",
+      "art": ["mimi", "sticker-phone", "sticker-van"]
+    },
+    {
+      "path": "/blog",
+      "file": "blog",
+      "label": "Blog",
+      "title": "Notes from the route.",
+      "sub": "Distribution, trust and product, from Nigeria.",
+      "art": ["mimi", "sticker-notebook", "sticker-receipt"]
+    },
+    {
+      "path": "/compare",
+      "file": "compare",
+      "label": "Compare",
+      "title": "Mimi vs the tools distributors use",
+      "sub": "F6C Distro, DistroOS, ZöTok and the notebook.",
+      "art": ["mimi", "sticker-receipt", "sticker-stamp"]
+    },
+    {
+      "path": "/compare/f6c-distro",
+      "file": "compare-f6c-distro",
+      "label": "Compare",
+      "title": "F6C Distro vs Mimi",
+      "sub": "The order, and what happens after.",
+      "art": ["helper-order", "sticker-phone", "sticker-receipt"]
+    },
+    {
+      "path": "/compare/distroos",
+      "file": "compare-distroos",
+      "label": "Compare",
+      "title": "DistroOS vs Mimi",
+      "sub": "Software you run, or helpers that chase.",
+      "art": ["helper-collector", "sticker-crate", "sticker-stamp"]
+    },
+    {
+      "path": "/compare/zotok",
+      "file": "compare-zotok",
+      "label": "Compare",
+      "title": "ZöTok vs Mimi",
+      "sub": "Built for India, built for Nigeria.",
+      "art": ["helper-stock", "sticker-keke", "sticker-pin"]
+    },
+    {
+      "path": "/compare/the-old-way",
+      "file": "compare-the-old-way",
+      "label": "Compare",
+      "title": "The old way vs Mimi",
+      "sub": "Notebook and WhatsApp, or helpers that check.",
+      "art": ["helper-proof", "sticker-notebook", "sticker-phone"]
+    },
+    {
+      "path": "/brand-kit",
+      "file": "brand-kit",
+      "label": "Brand kit",
+      "title": "Meet Mimi. Use her well.",
+      "sub": "Logo, mascot, helpers, colours and stickers.",
+      "art": ["lineup"]
+    },
+    {
+      "path": "/new-name",
+      "file": "new-name",
+      "label": "New name",
+      "title": "Rail Money is now Mimi.",
+      "sub": "Same team. New name. Sharper focus.",
+      "art": ["mimi", "sticker-stamp"]
+    },
+    {
+      "path": "/signup",
+      "file": "signup",
+      "label": "Sign up",
+      "title": "Sign up for Mimi",
+      "sub": "For distributors and brands. Shops join free.",
+      "art": ["mimi", "helper-order", "helper-collector"]
+    },
+    {
+      "path": "/login",
+      "file": "login",
+      "label": "Log in",
+      "title": "Log in to Mimi",
+      "sub": "",
+      "art": ["mimi", "helper-proof"]
+    },
+    {
+      "path": "/terms",
+      "file": "terms",
+      "label": "Legal",
+      "title": "Terms of use.",
+      "sub": "",
+      "art": ["sticker-notebook", "sticker-stamp"]
+    },
+    {
+      "path": "/privacy",
+      "file": "privacy",
+      "label": "Legal",
+      "title": "Privacy policy.",
+      "sub": "Under the Nigeria Data Protection Act.",
+      "art": ["helper-proof", "sticker-stamp"]
+    },
+    {
+      "path": "/blog/how-we-designed-mimis-helpers",
+      "file": "blog-how-we-designed-mimis-helpers",
+      "label": "Blog · 26 Oct 2026",
+      "title": "How we designed Mimi's helpers",
+      "sub": "",
+      "art": ["mimi", "helper-collector", "helper-brand"]
+    },
+    {
+      "path": "/blog/why-distributors-run-on-notebooks",
+      "file": "blog-why-distributors-run-on-notebooks",
+      "label": "Blog · 21 Oct 2026",
+      "title": "Why distributors still run on notebooks",
+      "sub": "",
+      "art": ["sticker-notebook", "sticker-crate"]
+    },
+    {
+      "path": "/blog/three-witnesses-for-every-naira",
+      "file": "blog-three-witnesses-for-every-naira",
+      "label": "Blog · 21 Oct 2026",
+      "title": "Three witnesses for every naira",
+      "sub": "",
+      "art": ["helper-proof", "sticker-cash", "sticker-stamp"]
+    },
+    {
+      "path": "/blog/shops-own-their-data",
+      "file": "blog-shops-own-their-data",
+      "label": "Blog · 21 Oct 2026",
+      "title": "Shops own their data. Here's what that means.",
+      "sub": "",
+      "art": ["helper-credit", "sticker-phone"]
+    },
+    {
+      "path": "/blog/one-question-a-week",
+      "file": "blog-one-question-a-week",
+      "label": "Blog · 21 Oct 2026",
+      "title": "One question a week, and no more",
+      "sub": "",
+      "art": ["sticker-keke", "sticker-sachet"]
+    }
+  ]
+}
