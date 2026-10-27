@@ -1,0 +1,11 @@
+/*
+ * Helpers v6 in the console: the rig (src/components/helpers) replaces the old flat faces.
+ * The rig carries its own motion, so the old bob on working faces is off; surfaces tell the rig
+ * which colour its cuts are (--h-surface), so the one gap per accessory reads on every background.
+ */
+.mc-face > .mimi-helper { overflow: visible; }
+.mc-face--is-working > .mimi-helper { animation: none; }
+.mc-side, .mc-rail, .mc-drawer { --h-surface: var(--mc-side); }
+.mc-tt__b .mc-face { width: 28px; height: 28px; }
+.mc-tt__b .mc-face .mimi-helper { width: 28px; height: 28px; }
+.mc-void__helper { width: 72px; height: 72px; color: var(--ink); }

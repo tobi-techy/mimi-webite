@@ -6,7 +6,7 @@ import { brandKitZip } from "@/features/marketing/content/brand-kit";
 export function BrandKitCta() {
   return (
     <CtaBand
-      label="08 / Press"
+      label="09 / Press"
       title="Writing about Mimi?"
       lead="Ask for interviews, product screenshots or anything not in the kit."
       actions={

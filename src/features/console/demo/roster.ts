@@ -110,6 +110,11 @@ export type RosterRow = {
 
 const needsIn = (c: Conversation) => c.messages.filter((m) => m.kind === "card" && m.card.status === "needs").length;
 
+/** A thread row's face: running = working, waiting on the owner = waiting, done = done, else idle. */
+export function threadFaceState(c: Pick<Conversation, "state">): FaceState {
+  return c.state === "run" ? "working" : c.state === "needs" ? "waiting" : c.state === "done" ? "done" : "idle";
+}
+
 /** True while a helper is mid-run in this thread (typing, a live thought or a running step). */
 export function runningIn(s: Pick<DemoState, "typing">, c: Conversation): boolean {
   if (s.typing?.slug === c.slug && s.typing.who !== "me") return true;

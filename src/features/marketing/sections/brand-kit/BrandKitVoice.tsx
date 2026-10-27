@@ -7,7 +7,7 @@ export function BrandKitVoice() {
   return (
     <Section tone="cream" id="bk-voice">
       <Wrap>
-        <SectionHeader label="07 / Voice" title="How Mimi sounds." />
+        <SectionHeader label="08 / Voice" title="How Mimi sounds." />
         <NumberedCards kind="trust" items={voiceRules} />
       </Wrap>
     </Section>

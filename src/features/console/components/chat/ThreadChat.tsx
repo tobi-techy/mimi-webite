@@ -25,7 +25,7 @@ import {
   stopDemo,
   togglePanel,
 } from "@/features/console/demo/engine";
-import { dayLabel, helperSections } from "@/features/console/demo/roster";
+import { dayLabel, helperSections, rosterRow } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
 import type { Conversation, Speaker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
@@ -216,6 +216,8 @@ export function ThreadChat({ slug }: { slug: string }) {
   }
 
   const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
+  /* the header face follows the helper's real state: working while a task runs, waiting on an approval, a done pop when it finishes */
+  const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper);
   /* one conversation per helper: every task she has worked on, the open one last */
   const sections = helperSections(conversations, conv.helper, slug);
   /* computer level 1: a live status line in the header while the panel is closed */
@@ -239,7 +241,7 @@ export function ThreadChat({ slug }: { slug: string }) {
                 title={`${conv.helper} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <HelperFace name={conv.helper} size={18} />
+                <HelperFace name={conv.helper} size={28} state={face.state} dot={face.needs > 0} />
                 <span className="mc-tt__t">{conv.helper}</span>
                 <Icon name="chevron-down" className="i mc-tt__c" />
               </button>
