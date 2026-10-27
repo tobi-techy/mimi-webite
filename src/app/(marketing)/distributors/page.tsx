@@ -14,9 +14,9 @@ import { distributorsFaq } from "@/features/marketing/content/faq";
 import { breadcrumbJsonLd, faqJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Distributors",
+  title: "Distributor software on WhatsApp for Nigeria",
   description:
-    "Mimi runs on WhatsApp. It reminds shops what they owe, confirms every transfer with the bank, and checks each van against what shops say they received.",
+    "Mimi helps FMCG distributors in Nigeria collect what shops owe, confirm every transfer with the bank to stop fake alerts, and check each van against what shops received. On WhatsApp.",
   path: "/distributors",
 });
 

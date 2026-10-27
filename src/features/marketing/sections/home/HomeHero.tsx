@@ -14,7 +14,7 @@ export function HomeHero() {
       <div className="x-khero__top">
         <div className="x-wrap x-grid x-khero__grid">
           <div className="x-khero__in">
-            <Label>AI agents for FMCG distribution</Label>
+            <Label>WhatsApp AI for FMCG distributors</Label>
             <h1 className="x-hl">
               <W>The route, the shop, the money.</W>{" "}
               <span className="x-sq x-w">

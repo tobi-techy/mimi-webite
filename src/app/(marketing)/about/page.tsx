@@ -8,9 +8,9 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "About",
+  title: "About Mimi, built in Nigeria for FMCG distribution",
   description:
-    "Built in Nigeria for the people who keep shelves full. Mimi is built by Rail Technology Concepts Ltd.",
+    "Mimi is built in Ado-Ekiti by Rail Technology Concepts Ltd for the distributors, brands and shops that keep Nigerian shelves full.",
   path: "/about",
 });
 

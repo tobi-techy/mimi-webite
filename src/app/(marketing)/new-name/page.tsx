@@ -7,7 +7,8 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Split } from "@/components/ui/Split";
 import { Heading, Label, Lead } from "@/components/ui/Text";
 import { site } from "@/config/site";
-import { pageMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/ui/JsonLd";
+import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
   title: "Rail Money is now Mimi",
@@ -17,14 +18,27 @@ export const metadata = pageMetadata({
 });
 
 const same = [
-  { label: "Company", title: "Rail Technology Concepts Ltd", body: "RC 9322751. Mimi is built by the same company, in Nigeria." },
-  { label: "Price", title: "Free for shops", body: "Distributors and brands pay. No new app to learn. Just WhatsApp." },
-  { label: "Contact", title: site.contactEmail, body: "Questions about Rail Money or Mimi still reach us here." },
+  {
+    label: "Company",
+    title: "Rail Technology Concepts Ltd",
+    body: "RC 9322751. Mimi is built by the same company, in Nigeria.",
+  },
+  {
+    label: "Price",
+    title: "Free for shops",
+    body: "Distributors and brands pay. No new app to learn. Just WhatsApp.",
+  },
+  {
+    label: "Contact",
+    title: site.contactEmail,
+    body: "Questions about Rail Money or Mimi still reach us here.",
+  },
 ];
 
 export default function NewNamePage() {
   return (
     <RouteView route="new-name">
+      <JsonLd data={breadcrumbJsonLd([{ name: "Rail Money is now Mimi", path: "/new-name" }])} />
       <Split
         style={{ paddingBottom: "clamp(48px,6vw,80px)" }}
         stickers={[
@@ -38,8 +52,8 @@ export default function NewNamePage() {
           Same team. New name. Sharper focus.
         </Heading>
         <Lead style={{ marginTop: "24px" }}>
-          Rail Money started as an AI money app for people. Today we build Mimi, a WhatsApp assistant for Nigerian
-          shops and the distributors that supply them.
+          Rail Money started as an AI money app for people. Today we build Mimi, a WhatsApp assistant for
+          Nigerian shops and the distributors that supply them.
         </Lead>
       </Split>
 
@@ -48,13 +62,13 @@ export default function NewNamePage() {
           <SectionHeader label="01 / Why we changed the name" title="We followed the shops." />
           <div className="x-rv" style={{ display: "grid", gap: "20px" }}>
             <Lead>
-              We spent our time with shop owners and distributors. Their biggest problem wasn&apos;t saving money. It
-              was the notebook: stock that doesn&apos;t add up, credit nobody can track, and fake transfer alerts that
-              walk goods out of the shop.
+              We spent our time with shop owners and distributors. Their biggest problem wasn&apos;t saving
+              money. It was the notebook: stock that doesn&apos;t add up, credit nobody can track, and fake
+              transfer alerts that walk goods out of the shop.
             </Lead>
             <Lead>
-              Rail Money sounded like a bank. We don&apos;t hold or move anyone&apos;s money. Mimi sounds like what it
-              is: a helper you text on WhatsApp.
+              Rail Money sounded like a bank. We don&apos;t hold or move anyone&apos;s money. Mimi sounds like
+              what it is: a helper you text on WhatsApp.
             </Lead>
           </div>
         </Wrap>
@@ -70,7 +84,10 @@ export default function NewNamePage() {
                 title: "Reads the book",
                 body: "Send a photo of the stock book, an invoice or a delivery note, or just a voice note. Mimi turns it into clean records.",
               },
-              { title: "Catches fake alerts", body: "Mimi checks payment screenshots before the goods leave the shop." },
+              {
+                title: "Catches fake alerts",
+                body: "Mimi checks payment screenshots before the goods leave the shop.",
+              },
               {
                 title: "Shows what sold",
                 body: "With the shop's consent, distributors and brands see what is moving and which shops need restock.",

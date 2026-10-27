@@ -10,9 +10,9 @@ import { shopsFaq } from "@/features/marketing/content/faq";
 import { breadcrumbJsonLd, faqJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Shops",
+  title: "Free shop debt book on WhatsApp",
   description:
-    "Mimi lives in WhatsApp. Snap your book, forward an alert, send a voice note. Free for shops, no app to download.",
+    "A free shop book on WhatsApp for Nigerian shop owners. Remember who owes you, keep your stock book from a photo and reorder from your distributor in one tap. No app to download.",
   path: "/shops",
 });
 

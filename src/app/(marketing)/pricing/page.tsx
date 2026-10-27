@@ -7,9 +7,9 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Pricing",
+  title: "Pricing for distributors, free for shops",
   description:
-    "Pilot pricing per active shop, per month, to be confirmed with pilot distributors. Shops always use Mimi free. See what Mimi could save you every month.",
+    "Pilot pricing from ₦2,000 per active shop a month, to be confirmed with pilot distributors. Shops always use Mimi free. Work out what Mimi could save your routes.",
   path: "/pricing",
 });
 

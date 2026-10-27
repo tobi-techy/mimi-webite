@@ -13,9 +13,9 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Brand kit",
+  title: "Mimi brand kit: logo, mascot and press assets",
   description:
-    "The Mimi brand kit: logo and mark downloads, the mascot and her six helpers, colours, type, stickers and approved descriptions for press and partners.",
+    "Download the Mimi logo and mark, the mascot and her six helpers, colours, type, stickers and approved descriptions for press and partners.",
   path: "/brand-kit",
 });
 

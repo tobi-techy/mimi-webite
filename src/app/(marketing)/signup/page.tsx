@@ -9,6 +9,7 @@ export const metadata = pageMetadata({
   description:
     "Create your Mimi account. For distributors and brands. Shops join free through their distributor's link.",
   path: "/signup",
+  noindex: true,
 });
 
 export default function SignupPage() {

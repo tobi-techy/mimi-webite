@@ -4,8 +4,9 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Book a pilot",
-  description: "Book a free Mimi pilot. Tell us about your routes. We'll reply within two working days.",
+  title: "Book a free pilot for your distribution business",
+  description:
+    "Book a free Mimi pilot for your FMCG distribution routes in Nigeria. Tell us about your shops and reps. We reply within two working days.",
   path: "/contact",
 });
 

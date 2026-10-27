@@ -7,9 +7,9 @@ import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 import { absoluteUrl, site } from "@/config/site";
 
 export const metadata = pageMetadata({
-  title: "Blog",
+  title: "Blog: FMCG distribution in Nigeria",
   description:
-    "Notes from the route. What we're learning building Mimi with distributors, brands and shops in Nigeria.",
+    "Notes from the route. What we are learning about collections, credit, fake alerts and sell-through, building Mimi with distributors, brands and shops in Nigeria.",
   path: "/blog",
 });
 
