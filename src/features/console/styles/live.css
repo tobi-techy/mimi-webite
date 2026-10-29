@@ -1,0 +1,29 @@
+/* Live data states (demo build): loading skeletons and the jump-to-latest pill. Tokens only, so
+   both themes follow; nothing here restyles an existing component. */
+
+.mc-skel { display: block; height: 12px; border-radius: var(--radius-sm, 3px); background: var(--surface); position: relative; overflow: hidden; }
+.mc-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--hair) 70%, transparent), transparent); animation: mc-skel 1.3s ease-in-out infinite; }
+.mc-skel--line { width: 60%; }
+.mc-skel--short { width: 32%; }
+.mc-skel--block { height: 44px; width: 100%; }
+.mc-skel--bubble { height: 40px; width: 46%; border-radius: 14px; }
+.mc-skel--me { margin-left: auto; width: 38%; }
+.mc-skel--num { display: inline-block; height: 20px; width: 72px; }
+.mc-skels { display: flex; flex-direction: column; gap: 12px; padding: 8px 0; }
+.mc-skels--feed { gap: 18px; padding: 24px 0; }
+.mc-skel-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.mc-skel-row .mc-skel:first-child { width: 24px; height: 24px; border-radius: 50%; flex: none; }
+.mc-skel-row .mc-skel:nth-child(2) { flex: 1; }
+.mc-skel-row .mc-skel:last-child { width: 40px; flex: none; }
+@keyframes mc-skel { to { transform: translateX(100%); } }
+
+/* jump to the newest message when the owner has scrolled up */
+.mc-jump { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 3; gap: 6px; background: var(--bg); border: 1px solid var(--hair); white-space: nowrap; }
+.mc-jump-host { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-skel::after { animation: none; }
+}
+
+/* the threads list is a <ul>: no list bullets (they showed in both builds) */
+.mc-ti { list-style: none; }

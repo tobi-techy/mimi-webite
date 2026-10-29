@@ -10,6 +10,9 @@ import { Waiting } from "@/features/console/components/chat/Waiting";
 import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
+import { useLive } from "@/features/console/api/live-store";
+import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
+import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes, helperHref } from "@/features/console/config";
 import { Replies } from "@/features/console/components/chat/Replies";
@@ -116,6 +119,7 @@ export function ThreadChat({ slug }: { slug: string }) {
   const playing = useDemo((s) => s.playing);
   const computer = useDemo((s) => s.computer);
   const sheetOpen = useDemo((s) => s.sheet?.slug === slug);
+  const liveStatus = useLive((s) => s.status);
   const { toggleSidebar } = useShell();
   const host = useRef<HTMLDivElement>(null);
   const feed = useRef<HTMLDivElement>(null);
@@ -134,13 +138,18 @@ export function ThreadChat({ slug }: { slug: string }) {
   const chips = conv?.replies?.length ?? 0;
   const stick = useRef(true);
   const autoUntil = useRef(0);
+  /* scrolled up: new messages do not pull the owner down; a pill offers the jump instead */
+  const [away, setAway] = useState(false);
+  const last = conv?.messages.at(-1);
+  const mineLast = !!last && last.kind === "text" && last.from === "me";
   useEffect(() => {
     const el = feed.current;
     if (!el) return;
+    if (!stick.current && !mineLast) return;
     stick.current = true;
     autoUntil.current = Date.now() + 900;
     el.scrollTo({ top: el.scrollHeight, behavior: prefersReducedMotion() || count < 2 ? "auto" : "smooth" });
-  }, [count, typing, chips]);
+  }, [count, typing, chips, mineLast]);
   /* opened on one card (Mimi's roll-up links to …#m-<card>): show that card instead of the newest message */
   useEffect(() => {
     const id = /^#m-(.+)$/.exec(window.location.hash)?.[1];
@@ -160,6 +169,7 @@ export function ThreadChat({ slug }: { slug: string }) {
     const onScroll = () => {
       if (Date.now() < autoUntil.current) return;
       stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+      setAway(!stick.current);
     };
     const ro = new ResizeObserver(() => {
       if (stick.current) el.scrollTop = el.scrollHeight;
@@ -205,6 +215,18 @@ export function ThreadChat({ slug }: { slug: string }) {
   }, [menu]);
 
   if (!conv) {
+    if (liveStatus === "connecting")
+      return (
+        <div className="mc-tv">
+          <section className="mc-thread" aria-label="Thread" aria-busy="true">
+            <div className="mc-feed">
+              <div className="mc-col mc-fi">
+                <SkeletonFeed />
+              </div>
+            </div>
+          </section>
+        </div>
+      );
     return (
       <section className="mc-empty-thread" aria-label="Thread">
         <EmptyThread helper="Mimi">This thread isn&apos;t in the demo any more.</EmptyThread>
@@ -222,7 +244,8 @@ export function ThreadChat({ slug }: { slug: string }) {
   const sections = helperSections(conversations, conv.helper, slug);
   /* computer level 1: a live status line in the header while the panel is closed */
   const compActive = computer.status === "live" || computer.status === "paused" || computer.status === "user";
-  const compHere = compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer" || ("from" in m && m.from === computer.helper)));
+  /* the Computer panel is sample data: its live chip never shows on a thread from the API */
+  const compHere = !conv.api && compActive && (computer.helper === conv.helper || conv.messages.some((m) => m.kind === "computer" || ("from" in m && m.from === computer.helper)));
 
   return (
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
@@ -375,6 +398,7 @@ export function ThreadChat({ slug }: { slug: string }) {
         <div className="mc-feed" ref={feed}>
           <div className="mc-col mc-fi">
             {conv.helper === "Mimi" && <GettingStarted />}
+            {conv.helper === "Mimi" && <LiveDemoNote />}
             {sections.map((c, i) => (
               <TaskSection
                 key={c.slug}
@@ -389,7 +413,25 @@ export function ThreadChat({ slug }: { slug: string }) {
           </div>
         </div>
         <PlanStrip slug={slug} />
-        <Composer slug={slug} helper={conv.helper} />
+        <div className="mc-jump-host">
+          {away && (
+            <button
+              type="button"
+              className="mc-btn mc-jump"
+              onClick={() => {
+                const el = feed.current;
+                if (!el) return;
+                stick.current = true;
+                setAway(false);
+                el.scrollTo({ top: el.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+              }}
+            >
+              <Icon name="chevron-down" />
+              Jump to latest
+            </button>
+          )}
+          <Composer slug={slug} helper={conv.helper} />
+        </div>
         {sheetOpen && <PlanSheet />}
       </section>
       <WorkspacePanel slug={slug} host={host} />

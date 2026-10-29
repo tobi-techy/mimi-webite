@@ -282,6 +282,8 @@ export type Conversation = {
   /** Live checklist pinned above the composer while the helper works through a job. */
   plan?: WorkPlan;
   messages: Message[];
+  /** Set on threads that come from the MIMI-AGENT API (demo build); absent on sample threads. */
+  api?: { threadId: string; kind: string; shopId: string; shopName: string };
 };
 
 /** File type label in the docs list (mono). */

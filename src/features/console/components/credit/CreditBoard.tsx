@@ -11,12 +11,10 @@ import { MiniBar } from "@/features/console/components/ui/Meter";
 import { SearchField } from "@/features/console/components/ui/SearchField";
 import { Segmented } from "@/features/console/components/ui/Segmented";
 import { shopHref } from "@/features/console/config";
-import {
-  creditLines,
-  creditRecommendations,
-  type CreditLine,
-  type CreditRecommendation,
-} from "@/features/console/content/credit";
+import { liveDecideCredit } from "@/features/console/api/actions";
+import { useCreditBook } from "@/features/console/api/hooks";
+import { SkeletonRows } from "@/features/console/components/live/Skeleton";
+import type { CreditLine, CreditRecommendation } from "@/features/console/content/credit";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { naira } from "@/features/console/lib/format";
 import { Table } from "@/features/console/components/ui/Table";
@@ -30,14 +28,31 @@ const suggestsChange = (l: CreditLine): boolean => /^(Raise|Lower)/.test(l.recom
 export function CreditBoard() {
   const router = useRouter();
   const say = useToast();
-  const [lines, setLines] = useState<readonly CreditLine[]>(creditLines);
-  const [recs, setRecs] = useState<readonly CreditRecommendation[]>(creditRecommendations);
+  const book = useCreditBook();
+  const [lines, setLines] = useState<readonly CreditLine[]>(book.lines);
+  const [recs, setRecs] = useState<readonly CreditRecommendation[]>(book.recs);
+  /* the API's figures arrive (or change) after the first render: take them as they come */
+  const [source, setSource] = useState(book);
+  if (source.lines !== book.lines || source.recs !== book.recs) {
+    setSource(book);
+    setLines(book.lines);
+    setRecs(book.recs);
+  }
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
 
   function decide(rec: CreditRecommendation, accept: boolean) {
     const line = lines.find((l) => l.shop.id === rec.shopId);
     if (!line) return;
+    if (book.live && rec.approvalId) {
+      /* a credit request from the API: not optimistic, the row goes only once the API agrees
+         (the demo refuses raises to a credit limit and says so) */
+      void liveDecideCredit(rec.approvalId, accept).then((r) => {
+        if (r.ok) setRecs((now) => now.filter((x) => x !== rec));
+        say(r.text);
+      });
+      return;
+    }
     setRecs(recs.filter((r) => r !== rec));
     setLines(
       lines.map((l) =>
@@ -72,7 +87,8 @@ export function CreditBoard() {
         <p className="x-rh">
           Recommended changes <span className="x-num">· {recs.length}</span>
         </p>
-        {recs.length === 0 && (
+        {book.loading && <SkeletonRows count={2} />}
+        {!book.loading && recs.length === 0 && (
           <div className="x-ri">
             <div>
               <small>No changes to review. Mimi checks again tomorrow.</small>
@@ -124,8 +140,10 @@ export function CreditBoard() {
             ]}
           />
         </div>
-        {rows.length === 0 ? (
-          <EmptyState>No credit lines match the current filters</EmptyState>
+        {book.loading ? (
+          <SkeletonRows count={6} />
+        ) : rows.length === 0 ? (
+          <EmptyState>{lines.length ? "No credit lines match the current filters" : "No credit lines yet"}</EmptyState>
         ) : (
           <Table label="Credit lines">
             <thead>
@@ -157,16 +175,22 @@ export function CreditBoard() {
                   </td>
                   <td className="r x-ink">{naira(l.limit)}</td>
                   <td>
-                    <MiniBar percent={(l.shop.owed / l.limit) * 100} />
+                    <MiniBar percent={l.limit > 0 ? (l.shop.owed / l.limit) * 100 : 0} />
                     <span className="x-num">{naira(l.shop.owed)}</span>
                   </td>
                   <td className={l.late ? "x-late" : undefined}>
                     {l.due}
-                    {l.late && " · overdue"}
+                    {l.late && !l.shop.live && " · overdue"}
                   </td>
                   <td className="x-num">
-                    <span className="x-ink">{l.shop.score}</span>
-                    <span className="x-mu">/100</span>
+                    {l.shop.live ? (
+                      <span className="x-mu">—</span>
+                    ) : (
+                      <>
+                        <span className="x-ink">{l.shop.score}</span>
+                        <span className="x-mu">/100</span>
+                      </>
+                    )}
                   </td>
                   <td className="x-mu">{l.recommendation}</td>
                   <td className="r">

@@ -148,6 +148,13 @@ export function rosterRow(s: Pick<DemoState, "conversations" | "typing" | "compu
     step = s.computer.status === "user" ? "You have her computer · she resumes when you're done" : `Computer · ${s.computer.activity}`;
   }
   const thread = mine.find((c) => needsIn(c) > 0) ?? mine[0];
+  /* threads from the API (demo build): the row reads from them, never from the sample outcomes */
+  if (s.conversations.some((c) => c.api)) {
+    if (!live) state = thread ? threadFaceState(thread) : "idle";
+    if (name !== "Mimi") preview = thread?.preview ?? "Nothing yet";
+    if (!live) step = thread ? `${thread.status.charAt(0).toUpperCase()}${thread.status.slice(1)}` : "Waiting for work";
+    return { name, state, needs, preview, step, ago: thread?.ago ?? "", costToday: 0, steps: 0, thread };
+  }
   return { name, state, needs, preview, step, ago: thread?.ago ?? "", costToday: seed.costToday, steps: seed.steps, thread };
 }
 

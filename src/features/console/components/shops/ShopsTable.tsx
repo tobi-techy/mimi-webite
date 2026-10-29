@@ -11,7 +11,9 @@ import { Pill } from "@/features/console/components/ui/Pill";
 import { SearchField } from "@/features/console/components/ui/SearchField";
 import { Segmented } from "@/features/console/components/ui/Segmented";
 import { shopHref } from "@/features/console/config";
-import { routes, shopStatus, shops, type Route, type ShopStatus } from "@/features/console/content/shops";
+import { useShops } from "@/features/console/api/hooks";
+import { SkeletonRows } from "@/features/console/components/live/Skeleton";
+import { routes as sampleRoutes, shopStatus, type Route, type ShopStatus } from "@/features/console/content/shops";
 import { naira } from "@/features/console/lib/format";
 import { Table } from "@/features/console/components/ui/Table";
 
@@ -30,6 +32,12 @@ const STATUS_OPTIONS = [
 /** Every shop: search, route tabs, status filter and sort by outstanding. Rows open the shop. */
 export function ShopsTable() {
   const router = useRouter();
+  const { shops, loading } = useShops();
+  /* sample shops use the three routes; shops from the API are grouped by their rep */
+  const routes = useMemo(
+    () => (shops.some((s) => s.live) ? [...new Set(shops.map((s) => s.route))].sort() : sampleRoutes),
+    [shops],
+  );
   const [q, setQ] = useState("");
   const [route, setRoute] = useState<RouteFilter>("All");
   const [status, setStatus] = useState<StatusFilter>("All statuses");
@@ -45,7 +53,7 @@ export function ShopsTable() {
           (!query || `${s.name} ${s.area} ${s.owner}`.toLowerCase().includes(query)),
       )
       .sort((a, b) => (sort === "Lowest owed first" ? a.owed - b.owed : b.owed - a.owed));
-  }, [q, route, status, sort]);
+  }, [shops, q, route, status, sort]);
 
   return (
     <>
@@ -76,8 +84,10 @@ export function ShopsTable() {
           options={SORTS.map((value) => ({ value, icon: "arrow-up-down" as const }))}
         />
       </div>
-      {rows.length === 0 ? (
-        <EmptyState>No shops match the current filters</EmptyState>
+      {loading ? (
+        <SkeletonRows count={8} />
+      ) : rows.length === 0 ? (
+        <EmptyState>{shops.length ? "No shops match the current filters" : "No shops in this book yet"}</EmptyState>
       ) : (
         <Table label="Shops">
           <thead>
@@ -112,13 +122,25 @@ export function ShopsTable() {
                 </td>
                 <td>{s.owner}</td>
                 <td>
-                  <MiniBar percent={s.sellThrough} />
-                  <span className="x-num">{s.sellThrough}%</span>
+                  {s.live ? (
+                    <span className="x-mu">—</span>
+                  ) : (
+                    <>
+                      <MiniBar percent={s.sellThrough} />
+                      <span className="x-num">{s.sellThrough}%</span>
+                    </>
+                  )}
                 </td>
                 <td className="r x-ink">{naira(s.owed)}</td>
                 <td className="x-num">
-                  <span className="x-ink">{s.score}</span>
-                  <span className="x-mu">/100</span>
+                  {s.live ? (
+                    <span className="x-mu">—</span>
+                  ) : (
+                    <>
+                      <span className="x-ink">{s.score}</span>
+                      <span className="x-mu">/100</span>
+                    </>
+                  )}
                 </td>
                 <td>{s.lastPayment}</td>
                 <td>

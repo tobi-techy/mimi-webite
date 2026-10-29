@@ -44,6 +44,11 @@ function restore() {
   rmSync(stash, { recursive: true, force: true });
 }
 
+/* NEXT_PUBLIC_MIMI_MODE=demo without an API address builds the sample-data console (see src/features/console/api/config.ts) */
+if (process.env.NEXT_PUBLIC_MIMI_MODE === "demo" && !process.env.NEXT_PUBLIC_MIMI_API_URL) {
+  console.warn("build:console: NEXT_PUBLIC_MIMI_MODE=demo but NEXT_PUBLIC_MIMI_API_URL is unset, so this build shows sample data");
+}
+
 /* a previous run that died mid-build left the real app aside: put it back before anything else */
 if (existsSync(stashedApp)) {
   console.warn("build:console: restoring src/app from an interrupted run");

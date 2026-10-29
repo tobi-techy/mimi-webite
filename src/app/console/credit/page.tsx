@@ -5,7 +5,7 @@ import { ConsoleView } from "@/features/console/components/shell/ConsoleView";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { PageMenu } from "@/features/console/components/ui/PageMenu";
 import { ToastButton } from "@/features/console/components/ui/ToastButton";
-import { creditKpis } from "@/features/console/content/credit";
+import { CreditKpis } from "@/features/console/components/credit/CreditKpis";
 import { Page } from "@/features/console/components/ui/Page";
 import { consoleRoutes } from "@/features/console/config";
 
@@ -26,14 +26,7 @@ export default function CreditPage() {
         <p className="x-sub">
           <Link href={consoleRoutes.shops}>Shops</Link> · Coral Lane sets every limit. Mimi recommends.
         </p>
-        <div className="x-kpis">
-          {creditKpis.map((k) => (
-            <div key={k.label} className="x-kpi">
-              <b>{k.value}</b>
-              <span>{k.label}</span>
-            </div>
-          ))}
-        </div>
+        <CreditKpis />
         <CreditBoard />
       </Page>
     </ConsoleView>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { safeHref } from "@/features/console/lib/safe-href";
 
 /**
  * A small GitHub-flavoured Markdown renderer for the Docs viewer (no dependency): headings,
@@ -19,9 +20,13 @@ function inline(text: string, key = 0): ReactNode[] {
     else if (m[4]) out.push(<em key={k++}>{m[4]}</em>);
     else if (m[5])
       out.push(
-        <a key={k++} href={m[6]} target="_blank" rel="noreferrer">
-          {m[5]}
-        </a>,
+        safeHref(m[6]) ? (
+          <a key={k++} href={safeHref(m[6])} target="_blank" rel="noopener noreferrer">
+            {m[5]}
+          </a>
+        ) : (
+          m[5]
+        ),
       );
     else if (m[7]) out.push(<s key={k++}>{m[7]}</s>);
     last = m.index + m[0].length;

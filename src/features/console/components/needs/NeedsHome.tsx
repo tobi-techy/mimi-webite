@@ -9,6 +9,8 @@ import { ShopAvatar } from "@/features/console/components/ui/ShopAvatar";
 import { approveCard, conversationHref, declineCard, startThread } from "@/features/console/demo/engine";
 import { needItems, type NeedItem } from "@/features/console/demo/needs";
 import { owner } from "@/features/console/demo/seed";
+import { useLiveLoading } from "@/features/console/api/live-store";
+import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { useDemo } from "@/features/console/demo/store";
 import type { HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
@@ -105,6 +107,7 @@ export function NeedsHome() {
     }
   }
 
+  const loading = useLiveLoading();
   const waiting = items.filter((i) => i.status === "needs").length;
   const busy = [...new Set(conversations.filter((c) => c.working).map((c) => c.helper))].slice(0, 2);
   const shown = all ? items : items.slice(0, VISIBLE);
@@ -151,6 +154,11 @@ export function NeedsHome() {
                   Something else
                 </button>
               </div>
+            </>
+          ) : loading ? (
+            <>
+              <h1 className="mc-nh__hi">{when}, {owner.first}.</h1>
+              <SkeletonRows count={3} />
             </>
           ) : (
             <>

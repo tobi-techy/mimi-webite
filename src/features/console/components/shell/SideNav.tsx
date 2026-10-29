@@ -15,6 +15,7 @@ import { faceStateLabel, rosterNames, rosterRow, type RosterRow } from "@/featur
 import { owner } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
 import { useShell } from "@/features/console/hooks/use-shell";
+import { useShops } from "@/features/console/api/hooks";
 import { cx } from "@/lib/cx";
 
 function NavRow({
@@ -110,6 +111,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
   const pathname = usePathname();
   const { toggleSidebar, openPalette } = useShell();
   const conversations = useDemo((s) => s.conversations);
+  const shopCount = useShops().shops.length;
   const active = useDemo((s) => s.active);
   const autoCount = useDemo((s) => s.autos.length);
   const typing = useDemo((s) => s.typing);
@@ -195,7 +197,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                 href={consoleRoutes.shops}
                 icon="store"
                 label="Shops"
-                count={48}
+                count={shopCount}
                 on={pathname.startsWith(consoleRoutes.shops) || pathname.startsWith(consoleRoutes.credit)}
               />
               <NavRow
