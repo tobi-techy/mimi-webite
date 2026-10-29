@@ -38,6 +38,7 @@ import type {
   Tone,
 } from "@/features/console/demo/types";
 import { reactableKinds } from "@/features/console/demo/types";
+import { splitReply } from "@/features/console/lib/thread-view";
 import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 import { consoleRoutes, threadHref } from "@/features/console/config";
@@ -206,13 +207,20 @@ function setTyping(slug: string, who: Speaker | null) {
   setDemo((s) => ({ ...s, typing: who ? { slug, who } : null }));
 }
 
-/** Typing dots, a natural pause, then the message. */
+/**
+ * Typing dots, a natural pause, then the message. A long helper reply goes out as 2–3 short
+ * consecutive bubbles (Grok Bot style: never a wall of text), each after its own short typing pause.
+ */
 async function say(slug: string, from: Speaker, text: string, ep: number, pause?: number): Promise<boolean> {
-  setTyping(slug, from);
-  const ms = pause ?? Math.min(1700, 600 + text.length * 14) * consoleMotion.pace;
-  if (!(await wait(ms, ep))) return false;
-  setTyping(slug, null);
-  push(slug, { kind: "text", from, text, at: Date.now() });
+  const parts = from === "me" ? [text] : splitReply(text);
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]!;
+    setTyping(slug, from);
+    const ms = i === 0 ? (pause ?? Math.min(1700, 600 + part.length * 14) * consoleMotion.pace) : Math.min(1100, 420 + part.length * 8) * consoleMotion.pace;
+    if (!(await wait(ms, ep))) return false;
+    setTyping(slug, null);
+    push(slug, { kind: "text", from, text: part, at: Date.now() });
+  }
   sfx("console", "ready", { theme: "bubble", emphasis: "subtle" });
   return wait(220, ep);
 }

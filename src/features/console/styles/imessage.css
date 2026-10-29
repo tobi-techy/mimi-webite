@@ -1,0 +1,235 @@
+/* =====================================================================================
+ * iMessage reading (Tobi, 29 Oct 2026), loaded last. Five notes in one place:
+ *  1. Tapbacks as real emoji, bigger, with iMessage spring motion ("real emoji ... smooth effect
+ *     and motion just like Apple iMessage"). Switches: consoleMotion.reaction* (console-motion.ts).
+ *  2. Clean threads ("remove the thinking state"): typing dots instead of the work trail
+ *     (consoleThread.showWork in config.ts brings it back), iMessage rhythm.
+ *  3. Helper replies with presence ("the agent message should take good enough weight").
+ *  4. Grok Bot / Dots reading: the header avatar carries the working state and a one-line status.
+ *  5. iOS 26 header: no bar, no border, a frosted fade, floating chips with one soft shadow.
+ * Factory palette, Geist, no hairlines on the new floating parts. Reduced motion: short fades only.
+ * ===================================================================================== */
+
+.mc-app {
+  /* one shadow language for every floating part (light), a subtle equivalent in dark */
+  --mc-float-bg: #ffffff;
+  --mc-float: 0 4px 16px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .05);
+  --mc-float-hi: 0 6px 22px rgba(0, 0, 0, .11), 0 1px 3px rgba(0, 0, 0, .06);
+  --mc-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+  --mc-rx-pop: 420ms; /* the pill springing out of the message */
+  --mc-rx-land: 420ms; /* a new badge popping 0 -> 1.2 -> 1 */
+  --mc-rx-out: 220ms; /* a removed badge shrinking out */
+  --mc-rx-step: 25ms; /* stagger between the pill's emoji */
+}
+html[data-theme="dark"] .mc-app {
+  --mc-float-bg: #24211f;
+  --mc-float: 0 4px 18px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .4);
+  --mc-float-hi: 0 6px 24px rgba(0, 0, 0, .6), 0 1px 2px rgba(0, 0, 0, .45);
+}
+
+/* ---------- 1. tapbacks: real emoji ---------- */
+.mc-gl--emoji {
+  display: block; width: auto; height: auto; font-family: var(--mc-emoji); font-size: 1em; line-height: 1;
+  font-variant-emoji: emoji; letter-spacing: 0;
+}
+
+/* badge: a 30px chip on the top corner opposite the tail (top-right on helper bubbles, top-left on yours) */
+.mc-rxb { top: -20px; gap: 0; }
+.mc-rxb--right { right: -12px; }
+.mc-rxb--left { left: -12px; }
+.mc-rx--photos .mc-rxb { top: 4px; }
+.mc-rxg {
+  position: relative; width: 30px; height: 30px; font-size: 18px; border-radius: 50%;
+  background: var(--mc-float-bg); color: var(--ink); border: 0; outline: 2px solid var(--bg); box-shadow: var(--mc-float);
+}
+.mc-rxb--right .mc-rxg + .mc-rxg { margin-left: -8px; }
+.mc-rxb--left .mc-rxg + .mc-rxg { margin-right: -8px; }
+/* yours: inverted, like iMessage's blue, never orange */
+.mc-rxg.is-mine { background: var(--pri-bg); border: 0; }
+/* the iMessage tapback tail: two small dots trailing toward the bubble */
+.mc-rxb::before, .mc-rxb::after {
+  content: ""; position: absolute; border-radius: 50%; background: var(--mc-float-bg); outline: 2px solid var(--bg); pointer-events: none;
+}
+.mc-rxb::before { width: 8px; height: 8px; bottom: -3px; }
+.mc-rxb::after { width: 4px; height: 4px; bottom: -8px; }
+.mc-rxb--right::before { left: 2px; }
+.mc-rxb--right::after { left: -2px; }
+.mc-rxb--left::before { right: 2px; }
+.mc-rxb--left::after { right: -2px; }
+.mc-rxb:has(.mc-rxg.is-mine:last-child)::before, .mc-rxb:has(.mc-rxg.is-mine:last-child)::after { background: var(--pri-bg); }
+.mc-rxb:not(:has(.mc-rxg:not(.is-leaving)))::before, .mc-rxb:not(:has(.mc-rxg:not(.is-leaving)))::after { display: none; }
+.mc-rxb:hover .mc-rxg:not(.is-mine) { box-shadow: var(--mc-float-hi); }
+.mc-tv .mc-r--rx { margin-top: 18px; }
+
+/* a new badge pops in on a spring: 0 -> 1.2 -> 1 */
+.mc-rxg.is-fresh { animation: mc-rxland var(--mc-rx-land) cubic-bezier(.2, .9, .25, 1.3) both; }
+.mc-rxg.is-flying { animation: none; z-index: 3; }
+@keyframes mc-rxland {
+  0% { transform: scale(0); opacity: 0; }
+  55% { transform: scale(1.2); opacity: 1; }
+  78% { transform: scale(.95); }
+  100% { transform: scale(1); }
+}
+/* a removed one shrinks out */
+.mc-rxg.is-leaving { pointer-events: none; animation: mc-rxout var(--mc-rx-out) cubic-bezier(.4, 0, .6, 1) forwards; }
+@keyframes mc-rxout { from { transform: scale(1); opacity: 1; } to { transform: scale(0); opacity: 0; } }
+
+/* the pill: six tapbacks and "+", 30px emoji, springing out of the message */
+.mc-rxbar {
+  width: 332px; height: 56px; gap: 2px; padding: 5px; border: 0; border-radius: 999px;
+  background: var(--mc-float-bg); box-shadow: var(--mc-float-hi); align-items: center;
+}
+.mc-rxbar__b {
+  width: 44px; height: 44px; border-radius: 50%; font-size: 30px; line-height: 1;
+  transition: background-color .12s var(--mech), scale .18s cubic-bezier(.2, .9, .25, 1.4);
+}
+.mc-rxbar__b .mc-gl--emoji { font-size: 30px; }
+.mc-rxbar__b:hover { background: var(--tint2); scale: 1.08; }
+.mc-rxbar__b:active { scale: .92; transition-duration: .06s; }
+.mc-rxbar__b.is-on { background: var(--pri-bg); }
+.mc-rxbar__more { color: var(--muted); }
+.mc-rxbar__more .i { width: 22px; height: 22px; }
+.mc-rxbar.is-pop {
+  animation: mc-rxpill var(--mc-rx-pop) cubic-bezier(.2, .9, .25, 1.25) both;
+  animation-timing-function: var(--mc-spring-36, cubic-bezier(.2, .9, .25, 1.25));
+}
+@keyframes mc-rxpill { 0% { opacity: 0; transform: scale(.6); } 30% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
+.mc-rxbar.is-stagger .mc-rxbar__b {
+  animation: mc-rxitem 360ms cubic-bezier(.2, .9, .25, 1.35) both;
+  animation-delay: calc(60ms + var(--i, 0) * var(--mc-rx-step));
+}
+@keyframes mc-rxitem { from { opacity: 0; transform: scale(.4) translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* any-emoji picker: bigger emoji, same floating surface */
+.mc-rxp { width: 332px; border: 0; box-shadow: var(--mc-float-hi); border-radius: 22px; }
+.mc-rxp__h { border-bottom: 0; }
+.mc-rxp__g button { height: 44px; font-size: 28px; border-radius: 50%; font-family: var(--mc-emoji); }
+
+/* the actions menu: the message time sits at its top (no timestamps under bubbles) */
+.mc-rxm { border: 0; box-shadow: var(--mc-float-hi); border-radius: 16px; background: var(--mc-float-bg); }
+.mc-rxm__t { margin: 0; height: 33px; display: flex; align-items: center; padding: 0 16px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.mc-rxm__t + button { border-top: 1px solid var(--hair); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* beats v3.css's "animation: none" for the layer: a short plain fade, no scale, no flight */
+  .mc-app .mc-rxl .mc-rxbar, .mc-app .mc-rxl .mc-rxp, .mc-app .mc-rxl .mc-rxm { animation: mc-fade .14s ease-out both !important; transform: none !important; }
+  .mc-app .mc-rxl .mc-rxbar__b { animation: none !important; transition: none !important; scale: none !important; }
+  .mc-app .mc-rxg.is-fresh { animation: mc-fade .16s ease-out both !important; }
+  .mc-app .mc-rxg.is-leaving { animation: none !important; display: none; }
+}
+
+/* ---------- 2. clean threads: typing dots + iMessage rhythm ---------- */
+.mc-typd {
+  display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 14px; box-sizing: border-box;
+  border-radius: 19px; border-bottom-left-radius: 6px; background: var(--msg-them-bg);
+}
+.mc-typd i { width: 8px; height: 8px; border-radius: 50%; background: var(--msg-them-color); opacity: .4; animation: mc-typd 1.25s ease-in-out infinite; }
+.mc-typd i:nth-child(2) { animation-delay: .16s; }
+.mc-typd i:nth-child(3) { animation-delay: .32s; }
+@keyframes mc-typd { 0%, 60%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-3px); opacity: .75; } }
+
+/* tight 2px between bubbles from one side, 16px when the sender switches; cards get a little air */
+.mc-tv { --msg-gap: 2px; --msg-turn: 16px; }
+.mc-tv .mc-rd { margin: 2px 4px 0; font-size: 10.5px; color: var(--muted); }
+.mc-tv .mc-grp:not(.mc-grp--turn):has(> .mc-r .mc-rx--card, > .mc-r .mc-rx--poll, > .mc-r .mc-rx--proof, > .mc-r .mc-rx--photos, > .mc-r .mc-rx--voice, > .mc-r > .mc-chipcard, > .mc-r .mc-apc) { margin-top: 6px; }
+.mc-tv .mc-mh { margin-bottom: 6px; }
+/* no stray outlines around bubbles; focus stays visible for keyboards only */
+.mc-tv .mc-rx { outline: 0; }
+.mc-tv .mc-rx:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+/* cards and attachments line up with the bubble edge on their side */
+.mc-tv .mc-r--them > .mc-rx, .mc-tv .mc-r--them > .mc-chipcard { margin-left: 0; }
+.mc-tv .mc-r--me > .mc-rx { margin-right: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-typd i { animation: none; opacity: .55; }
+}
+
+/* ---------- 3. helper replies with presence ---------- */
+.mc-app { --msg-them-weight: 480; }
+html[data-theme="dark"] { --msg-them-bg: #2a2725; } /* 1.28:1 against the #101010 canvas, white text 14.8:1 */
+.mc-r--them .mc-b--them,
+.mc-rxl__lift:not(.mc-rxl__lift--me) .mc-b--them {
+  font-weight: var(--msg-them-weight); font-size: 14px; line-height: 1.45; color: var(--msg-them-color);
+  font-synthesis-weight: none; letter-spacing: -0.003em;
+}
+.mc-r--me .mc-b { font-size: 14px; line-height: 1.45; }
+@media (max-width: 899px) {
+  .mc-r--them .mc-b--them, .mc-rxl__lift:not(.mc-rxl__lift--me) .mc-b--them, .mc-r--me .mc-b,
+  .mc-tv .mc-b { font-size: 15.5px; line-height: 1.4; }
+}
+
+/* ---------- 4 + 5. header: frosted fade, floating chips, working state ---------- */
+.mc-hdr.mc-hdr--center {
+  background: none; border-bottom: 0; padding: 12px 20px 10px; align-items: start; isolation: isolate;
+}
+/* messages scroll under a soft frosted fade (blur + canvas gradient to transparent) */
+.mc-hdr.mc-hdr--center::before {
+  content: ""; position: absolute; inset: 0 0 -36px; z-index: -1; pointer-events: none;
+  background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 55%, transparent 100%);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent); mask-image: linear-gradient(to bottom, #000 60%, transparent);
+}
+.mc-hdr--center .mc-hdr__l, .mc-hdr--center .mc-hdr__r { align-self: start; padding-top: 10px; }
+
+/* floating buttons: a pill back button (unread badge) on the left, one round action on the right */
+.mc-fb {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 44px; min-width: 44px; padding: 0 12px 0 10px; box-sizing: border-box; border: 0; border-radius: 999px;
+  background: var(--mc-float-bg); color: var(--ink); box-shadow: var(--mc-float); cursor: pointer;
+  font: 500 13px/1 var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  transition: box-shadow .16s var(--mech), scale .2s cubic-bezier(.2, .9, .25, 1.4);
+}
+.mc-fb .i { width: 20px; height: 20px; flex: none; }
+.mc-fb:hover { box-shadow: var(--mc-float-hi); }
+.mc-fb:active { scale: .94; transition-duration: .06s; }
+.mc-fb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mc-fb--round { width: 44px; padding: 0; }
+.mc-fb.is-on { background: var(--pri-bg); color: var(--pri-fg); }
+.mc-fb--back:not(:has(.mc-fb__n)) { width: 44px; padding: 0; }
+.mc-fb__n {
+  min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 999px;
+  background: var(--ink); color: var(--bg); font: 500 12px/22px var(--font-geist-sans), "Geist", system-ui, sans-serif; text-align: center;
+}
+
+/* the helper: mascot in a round chip, name in a small pill with a muted chevron, one muted status line */
+.mc-hdr--center .mc-tt { gap: 6px; }
+.mc-hdr--center .mc-tt__b { gap: 6px; }
+.mc-tt__chip {
+  width: 60px; height: 60px; display: grid; place-items: center; flex: none; border-radius: 50%;
+  background: var(--mc-float-bg); box-shadow: var(--mc-float);
+}
+.mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face,
+.mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face .mimi-helper,
+.mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face > svg { width: 46px; height: 46px; }
+.mc-tt__chip.is-working { animation: mc-chipwork 2.2s ease-in-out infinite; }
+@keyframes mc-chipwork {
+  0%, 100% { transform: scale(1); box-shadow: var(--mc-float); }
+  50% { transform: scale(1.04); box-shadow: var(--mc-float-hi); }
+}
+.mc-hdr--center .mc-tt__nm {
+  padding: 0 8px 0 12px; height: 28px; gap: 2px; border-radius: 999px; background: var(--mc-float-bg); box-shadow: var(--mc-float);
+}
+.mc-hdr--center .mc-tt__t { color: var(--ink); }
+.mc-hdr--center .mc-tt__c { width: 13px; height: 13px; color: var(--muted); }
+.mc-hdr--center .mc-tt__b:hover .mc-tt__nm { box-shadow: var(--mc-float-hi); }
+.mc-hdr--center .mc-tt__b:focus-visible { outline: 0; }
+.mc-hdr--center .mc-tt__b:focus-visible .mc-tt__nm { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mc-hdr--center .mc-tt__s { height: 16px; font-size: 11.5px; color: var(--muted); }
+.mc-hdr--center .mc-tt__s.is-busy .mc-tt__st { color: var(--soft); }
+.mc-hdr--center .mc-menu--l { top: calc(100% + 8px); border: 0; box-shadow: var(--mc-float-hi); background: var(--mc-float-bg); border-radius: 14px; }
+.mc-tv .mc-hdr--center ~ .mc-feed .mc-fi { padding-top: 156px; }
+
+@media (max-width: 899px) {
+  .mc-hdr.mc-hdr--center { padding: calc(6px + env(safe-area-inset-top)) 10px 8px; background: none; }
+  .mc-hdr--center .mc-hdr__l, .mc-hdr--center .mc-hdr__r { padding-top: 8px; }
+  .mc-tt__chip { width: 62px; height: 62px; }
+  .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face,
+  .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face .mimi-helper,
+  .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face > svg { width: 48px; height: 48px; }
+  .mc-tv .mc-hdr--center ~ .mc-feed .mc-fi { padding-top: calc(158px + env(safe-area-inset-top)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-app .mc-tt__chip.is-working { animation: none !important; transform: none; }
+  .mc-fb, .mc-fb:active { transition: none; scale: none; }
+}

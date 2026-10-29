@@ -7,6 +7,7 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo, findConversation } from "@/features/console/demo/store";
 import type { Message, PlanItemState, WorkDetail, WorkPlan } from "@/features/console/demo/types";
+import { consoleThread } from "@/features/console/config";
 import { cx } from "@/lib/cx";
 
 /**
@@ -283,7 +284,8 @@ const planWord: Record<PlanItemState, string> = { done: "Done", run: "Working", 
 export function PlanStrip({ slug }: { slug: string }) {
   const plan = useDemo((s) => findConversation(s, slug)?.plan);
   const [open, setOpen] = useState(false);
-  if (!plan?.items.length) return null;
+  // the pinned checklist is part of the work trail: hidden in the clean iMessage reading
+  if (!consoleThread.showWork || !plan?.items.length) return null;
   return <Strip plan={plan} open={open} setOpen={setOpen} />;
 }
 

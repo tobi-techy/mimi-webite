@@ -26,6 +26,8 @@ import {
 } from "@/features/console/demo/engine";
 import { cardActions, tierOf } from "@/features/console/demo/needs";
 import { helperNames, reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
+import { consoleThread } from "@/features/console/config";
+import { liveWork, visibleMessages } from "@/features/console/lib/thread-view";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
@@ -516,8 +518,14 @@ const boxOf = (el: HTMLElement) => {
   return { top: b.top, left: b.left, width: b.width, height: b.height };
 };
 
-export function MessageFeed({ slug, messages, typing }: { slug: string; messages: Message[]; typing: Speaker | null }) {
+export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: string; messages: Message[]; typing: Speaker | null }) {
   const ctx = { slug };
+  /* iMessage reading (consoleThread.showWork off): no reasoning or step lines, just bubbles and cards,
+     with typing dots while the helper writes or works (the header carries the one-line status) */
+  const showWork = consoleThread.showWork;
+  const messages = useMemo(() => visibleMessages(all, showWork), [all, showWork]);
+  const busy = showWork ? null : (liveWork(all)?.who as Speaker | undefined);
+  const typing: Speaker | null = typingIn ?? busy ?? null;
   const [layer, setLayer] = useState<LayerState | null>(null);
   const close = useCallback(() => {
     setLayer((cur) => {
@@ -606,6 +614,7 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
       };
       body = (
         <ReactTarget
+          id={m.id}
           kind={m.kind}
           side={me ? "right" : "left"}
           label={`${kindName[m.kind]} from ${me ? "you" : who}: ${plainOf(m).slice(0, 80)}`}
@@ -645,9 +654,15 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   if (typing && typing !== "me") {
     const prev = speakerBefore(messages.length);
     items.push(
-      <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
-        <Working who={typing} slug={slug} />
-      </Row>,
+      showWork ? (
+        <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
+          <Working who={typing} slug={slug} />
+        </Row>
+      ) : (
+        <Row key="typing" at={-1} kind="them" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
+          <TypingDots who={typing} />
+        </Row>
+      ),
     );
   }
   const target = layer ? messages.find((x) => x.id === layer.id) : undefined;
@@ -663,6 +678,7 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
         reactions={target.reactions ?? []}
         copyText={plainOf(target)}
         speaker={who === "me" ? "You" : who}
+        at={target.at}
         onClose={close}
         copy={
           <div className={cx("mc-rx", `mc-rx--${target.kind}`, !!target.reactions?.length && "has-rx")}>{bodyOf(target, ctx, who !== after)}</div>
@@ -673,8 +689,19 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   return <>{items}</>;
 }
 
+/** iMessage typing indicator: three dots in a reply-grey bubble with a tail. */
+function TypingDots({ who }: { who: Exclude<Speaker, "me"> }) {
+  return (
+    <div className="mc-typd" role="status" aria-live="polite" aria-label={`${who} is typing`}>
+      <i />
+      <i />
+      <i />
+    </div>
+  );
+}
+
 /**
- * While a helper works: a live work-step line instead of a loader ("Reply → writing · 0.8s"),
+ * While a helper works (consoleThread.showWork on): a live work-step line instead of a loader ("Reply → writing · 0.8s"),
  * the same grey tool → result · time shape as finished steps. No dots, no "is working".
  */
 function Working({ who, slug }: { who: Exclude<Speaker, "me">; slug: string }) {

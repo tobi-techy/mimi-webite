@@ -14,7 +14,9 @@ import { useLive } from "@/features/console/api/live-store";
 import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
 import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { consoleRoutes, helperHref } from "@/features/console/config";
+import { consoleRoutes, consoleThread, helperHref } from "@/features/console/config";
+import { needItems } from "@/features/console/demo/needs";
+import { liveWork, statusLine } from "@/features/console/lib/thread-view";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   DEMO_SLUG,
@@ -294,6 +296,13 @@ export function ThreadChat({ slug }: { slug: string }) {
   }
 
   const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
+  /* Grok Bot reading: the header carries what the helper is doing in one line ("Checking Ikeja payments…"),
+     taken from the live work line the thread no longer shows */
+  const live = consoleThread.showWork ? null : liveWork(conv.messages);
+  const writing = (typing && typing !== "me") || conv.status === "typing";
+  const statusText = live ? statusLine(live, "") : writing ? "Writing the reply…" : conv.status;
+  /* the back pill's badge: things waiting on you in other threads (the console has no unread count) */
+  const elsewhere = needItems(conversations).filter((n) => n.status === "needs" && n.conv.slug !== slug).length;
   /* the header face follows the helper's real state: working while a task runs, waiting on an approval, a done pop when it finishes */
   const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper);
   /* one conversation per helper: every task she has worked on, the open one last */
@@ -314,8 +323,17 @@ export function ThreadChat({ slug }: { slug: string }) {
         {/* iMessage-style header (29 Oct 2026): menu left, the helper's face + name centred, actions right */}
         <header className="mc-hdr mc-hdr--title mc-hdr--center">
           <div className="mc-hdr__l">
-            <button className="mc-gb mc-gb--icon mc-show-phone" type="button" aria-label="Open menu" onClick={toggleSidebar}>
-              <Icon name="menu" />
+            <button
+              className="mc-fb mc-fb--back"
+              type="button"
+              aria-label={`Back to threads${elsewhere ? `, ${elsewhere} waiting on you` : ""}`}
+              onClick={() => {
+                if (window.matchMedia("(max-width: 899px)").matches) toggleSidebar();
+                else router.push(consoleRoutes.threads);
+              }}
+            >
+              <Icon name="chevron-left" />
+              {elsewhere > 0 && <span className="mc-fb__n">{elsewhere > 99 ? "99+" : elsewhere}</span>}
             </button>
           </div>
           <div className="mc-more mc-tt">
@@ -327,21 +345,40 @@ export function ThreadChat({ slug }: { slug: string }) {
                 title={`${conv.helper} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <HelperFace name={conv.helper} size={60} state={face.state} dot={face.needs > 0} />
+                <span className={cx("mc-tt__chip", (live || writing || face.state === "working") && "is-working")}>
+                  <HelperFace name={conv.helper} size={60} state={live || writing ? "working" : face.state} dot={face.needs > 0} />
+                </span>
                 <span className="mc-tt__nm">
                   <span className="mc-tt__t">{conv.helper}</span>
-                  <Icon name="chevron-down" className="i mc-tt__c" />
+                  <Icon name="chevron-right" className="i mc-tt__c" />
                 </span>
               </button>
-              <p className="mc-tt__s" aria-live="polite">
-                <span className="mc-tt__h mc-tt__job">{job}</span>
-                {conv.working && <i className="mc-spin" aria-hidden="true" />}
-                <span key={conv.status} className="mc-tt__st">
-                  {(typing && typing !== "me") || conv.status === "typing" ? "writing the reply" : conv.status}
+              <p className={cx("mc-tt__s", (live || writing) && "is-busy")} aria-live="polite">
+                {live || writing || !statusText ? null : <span className="mc-tt__h mc-tt__job">{job}</span>}
+                <span key={statusText} className="mc-tt__st" title={statusText}>
+                  {statusText || job}
                 </span>
               </p>
               {menu && (
             <div className="mc-menu mc-menu--l" role="menu">
+              <Link role="menuitem" href={helperHref(conv.helper)} onClick={() => setMenu(false)}>
+                <Icon name="users" />
+                About {conv.helper}
+              </Link>
+              <Link
+                role="menuitem"
+                href={consoleRoutes.home}
+                onClick={(e) => {
+                  setMenu(false);
+                  if (conv.helper !== "Mimi") return;
+                  e.preventDefault();
+                  document.querySelector<HTMLTextAreaElement>(".mc-cmp textarea")?.focus();
+                }}
+              >
+                <Icon name="plus" />
+                New: ask Mimi
+              </Link>
+              <hr />
               <button
                 role="menuitem"
                 type="button"
@@ -433,30 +470,14 @@ export function ThreadChat({ slug }: { slug: string }) {
             )}
             <button
               type="button"
-              className={cx("mc-gb mc-gb--icon", panelOpen && "is-on")}
+              className={cx("mc-fb mc-fb--round", panelOpen && "is-on")}
               aria-pressed={panelOpen}
               aria-label="Workspace panel"
+              title="Workspace panel"
               onClick={togglePanel}
             >
               <Icon name="panel-right-open" />
             </button>
-            <Link className="mc-gb mc-gb--icon mc-hide-phone" href={helperHref(conv.helper)} aria-label={`${conv.helper}'s routines and cost`} title={`${conv.helper}'s routines and cost`}>
-              <Icon name="calendar-clock" />
-            </Link>
-            <Link
-              className="mc-btn mc-btn--pri mc-new"
-              href={consoleRoutes.home}
-              aria-label="New: ask Mimi"
-              title="Ask Mimi to start something new"
-              onClick={(e) => {
-                if (conv.helper !== "Mimi") return;
-                e.preventDefault();
-                document.querySelector<HTMLTextAreaElement>(".mc-cmp textarea")?.focus();
-              }}
-            >
-              <Icon name="plus" />
-              <span className="mc-new__t">New</span>
-            </Link>
           </div>
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>

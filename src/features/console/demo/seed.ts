@@ -1,6 +1,7 @@
 import { seedAutomationsList } from "@/features/console/content/automations";
 import { archiveConversations } from "@/features/console/demo/seed-archive";
 import { answerConversations, answerDocs, hypoOpening } from "@/features/console/demo/seed-answers";
+import { splitLongReplies } from "@/features/console/lib/thread-view";
 import type {
   CardRow,
   ComputerState,
@@ -17,7 +18,7 @@ import type {
 } from "@/features/console/demo/types";
 
 /** Sample data for the Coral Lane Trading demo. Times are Lagos time on Fri 23 Oct 2026. */
-export const DEMO_VERSION = 9;
+export const DEMO_VERSION = 10;
 export const owner = { name: "Emeka Obi", first: "Emeka", initials: "EO", company: "Coral Lane Trading" };
 
 const T = (h: number, m: number) => new Date(2026, 9, 23, h, m).getTime();
@@ -311,7 +312,7 @@ const simple = (helper: HelperName, lines: [from: "me" | HelperName, text: strin
 
 export const seedConversations = (): Conversation[] => {
   const [first, ...rest] = liveConversations();
-  return [first!, ...answerConversations(), ...rest, ...archiveConversations()].map(withEvents);
+  return [first!, ...answerConversations(), ...rest, ...archiveConversations()].map(withEvents).map((c) => ({ ...c, messages: splitLongReplies(c.messages) }));
 };
 
 /** Seeded system events (centred grey lines), placed relative to a message in the thread. */
