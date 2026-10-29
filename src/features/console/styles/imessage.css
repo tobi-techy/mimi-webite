@@ -118,10 +118,12 @@
 }
 
 /* ---------- 2. clean threads: typing dots + iMessage rhythm ---------- */
+/* same box as a one-line reply bubble, so the message replaces the dots in place with no jump */
 .mc-typd {
-  display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 14px; box-sizing: border-box;
-  border-radius: 19px; border-bottom-left-radius: 6px; background: var(--msg-them-bg);
+  display: inline-flex; align-items: center; gap: 5px; height: calc(20px + 1.45em); padding: 0 14px; box-sizing: border-box; font-size: 14px;
+  border-radius: 16px; border-bottom-left-radius: 4px; background: var(--msg-them-bg);
 }
+@media (max-width: 899px) { .mc-typd { font-size: 15.5px; height: calc(20px + 1.4em); } }
 .mc-typd i { width: 8px; height: 8px; border-radius: 50%; background: var(--msg-them-color); opacity: .4; animation: mc-typd 1.25s ease-in-out infinite; }
 .mc-typd i:nth-child(2) { animation-delay: .16s; }
 .mc-typd i:nth-child(3) { animation-delay: .32s; }
@@ -246,7 +248,12 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 .mc-taskln:hover { color: var(--soft); }
 .mc-taskln:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .mc-taskln__st { font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; }
-.mc-taskln__st.is-run::before, .mc-qs__r.is-run .mc-qs__st::before {
+.mc-taskln__t, .mc-taskln__by { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-taskln__t { font-size: 13px; color: var(--soft); }
+.mc-taskln__by { margin-top: 2px; font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.mc-taskln__st.is-working, .mc-taskln__st.is-stuck { color: var(--soft); }
+/* "Needs you" is the one place the orange mark appears on a task */
+.mc-taskln__st.is-needs::before {
   content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 6px 1px 0; border-radius: 50%; background: var(--color-signal-orange); vertical-align: middle;
 }
 
@@ -273,49 +280,93 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 .mc-steer__x:hover { color: var(--ink); background: var(--tint2); }
 
 /* the sheets: the plan sheet's surface, quiet inside */
-.mc-qs { width: min(480px, calc(100% - 32px)); }
-.mc-qs__h { display: flex; align-items: flex-start; gap: 16px; padding: 8px 24px 16px; border-bottom: 1px solid var(--line); }
-.mc-qs__h > div { flex: 1; min-width: 0; }
-.mc-qs__l, .mc-qs__st, .mc-qs__x, .mc-qs__rb {
+.mc-qsh { width: min(480px, calc(100% - 32px)); }
+.mc-qsh__h { display: flex; align-items: flex-start; gap: 16px; padding: 8px 24px 16px; border-bottom: 1px solid var(--line); }
+.mc-qsh__h > div { flex: 1; min-width: 0; }
+.mc-qsh__l, .mc-qsh__st, .mc-qsh__x, .mc-qsh__rb {
   font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
 }
-.mc-qs__l { margin: 0 0 6px; }
-.mc-qs__t { margin: 0; font-size: 16px; line-height: 1.3; color: var(--ink); letter-spacing: -0.01em; }
-.mc-qs__s { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
-.mc-qs__x, .mc-qs__rb { flex: none; height: 32px; padding: 0 8px; border: 0; background: none; border-radius: var(--radius-sm); cursor: pointer; }
-.mc-qs__x:hover, .mc-qs__rb:hover { color: var(--ink); background: var(--tint2); }
-.mc-qs__x:focus-visible, .mc-qs__rb:focus-visible, .mc-qs__a:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-.mc-qs__b { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 24px 16px; }
-.mc-qs__list { list-style: none; margin: 0; padding: 0; }
-.mc-qs__r { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 8px 0; box-sizing: border-box; }
-.mc-qs__r + .mc-qs__r { border-top: 1px solid var(--line); }
-.mc-qs__tx { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; color: var(--soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mc-qs__r.is-run .mc-qs__tx { color: var(--ink); }
-.mc-qs__st { flex: none; }
-.mc-qs__none { margin: 0; padding: 24px 0; font-size: 13px; color: var(--muted); }
-.mc-qs__in {
+.mc-qsh__l { margin: 0 0 6px; }
+.mc-qsh__t { margin: 0; font-size: 16px; line-height: 1.3; color: var(--ink); letter-spacing: -0.01em; }
+.mc-qsh__s { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.mc-qsh__x, .mc-qsh__rb { flex: none; height: 32px; padding: 0 8px; border: 0; background: none; border-radius: var(--radius-sm); cursor: pointer; }
+.mc-qsh__x:hover, .mc-qsh__rb:hover { color: var(--ink); background: var(--tint2); }
+.mc-qsh__x:focus-visible, .mc-qsh__rb:focus-visible, .mc-qsh__a:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.mc-qsh__b { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 24px 16px; }
+.mc-qsh__list { list-style: none; margin: 0; padding: 0; }
+.mc-qsh__r { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 8px 0; box-sizing: border-box; }
+.mc-qsh__r + .mc-qsh__r { border-top: 1px solid var(--line); }
+.mc-qsh__tx { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; color: var(--soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-qsh__r.is-run .mc-qsh__tx, .mc-qsh__r.is-run .mc-qsh__st { color: var(--ink); }
+/* pinned rules: outside the scrolling body, so they never scroll away */
+.mc-qsh__rules {
+  flex: none; margin: 0; padding: 10px 24px; border-bottom: 1px solid var(--line);
+  font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+}
+.mc-qsh__rules span { color: var(--soft); margin-right: 8px; }
+.mc-qsh__st { flex: none; }
+.mc-qsh__none { margin: 0; padding: 24px 0; font-size: 13px; color: var(--muted); }
+.mc-qsh__in {
   flex: 1; min-width: 0; height: 36px; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--hair); border-radius: var(--radius-sm);
   background: transparent; color: var(--ink); font: 400 14px/1 var(--font-geist-sans), "Geist", system-ui, sans-serif;
 }
-.mc-qs__in:focus { outline: 0; border-color: var(--ink); }
+.mc-qsh__in:focus { outline: 0; border-color: var(--ink); }
 /* Pause / Steer: one action per row */
-.mc-qs__acts { display: flex; flex-direction: column; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
-.mc-qs__a {
+.mc-qsh__acts { display: flex; flex-direction: column; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+.mc-qsh__a {
   display: flex; align-items: baseline; justify-content: space-between; gap: 16px; min-height: 52px; padding: 0 24px; border: 0; background: none;
   cursor: pointer; text-align: left; font: 400 14px/52px var(--font-geist-sans), "Geist", system-ui, sans-serif; color: var(--ink);
 }
-.mc-qs__a + .mc-qs__a { border-top: 1px solid var(--line); }
-.mc-qs__a small { font-size: 12px; color: var(--muted); }
-.mc-qs__a:hover { background: var(--tint); }
+.mc-qsh__a + .mc-qsh__a { border-top: 1px solid var(--line); }
+.mc-qsh__a small { font-size: 12px; color: var(--muted); }
+.mc-qsh__a:hover { background: var(--tint); }
 /* a task's own thread inside the sheet */
-.mc-qs__feed { padding: 0 16px; }
-.mc-qs .mc-fi.mc-qs__fi { max-width: none; padding: 16px 0 24px; margin: 0; }
+.mc-qsh__feed { padding: 0 16px; }
+.mc-qsh .mc-fi.mc-qsh__fi { max-width: none; padding: 16px 0 24px; margin: 0; }
 
 @media (max-width: 899px) {
-  .mc-qs { width: 100%; }
-  .mc-qs__h, .mc-qs__b { padding-inline: 16px; }
-  .mc-qs__a { padding-inline: 16px; min-height: 56px; line-height: 56px; }
+  .mc-qsh { width: 100%; }
+  .mc-qsh__h, .mc-qsh__b, .mc-qsh__rules { padding-inline: 16px; }
+  .mc-qsh__a { padding-inline: 16px; min-height: 56px; line-height: 56px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mc-app .mc-qs { animation: mc-fade .16s ease-out both !important; }
+  .mc-app .mc-qsh { animation: mc-fade .16s ease-out both !important; }
 }
+
+/* ---------- 7. Mimi's orange identity (Tobi, 29 Oct 2026; the one exception to "orange only for status") ----------
+ * Mimi's reply bubbles (and her typing dots) are a deeper Mimi orange with white text: #c2410c,
+ * 5.18:1 for white text, the same in light and dark. #ee6018 stays for her marks: the mascot chip
+ * ring and the dot in her name chip. Other helpers keep the neutral grey bubbles; your bubbles stay
+ * neutral. "Needs you" stays a 6px #ee6018 dot, never a fill, so it never reads as a Mimi bubble. */
+.mc-app { --mimi-bubble: #c2410c; --mimi-ink: #ffffff; --mimi-mark: var(--color-signal-orange); }
+.mc-grp[data-from="Mimi"], .mc-rxl__lift[data-from="Mimi"] { --msg-them-bg: var(--mimi-bubble); --msg-them-color: var(--mimi-ink); }
+.mc-grp[data-from="Mimi"] .mc-b--them a, .mc-rxl__lift[data-from="Mimi"] .mc-b--them a { color: var(--mimi-ink); text-decoration-thickness: 1px; }
+.mc-grp[data-from="Mimi"] .mc-b--them a:focus-visible { outline-color: var(--mimi-ink); }
+.mc-grp[data-from="Mimi"] .mc-b--them ::selection { background: rgba(255, 255, 255, .3); color: var(--mimi-ink); }
+.mc-grp[data-from="Mimi"] .mc-typd i { background: var(--mimi-ink); opacity: .7; }
+.mc-grp[data-from="Mimi"] .mc-typd i { animation-name: mc-typd-mimi; }
+@keyframes mc-typd-mimi { 0%, 60%, 100% { transform: translateY(0); opacity: .75; } 30% { transform: translateY(-3px); opacity: 1; } }
+/* her marks */
+.mc-tt__chip.is-mimi { border-color: var(--mimi-mark); }
+.mc-hdr--center .mc-tt__nm.is-mimi::before {
+  content: ""; width: 6px; height: 6px; margin-right: 6px; flex: none; border-radius: 50%; background: var(--mimi-mark);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-grp[data-from="Mimi"] .mc-typd i { animation: none; opacity: .85; }
+}
+
+/* ---------- 8. bigger helpers (Tobi, 29 Oct 2026: "helpers look too small") ----------
+ * Sidebar team rows: 38px faces, 15px Geist 500 names, rows scaled to match (min 60px). Collapsed
+ * rail: 36px faces in 44px targets. Above a bubble group: a 32px face and the name in 13px Geist
+ * Mono (soft grey, 9:1 dark / 10.8:1 light). The header mascot chip stays 60-62px. One line each,
+ * ellipsis instead of wrapping (375px phones). */
+.mc-ro .mc-face, .mc-ro .mc-face > svg, .mc-ro .mc-face .mimi-helper { width: 38px; height: 38px; }
+.mc-side__team .mc-ro { min-height: 60px; gap: 12px; padding: 8px 10px; align-items: center; }
+.mc-ro__n { font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: -0.01em; }
+.mc-rail .mc-pin { width: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; }
+.mc-rail .mc-pin .mc-face, .mc-rail .mc-pin .mc-face > svg, .mc-rail .mc-pin .mc-face .mimi-helper { width: 36px; height: 36px; }
+.mc-tv .mc-mh { height: 32px; gap: 10px; margin-bottom: 8px; min-width: 0; font-size: 13px; line-height: 1; letter-spacing: .02em; }
+.mc-tv .mc-mh .mc-face, .mc-tv .mc-mh .mc-face svg, .mc-tv .mc-mh .mc-face .mimi-helper { width: 32px; height: 32px; flex: none; }
+.mc-tv .mc-mh__n { color: var(--soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-height: 760px) { .mc-side__team .mc-ro { min-height: 54px; padding-block: 6px; } }
+@media (max-width: 899px) { .mc-side__team .mc-ro { min-height: 60px; } }

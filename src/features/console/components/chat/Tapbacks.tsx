@@ -438,6 +438,7 @@ export function ReactionLayer({
       <div className="mc-rxl__dim" {...dimProps} />
       <div
         className={cx("mc-rxl__lift", state.me && "mc-rxl__lift--me")}
+        data-from={state.me ? undefined : speaker}
         style={{ top, left: r.left, width: r.width }}
         inert
         aria-hidden="true"

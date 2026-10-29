@@ -38,7 +38,7 @@ import type {
   Tone,
 } from "@/features/console/demo/types";
 import { reactableKinds } from "@/features/console/demo/types";
-import { splitReply } from "@/features/console/lib/thread-view";
+import { splitReply, typingMs } from "@/features/console/lib/thread-view";
 import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 import { consoleRoutes, threadHref } from "@/features/console/config";
@@ -208,15 +208,18 @@ function setTyping(slug: string, who: Speaker | null) {
 }
 
 /**
- * Typing dots, a natural pause, then the message. A long helper reply goes out as 2–3 short
- * consecutive bubbles (Grok Bot style: never a wall of text), each after its own short typing pause.
+ * Typing dots, a natural pause, then the message (live and replayed demo messages only; history
+ * renders at once). A long helper reply goes out as 2–3 short consecutive bubbles (Grok Bot style:
+ * never a wall of text), each after its own typing dots.
  */
 async function say(slug: string, from: Speaker, text: string, ep: number, pause?: number): Promise<boolean> {
   const parts = from === "me" ? [text] : splitReply(text);
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i]!;
     setTyping(slug, from);
-    const ms = i === 0 ? (pause ?? Math.min(1700, 600 + part.length * 14) * consoleMotion.pace) : Math.min(1100, 420 + part.length * 8) * consoleMotion.pace;
+    /* dots before every bubble, each one in a run too: 600–1400ms by length (cap 1.6s), 300ms for reduced motion */
+    const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const ms = i === 0 && pause !== undefined ? pause : typingMs(part, consoleMotion.pace, reduced);
     if (!(await wait(ms, ep))) return false;
     setTyping(slug, null);
     push(slug, { kind: "text", from, text: part, at: Date.now() });

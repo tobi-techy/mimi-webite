@@ -124,7 +124,7 @@ export function splitLongReplies<T extends { kind: string }>(list: T[]): T[] {
 export function chatterRuns(list: Line[], min = 3): { start: number; count: number; names: string[] }[] {
   const out: { start: number; count: number; names: string[] }[] = [];
   const chatter = (m: Line) => m.kind === "text" && !!m.from && m.from !== "me" && m.from !== "Mimi";
-  for (let i = 0; i < list.length; ) {
+  for (let i = 0; i < list.length;) {
     if (!chatter(list[i]!)) {
       i++;
       continue;
@@ -156,3 +156,73 @@ export function stepLine(text: string): string {
 
 /** Window event the Steps sheet fires so the composer shows "Steering: <task>" and takes focus. */
 export const STEER_EVENT = "mc:steer";
+
+/* ---------- task state, proof and who touched it last (Lovin thread replies, 29 Oct 2026) ---------- */
+
+export type TaskState = "working" | "waiting" | "needs" | "stuck" | "done" | "idle";
+export const taskStateLabel: Record<TaskState, string> = {
+  working: "Working",
+  waiting: "Waiting",
+  needs: "Needs you",
+  stuck: "Stuck",
+  done: "Done",
+  idle: "Idle",
+};
+
+type TaskLike = {
+  state: string;
+  messages: {
+    kind: string;
+    from?: string;
+    live?: boolean;
+    state?: string;
+    variant?: string;
+    card?: { status?: string };
+  }[];
+};
+
+/**
+ * One state per task: working while a step or reasoning is live, needs you while a card or gate
+ * waits on the owner, stuck when the newest step failed and nothing came after, done when finished,
+ * waiting when the task is open but nobody is working on it right now.
+ */
+export function taskState(c: TaskLike): TaskState {
+  const ms = c.messages;
+  if (ms.some((m) => (m.kind === "thought" && m.live) || (m.kind === "step" && m.state === "run")))
+    return "working";
+  if (
+    ms.some(
+      (m) =>
+        (m.kind === "card" && m.card?.status === "needs") ||
+        (m.kind === "step" && m.variant === "gate" && m.state === "wait"),
+    )
+  )
+    return "needs";
+  const last = [...ms].reverse().find((m) => m.kind !== "date" && m.kind !== "event");
+  if (last?.kind === "step" && last.state === "failed") return "stuck";
+  if (c.state === "done") return "done";
+  if (c.state === "needs") return "needs";
+  if (c.state === "run") return "waiting";
+  return "idle";
+}
+
+/** The finish line for a done task: its proof, or "Check needed" when it stopped without one. */
+export function finishLine(state: TaskState, proof?: string): string | null {
+  if (state !== "done") return null;
+  return proof?.trim() ? proof.trim() : "Check needed";
+}
+
+/** Who last changed the task (the newest helper or Mimi message), for "Updated by Collector · 2m". */
+export function updatedBy(c: TaskLike): string | null {
+  for (let i = c.messages.length - 1; i >= 0; i--) {
+    const f = c.messages[i]!.from;
+    if (f && f !== "me") return f;
+  }
+  return null;
+}
+
+/** How long the typing dots show before a helper message: 600–1400ms by length, capped at 1.6s. */
+export function typingMs(text: string, pace = 1, reduced = false): number {
+  if (reduced) return 300;
+  return Math.round(Math.min(1600, Math.max(600, 520 + text.length * 8)) * pace);
+}

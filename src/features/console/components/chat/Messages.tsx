@@ -818,7 +818,7 @@ function Row({
       <div id={id ? `m-${id}` : undefined} className={cx("mc-grp mc-grp--them mc-grp--work", turn && "mc-grp--turn", anim && "mc-in")}>
         {showName && who && who !== "me" && (
           <p className="mc-mh">
-            <HelperFace name={who} size={18} state={face} quiet />
+            <HelperFace name={who} size={32} state={face} quiet />
             <span className="mc-mh__n">{who}</span>
           </p>
         )}
@@ -830,10 +830,11 @@ function Row({
       id={id ? `m-${id}` : undefined}
       className={cx("mc-grp", kind === "me" ? "mc-grp--me" : "mc-grp--them", wide && "mc-grp--answer", turn && "mc-grp--turn", anim && "mc-in")}
       data-tail={tail || undefined}
+      data-from={kind === "them" && who ? who : undefined}
     >
       {showName && who && who !== "me" && (
         <p className="mc-mh">
-          <HelperFace name={who} size={18} state={face} quiet />
+          <HelperFace name={who} size={32} state={face} quiet />
           <span className="mc-mh__n">{who}</span>
         </p>
       )}

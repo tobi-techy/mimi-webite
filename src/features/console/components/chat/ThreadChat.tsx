@@ -17,7 +17,7 @@ import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes, consoleThread, helperHref } from "@/features/console/config";
 import { needItems } from "@/features/console/demo/needs";
-import { liveWork, statusLine } from "@/features/console/lib/thread-view";
+import { liveWork, statusLine, taskState, taskStateLabel, updatedBy } from "@/features/console/lib/thread-view";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   DEMO_SLUG,
@@ -113,12 +113,29 @@ function TaskSection({
 }) {
   const label = labelOf(c);
   const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
+  const by = updatedBy(c);
   return (
     <div className={cx("mc-task", open && "is-open")} id={`task-${c.slug}`} data-task={c.slug}>
       {label !== prevLabel && <DateLine label={label} />}
       {/* each long job reads as one quiet task line; tapping it opens that task's own thread */}
-      <button type="button" className="mc-ev mc-ev--task mc-taskln" aria-haspopup="dialog" onClick={() => onTask(c.slug)}>
-        {c.title} · <span className={cx("mc-taskln__st", c.state === "run" && "is-run")}>{taskWord(c)}</span>
+      <button
+        type="button"
+        className="mc-ev mc-ev--task mc-taskln"
+        aria-haspopup="dialog"
+        title={`${c.title} · ${taskWord(c)}${by ? ` · Updated by ${by} · ${c.ago}` : ""}`}
+        onClick={() => onTask(c.slug)}
+      >
+        <span className="mc-taskln__t">{c.title}</span>
+        {/* state (with the proof when done), then who changed it last: one line, cut at the end on small phones */}
+        <span className="mc-taskln__by">
+          <span className={cx("mc-taskln__st", `is-${taskState(c)}`)}>{taskWord(c)}</span>
+          {by && (
+            <>
+              {" "}
+              · Updated by {by} · {c.ago}
+            </>
+          )}
+        </span>
       </button>
       {rest.length === 0 && !typing ? (
         open ? (
@@ -307,7 +324,15 @@ export function ThreadChat({ slug }: { slug: string }) {
      taken from the live work line the thread no longer shows */
   const live = consoleThread.showWork ? null : liveWork(conv.messages);
   const writing = (typing && typing !== "me") || conv.status === "typing";
-  const statusText = live ? statusLine(live, "") : writing ? "Writing the reply…" : conv.status;
+  /* one state for the open task: Working / Waiting / Needs you / Stuck / Done next to the status */
+  const tstate = taskState(conv);
+  const statusText = live
+    ? statusLine(live, "")
+    : writing
+      ? "Writing the reply…"
+      : tstate === "needs" || tstate === "stuck"
+        ? `${taskStateLabel[tstate]}${conv.status ? ` · ${conv.status}` : ""}`
+        : conv.status;
   /* the back pill's badge: things waiting on you in other threads (the console has no unread count) */
   const elsewhere = needItems(conversations).filter((n) => n.status === "needs" && n.conv.slug !== slug).length;
   /* the header face follows the helper's real state: working while a task runs, waiting on an approval, a done pop when it finishes */
@@ -352,10 +377,15 @@ export function ThreadChat({ slug }: { slug: string }) {
                 title={`${conv.helper} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <span className={cx("mc-tt__chip", (live || writing || face.state === "working") && "is-working")}>
-                  <HelperFace name={conv.helper} size={60} state={live || writing ? "working" : face.state} dot={face.needs > 0} />
+                <span className={cx("mc-tt__chip", conv.helper === "Mimi" && "is-mimi", (live || writing || face.state === "working") && "is-working")}>
+                  <HelperFace
+                    name={conv.helper}
+                    size={60}
+                    state={live || writing ? "working" : tstate === "stuck" ? "blocked" : tstate === "needs" ? "waiting" : face.state}
+                    dot={face.needs > 0 || tstate === "needs"}
+                  />
                 </span>
-                <span className="mc-tt__nm">
+                <span className={cx("mc-tt__nm", conv.helper === "Mimi" && "is-mimi")}>
                   <span className="mc-tt__t">{conv.helper}</span>
                   <Icon name="chevron-right" className="i mc-tt__c" />
                 </span>

@@ -80,7 +80,7 @@ function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
         }
       }}
     >
-      <HelperFace name={r.name} size={28} state={r.state} />
+      <HelperFace name={r.name} size={38} state={r.state} />
       <span className="mc-ro__tx">
         <span className="mc-ro__l1">
           <span className="mc-ro__n">{r.name}</span>
@@ -154,7 +154,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
               aria-label={`${r.name}, ${faceStateLabel[r.state].toLowerCase()}${r.needs ? `, ${r.needs} waiting on you` : ""}`}
               title={`${r.name} · ${r.step}`}
             >
-              <HelperFace name={r.name} size={28} dot={r.needs > 0} state={r.state} />
+              <HelperFace name={r.name} size={36} dot={r.needs > 0} state={r.state} />
             </Link>
           ))}
         </div>

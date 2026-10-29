@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MessageFeed } from "@/features/console/components/chat/Messages";
-import { memoryFor, type MemoryNote } from "@/features/console/content/memory";
+import { memoryFor, rulesFor, type MemoryNote } from "@/features/console/content/memory";
 import { pauseRun } from "@/features/console/demo/engine";
 import { runningIn } from "@/features/console/demo/roster";
 import { findConversation, useDemo } from "@/features/console/demo/store";
 import type { Conversation } from "@/features/console/demo/types";
-import { STEER_EVENT, stepLine } from "@/features/console/lib/thread-view";
+import {
+  STEER_EVENT,
+  finishLine,
+  stepLine,
+  taskState,
+  taskStateLabel,
+  updatedBy,
+} from "@/features/console/lib/thread-view";
 import { cx } from "@/lib/cx";
 
 /**
@@ -22,7 +29,19 @@ export function steerComposer(slug: string, task: string) {
   window.dispatchEvent(new CustomEvent(STEER_EVENT, { detail: { slug, task } }));
 }
 
-function Sheet({ label, title, sub, onClose, children }: { label: string; title: string; sub?: string; onClose: () => void; children: ReactNode }) {
+function Sheet({
+  label,
+  title,
+  sub,
+  onClose,
+  children,
+}: {
+  label: string;
+  title: string;
+  sub?: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
   const close = useRef<HTMLButtonElement>(null);
   const done = useRef(onClose);
   useEffect(() => {
@@ -41,15 +60,15 @@ function Sheet({ label, title, sub, onClose, children }: { label: string; title:
   return (
     <>
       <div className="mc-sheetbg" aria-hidden="true" onClick={onClose} />
-      <div className="mc-sheet mc-qs" role="dialog" aria-modal="true" aria-label={`${label}: ${title}`}>
+      <div className="mc-sheet mc-qsh" role="dialog" aria-modal="true" aria-label={`${label}: ${title}`}>
         <span className="mc-sheet__grab" aria-hidden="true" />
-        <div className="mc-qs__h">
+        <div className="mc-qsh__h">
           <div>
-            <p className="mc-qs__l">{label}</p>
-            <p className="mc-qs__t">{title}</p>
-            {sub && <p className="mc-qs__s">{sub}</p>}
+            <p className="mc-qsh__l">{label}</p>
+            <p className="mc-qsh__t">{title}</p>
+            {sub && <p className="mc-qsh__s">{sub}</p>}
           </div>
-          <button ref={close} type="button" className="mc-qs__x" onClick={onClose}>
+          <button ref={close} type="button" className="mc-qsh__x" onClick={onClose}>
             Close
           </button>
         </div>
@@ -59,7 +78,12 @@ function Sheet({ label, title, sub, onClose, children }: { label: string; title:
   );
 }
 
-const WORD: Record<string, string> = { run: "Running", done: "Done", wait: "Waiting on you", failed: "Failed" };
+const WORD: Record<string, string> = {
+  run: "Running",
+  done: "Done",
+  wait: "Waiting on you",
+  failed: "Failed",
+};
 
 /** The current task's steps, one line each, then Pause and Steer (one action per row). */
 export function StepsSheet({ slug, onClose }: { slug: string; onClose: () => void }) {
@@ -72,30 +96,39 @@ export function StepsSheet({ slug, onClose }: { slug: string; onClose: () => voi
   const lines: { id: string; text: string; state: string }[] = [];
   for (const m of conv.messages) {
     if (m.kind === "step") lines.push({ id: m.id, text: stepLine(m.text), state: m.state });
-    else if (m.kind === "thought" && m.live) lines.push({ id: m.id, text: "Thinking it through", state: "run" });
+    else if (m.kind === "thought" && m.live)
+      lines.push({ id: m.id, text: "Thinking it through", state: "run" });
   }
-  if (!lines.length && conv.plan) conv.plan.items.forEach((it, i) => lines.push({ id: `p${i}`, text: stepLine(it.label), state: it.state === "todo" ? "todo" : it.state }));
+  if (!lines.length && conv.plan)
+    conv.plan.items.forEach((it, i) =>
+      lines.push({ id: `p${i}`, text: stepLine(it.label), state: it.state === "todo" ? "todo" : it.state }),
+    );
   return (
-    <Sheet label="Steps" title={conv.title} sub={`${conv.helper} · ${running ? "working now" : conv.status || "idle"}`} onClose={onClose}>
-      <div className="mc-qs__b">
+    <Sheet
+      label="Steps"
+      title={conv.title}
+      sub={`${conv.helper} · ${running ? "working now" : conv.status || "idle"}`}
+      onClose={onClose}
+    >
+      <div className="mc-qsh__b">
         {lines.length ? (
-          <ol className="mc-qs__list">
+          <ol className="mc-qsh__list">
             {lines.map((l) => (
-              <li key={l.id} className={cx("mc-qs__r", `is-${l.state}`)}>
-                <span className="mc-qs__tx">{l.text}</span>
-                <span className="mc-qs__st">{WORD[l.state] ?? "Next"}</span>
+              <li key={l.id} className={cx("mc-qsh__r", `is-${l.state}`)}>
+                <span className="mc-qsh__tx">{l.text}</span>
+                <span className="mc-qsh__st">{WORD[l.state] ?? "Next"}</span>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="mc-qs__none">No steps on this task yet.</p>
+          <p className="mc-qsh__none">No steps on this task yet.</p>
         )}
       </div>
-      <div className="mc-qs__acts">
+      <div className="mc-qsh__acts">
         {running && (
           <button
             type="button"
-            className="mc-qs__a"
+            className="mc-qsh__a"
             onClick={() => {
               pauseRun(slug);
               onClose();
@@ -107,7 +140,7 @@ export function StepsSheet({ slug, onClose }: { slug: string; onClose: () => voi
         )}
         <button
           type="button"
-          className="mc-qs__a"
+          className="mc-qsh__a"
           onClick={() => {
             onClose();
             steerComposer(slug, conv.title);
@@ -121,14 +154,26 @@ export function StepsSheet({ slug, onClose }: { slug: string; onClose: () => voi
   );
 }
 
-/** One task's own thread (fresh context): just that task's messages. */
+/** One task's own thread (fresh context): pinned rules that never scroll away, then that task's messages. */
 export function TaskSheet({ c, onClose }: { c: Conversation; onClose: () => void }) {
   const typing = useDemo((s) => (s.typing?.slug === c.slug ? s.typing.who : null));
   const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
+  const rules = rulesFor(c.helper);
+  const by = updatedBy(c);
   return (
-    <Sheet label={`Task · ${taskWord(c)}`} title={c.title} sub={`${c.helper} · ${c.code}`} onClose={onClose}>
-      <div className="mc-qs__b mc-qs__feed">
-        <div className="mc-fi mc-qs__fi">
+    <Sheet
+      label={`Task · ${taskWord(c)}`}
+      title={c.title}
+      sub={by ? `Updated by ${by} · ${c.ago}` : undefined}
+      onClose={onClose}
+    >
+      {rules.length > 0 && (
+        <p className="mc-qsh__rules">
+          <span>Rules</span> {rules.join(" · ")}
+        </p>
+      )}
+      <div className="mc-qsh__b mc-qsh__feed">
+        <div className="mc-fi mc-qsh__fi">
           <MessageFeed slug={c.slug} messages={rest} typing={typing} />
         </div>
       </div>
@@ -136,8 +181,12 @@ export function TaskSheet({ c, onClose }: { c: Conversation; onClose: () => void
   );
 }
 
-export const taskWord = (c: Pick<Conversation, "state">) =>
-  c.state === "run" ? "running" : c.state === "needs" ? "needs you" : c.state === "done" ? "done" : "idle";
+/** "running", "needs you", "stuck", or "done · <proof>" ("done · check needed" without proof). */
+export const taskWord = (c: Pick<Conversation, "state" | "messages" | "proof">) => {
+  const st = taskState(c);
+  const fin = finishLine(st, c.proof);
+  return fin ? `${taskStateLabel[st]} · ${fin}` : taskStateLabel[st];
+};
 
 /** What the helper remembers about the business: each note edits in place; Forget lives in edit. */
 export function MemorySheet({ helper, onClose }: { helper: string; onClose: () => void }) {
@@ -150,15 +199,20 @@ export function MemorySheet({ helper, onClose }: { helper: string; onClose: () =
     setEditing(null);
   };
   return (
-    <Sheet label="What I remember" title={helper} sub="Notes I use on every task. Change or forget any of them." onClose={onClose}>
-      <div className="mc-qs__b">
+    <Sheet
+      label="What I remember"
+      title={helper}
+      sub="Notes I use on every task. Change or forget any of them."
+      onClose={onClose}
+    >
+      <div className="mc-qsh__b">
         {list.length ? (
-          <ul className="mc-qs__list">
+          <ul className="mc-qsh__list">
             {list.map((n) =>
               editing === n.id ? (
-                <li key={n.id} className="mc-qs__r mc-qs__r--edit">
+                <li key={n.id} className="mc-qsh__r mc-qsh__r--edit">
                   <input
-                    className="mc-qs__in"
+                    className="mc-qsh__in"
                     aria-label="Edit note"
                     value={draft}
                     autoFocus
@@ -171,12 +225,12 @@ export function MemorySheet({ helper, onClose }: { helper: string; onClose: () =
                       }
                     }}
                     onBlur={(e) => {
-                      if (!(e.relatedTarget as Element | null)?.closest?.(".mc-qs__fg")) save();
+                      if (!(e.relatedTarget as Element | null)?.closest?.(".mc-qsh__fg")) save();
                     }}
                   />
                   <button
                     type="button"
-                    className="mc-qs__rb mc-qs__fg"
+                    className="mc-qsh__rb mc-qsh__fg"
                     onClick={() => {
                       setList((l) => l.filter((x) => x.id !== n.id));
                       setEditing(null);
@@ -186,11 +240,11 @@ export function MemorySheet({ helper, onClose }: { helper: string; onClose: () =
                   </button>
                 </li>
               ) : (
-                <li key={n.id} className="mc-qs__r">
-                  <span className="mc-qs__tx">{n.text}</span>
+                <li key={n.id} className="mc-qsh__r">
+                  <span className="mc-qsh__tx">{n.text}</span>
                   <button
                     type="button"
-                    className="mc-qs__rb"
+                    className="mc-qsh__rb"
                     aria-label={`Edit: ${n.text}`}
                     onClick={() => {
                       setEditing(n.id);
@@ -204,7 +258,7 @@ export function MemorySheet({ helper, onClose }: { helper: string; onClose: () =
             )}
           </ul>
         ) : (
-          <p className="mc-qs__none">Nothing saved. {helper} starts fresh on every task.</p>
+          <p className="mc-qsh__none">Nothing saved. {helper} starts fresh on every task.</p>
         )}
       </div>
     </Sheet>

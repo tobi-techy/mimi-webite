@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { chatterRuns, joinNames, liveWork, splitLongReplies, splitReply, statusLine, stepLine, timeLabel, visibleMessages } from "./thread-view.ts";
+import {
+  chatterRuns,
+  finishLine,
+  joinNames,
+  liveWork,
+  splitLongReplies,
+  splitReply,
+  statusLine,
+  stepLine,
+  taskState,
+  timeLabel,
+  typingMs,
+  updatedBy,
+  visibleMessages,
+} from "./thread-view.ts";
 
 const feed = [
   { kind: "text", from: "me", text: "chase joy" },
@@ -87,4 +101,48 @@ test("helper-to-helper chatter folds into one row, Mimi and you never fold", () 
   assert.equal(joinNames(["Collector", "Credit"]), "Collector and Credit");
   assert.equal(joinNames(["A", "B", "C"]), "A, B and C");
   assert.equal(stepLine("Checking **Ikeja** `POS 2281`  payments"), "Checking Ikeja POS 2281 payments");
+});
+
+test("task state, a clear finish and who changed it last", () => {
+  const run = {
+    state: "run",
+    messages: [
+      { kind: "text", from: "me" },
+      { kind: "step", from: "Collector", state: "run" },
+    ],
+  };
+  assert.equal(taskState(run), "working");
+  assert.equal(
+    taskState({ state: "run", messages: [{ kind: "card", from: "Collector", card: { status: "needs" } }] }),
+    "needs",
+  );
+  assert.equal(
+    taskState({
+      state: "run",
+      messages: [{ kind: "step", from: "Proof", state: "failed" }, { kind: "event" }],
+    }),
+    "stuck",
+  );
+  assert.equal(taskState({ state: "run", messages: [{ kind: "text", from: "Collector" }] }), "waiting");
+  assert.equal(taskState({ state: "done", messages: [] }), "done");
+  assert.equal(finishLine("done", "Paid · 3 of 3 witnesses"), "Paid · 3 of 3 witnesses");
+  assert.equal(finishLine("done"), "Check needed");
+  assert.equal(finishLine("working", "x"), null);
+  assert.equal(
+    updatedBy({
+      state: "done",
+      messages: [
+        { kind: "text", from: "Collector" },
+        { kind: "text", from: "me" },
+      ],
+    }),
+    "Collector",
+  );
+});
+
+test("typing dots last 600-1400ms by length, capped at 1.6s, 300ms for reduced motion", () => {
+  assert.equal(typingMs("ok"), 600);
+  assert.ok(typingMs("x".repeat(80)) > 1000 && typingMs("x".repeat(80)) <= 1400);
+  assert.equal(typingMs("x".repeat(400)), 1600);
+  assert.equal(typingMs("x".repeat(400), 1, true), 300);
 });

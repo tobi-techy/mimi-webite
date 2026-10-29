@@ -309,6 +309,8 @@ export type Conversation = {
   preview: string;
   /** Reply chips offered under the newest helper message (the scripted, film-safe path). */
   replies?: Reply[];
+  /** What a finished task proves ("Paid · 3 of 3 witnesses"); done without it reads "Check needed". */
+  proof?: string;
   /** Live checklist pinned above the composer while the helper works through a job. */
   plan?: WorkPlan;
   messages: Message[];

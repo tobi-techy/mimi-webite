@@ -22,6 +22,8 @@ type Old = {
   askReactions?: Reaction[];
   lines: [from: HelperName | "Mimi", text: string][];
   replies?: Reply[];
+  /** The finish line's proof (done tasks without one read "Check needed"). */
+  proof?: string;
 };
 
 const OLD: Old[] = [
@@ -34,6 +36,7 @@ const OLD: Old[] = [
     code: "GEN-4",
     state: "done",
     status: "Order allowed",
+    proof: "Ledger checked · 2 of 2 helpers agree",
     ago: "3d",
     day: 20,
     dateLabel: "Tuesday 10:00 AM",
@@ -211,6 +214,7 @@ const OLD: Old[] = [
     code: "ONB-2",
     state: "done",
     status: "7 of 8 joined",
+    proof: "Joined · 7 of 8 WhatsApp replies",
     ago: "1w",
     day: 16,
     dateLabel: "Last Friday 3:00 PM",
@@ -225,6 +229,7 @@ const OLD: Old[] = [
     code: "ONB-3",
     state: "done",
     status: "46 signed",
+    proof: "Signed · 46 of 48 forms",
     ago: "1w",
     day: 16,
     dateLabel: "Last Friday 11:00 AM",
@@ -256,6 +261,7 @@ function build(o: Old): Conversation {
     ago: o.ago,
     preview: last.replace(/\*\*|==/g, ""),
     replies: o.replies,
+    proof: o.proof,
     messages,
   };
 }
