@@ -40,7 +40,7 @@ const OLD: Old[] = [
     askReactions: [{ by: "Proof", r: "like" }],
     lines: [
       ["Proof", "Checked all 9 alerts against the GTB statement."],
-      ["Proof", "**7 verified**, ==2 fake==. The fake ones were screenshots with no money behind them."],
+      ["Proof", "7 verified, 2 fake. The fake ones were screenshots with no money behind them."],
       ["Proof", "I've held the next order for both shops until cash lands."],
     ],
     replies: [{ label: "Which shops sent fake alerts?", step: "arc.fakes" }],
@@ -59,7 +59,7 @@ const OLD: Old[] = [
     ask: "Recover the old Idumota balances, 11 shops.",
     lines: [
       ["Collector", "Working through 11 Idumota shops, oldest balance first."],
-      ["Collector", "**₦612,000** recovered so far. 5 shops paid, 6 left."],
+      ["Collector", "₦612,000 recovered so far. 5 shops paid, 6 left."],
     ],
     replies: [{ label: "Any update?", step: "gen.update" }],
   },
@@ -94,7 +94,7 @@ const OLD: Old[] = [
     dateLabel: "Monday 9:00 AM",
     ask: "Collect from the Mushin route every Monday.",
     lines: [
-      ["Collector", "Monday run done: **₦1.9m** collected from 14 shops."],
+      ["Collector", "Monday run done: ₦1.9m collected from 14 shops."],
       ["Collector", "Every payment matched to GTB. Next run is Monday at 9am."],
     ],
   },
@@ -112,7 +112,7 @@ const OLD: Old[] = [
     ask: "Plan the restock for the Mushin route.",
     lines: [
       ["Stock", "Counting 22 Mushin shops from this week's orders."],
-      ["Stock", "So far: **312 cartons**, about ₦8.4m. I'll bring you the order before anything is placed."],
+      ["Stock", "So far: 312 cartons, about ₦8.4m. I'll bring you the order before anything is placed."],
     ],
     replies: [{ label: "Any update?", step: "gen.update" }],
   },
@@ -129,7 +129,7 @@ const OLD: Old[] = [
     dateLabel: "Wednesday 11:10 AM",
     ask: "Are we short on Peak Milk?",
     lines: [
-      ["Stock", "Yes. We're **140 cartons** short for next week."],
+      ["Stock", "Yes. We're 140 cartons short for next week."],
       ["Stock", "I checked 3 suppliers. Two can deliver by Friday."],
     ],
   },
@@ -273,7 +273,7 @@ function oshodi(): Conversation {
         kind: "text",
         from: "Collector",
         at: t(9, 0),
-        text: "6 Oshodi shops are past 7 days, **₦864,850** in all. Sent one polite WhatsApp reminder to each.",
+        text: "6 Oshodi shops are past 7 days, ₦864,850 in all. Sent one polite WhatsApp reminder to each.",
         reactions: [
           { by: "Iya Tunde Stores", r: "like" },
           { by: "Mama Chidinma", r: "heart" },
@@ -294,7 +294,7 @@ function oshodi(): Conversation {
         verdict: "verified",
       },
       { id: id(), kind: "text", from: "Collector", at: t(9, 44), text: "Mama Chidinma will pay today. Alhaji Musa promised Friday. Ade & Kemi haven't replied, I'll remind them Friday." },
-      { id: id(), kind: "text", from: "Collector", at: t(9, 50), text: "Blessing Supermart asked to split ==₦312,750== into weekly payments." },
+      { id: id(), kind: "text", from: "Collector", at: t(9, 50), text: "Blessing Supermart asked to split ₦312,750 into weekly payments." },
       {
         id: id(),
         kind: "card",

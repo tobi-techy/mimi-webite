@@ -786,14 +786,14 @@ async function joyCheck(slug: string, ep: number) {
       if (!(await wait(500, ep))) return;
       toggleFan(slug, fan.id);
     }
-    if (!(await say(slug, "Proof", "Joy sent photos of the POS slip. ==Self-reported== until it lands in GTB.", ep))) return;
+    if (!(await say(slug, "Proof", "Joy sent photos of the POS slip. Self-reported until it lands in GTB.", ep))) return;
   }
   await proofCheck(slug, ep, "both");
   if (!alive(ep)) return;
   const plan = pendingCard(slug, "plan");
   if (plan) {
     const live = plan.card.rows.filter((r) => r.tone !== "Skip");
-    if (!(await say(slug, "Collector", `Updated the plan: ${live.length} shops, **${naira(liveTotal(plan.card.rows))}**. Kola Mart stays on Firm.`, ep))) return;
+    if (!(await say(slug, "Collector", `Updated the plan: ${live.length} shops, ${naira(liveTotal(plan.card.rows))}. Kola Mart stays on Firm.`, ep))) return;
     waiting(slug);
     offer(slug, planReplies(true));
   }

@@ -62,3 +62,40 @@ html[data-theme="dark"] .mc-app {
 }
 .mc-thread[data-helper] .mc-snd,
 .mc-thread[data-helper] .mc-rec__s { background: var(--thread-accent); color: var(--thread-accent-ink); }
+
+/*
+ * Thread header, iMessage-style (Tobi, 29 Oct 2026): the helper's face (56px desktop, 60px phone) with
+ * her name centred under it in small clean type, and the existing muted job · status line under that.
+ * Menu stays on the left edge, actions on the right, both vertically centred. Solid canvas with one
+ * hairline at the bottom (no fade). No new motion: the rig's own motion already honours reduced motion.
+ */
+.mc-hdr.mc-hdr--center {
+  grid-template-columns: minmax(44px, 1fr) minmax(0, auto) minmax(44px, 1fr); align-items: center; gap: 12px;
+  padding: 10px 24px 8px; background: var(--bg); border-bottom: 1px solid var(--hair);
+}
+.mc-hdr--center .mc-hdr__l { justify-self: start; align-items: center; padding-top: 0; }
+.mc-hdr--center .mc-hdr__r { justify-self: end; align-items: center; padding-top: 0; }
+.mc-hdr--center .mc-tt { justify-self: center; justify-items: center; gap: 2px; min-width: 0; max-width: 100%; text-align: center; }
+.mc-hdr--center .mc-tt__b {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; height: auto; max-width: 100%; padding: 0; text-align: center;
+}
+.mc-hdr--center .mc-tt__b .mc-face,
+.mc-hdr--center .mc-tt__b .mc-face .mimi-helper,
+.mc-hdr--center .mc-tt__b .mc-face > svg { width: 56px; height: 56px; }
+.mc-hdr--center .mc-tt__nm { display: inline-flex; align-items: center; gap: 2px; min-width: 0; max-width: 100%; padding-left: 16px; }
+.mc-hdr--center .mc-tt__t { font: 500 13.5px/18px var(--font-geist-sans), "Geist", system-ui, sans-serif; letter-spacing: -0.005em; }
+.mc-hdr--center .mc-tt__c { width: 14px; height: 14px; }
+.mc-hdr--center .mc-tt__s { justify-content: center; max-width: 100%; height: 14px; }
+.mc-hdr--center .mc-tt__job { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mc-hdr--center .mc-menu--l { left: 50%; right: auto; top: calc(100% + 6px); translate: -50% 0; }
+.mc-tv .mc-hdr--center ~ .mc-feed .mc-fi { padding-top: 140px; }
+
+@media (max-width: 899px) {
+  .mc-hdr.mc-hdr--center { gap: 4px; padding: calc(6px + env(safe-area-inset-top)) 8px 8px; }
+  .mc-hdr--center .mc-tt__b .mc-face,
+  .mc-hdr--center .mc-tt__b .mc-face .mimi-helper,
+  .mc-hdr--center .mc-tt__b .mc-face > svg { width: 60px; height: 60px; }
+  .mc-hdr--center .mc-tt__b { height: auto; }
+  .mc-hdr--center .mc-tt__t { font-size: 14px; }
+  .mc-tv .mc-hdr--center ~ .mc-feed .mc-fi { padding-top: calc(140px + env(safe-area-inset-top)); }
+}

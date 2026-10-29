@@ -1,7 +1,8 @@
 /* =====================================================================================
- * Markdown messages (24 Oct 2026). Helper messages are Factory-style markdown text flowing in
- * the column (no bubble), with a small face + mono name line at the start of each turn. Your
- * messages stay iMessage bubbles (inverted, palette version), right-aligned, up to 85% wide.
+ * Messages (24 Oct 2026; bubbles both sides 29 Oct 2026). Helper replies are iMessage-style bubbles
+ * like yours, mirrored: left-aligned, tail bottom-left, a neutral warm grey, plain text (no markdown),
+ * with a small face + mono name line at the start of each turn. Your messages: right-aligned, tail
+ * bottom-right. Both up to 85% of the column.
  * The feed is a CSS grid on an 8px rhythm: 8px between messages in a turn, 24px between turns.
  * Thread column (feed, chips, composer) is up to 880px of content on desktop and shrinks fluidly.
  * ===================================================================================== */
@@ -16,12 +17,15 @@
   /* your bubble: Factory's user message bubble (#212121 / #FFFFFF dark), light equivalent */
   --msg-me-bg: #f0efed;
   --msg-me-color: #101010;
+  /* helper replies: Factory warm grey (light: the #e4e1df line grey; dark: carbon lift #1d1a18), never helper colours */
+  --msg-them-bg: #e4e1df;
+  --msg-them-color: #101010;
   --msg-col: 880px; /* Tobi, 26 Oct 2026: wider conversation (was 720px) */
   --msg-u: 8px; /* base unit */
   --msg-gap: var(--msg-u); /* between messages in one turn */
   --msg-turn: calc(var(--msg-u) * 3); /* between turns */
 }
-html[data-theme="dark"] { --msg-color: #ffffff; --msg-me-bg: #212121; --msg-me-color: #ffffff; }
+html[data-theme="dark"] { --msg-color: #ffffff; --msg-me-bg: #212121; --msg-me-color: #ffffff; --msg-them-bg: var(--color-carbon-lift); --msg-them-color: #ffffff; }
 
 /* ---------- the column: up to 880px of content, shared by feed, chips and composer ---------- */
 .mc-tv .mc-fi,
@@ -53,14 +57,19 @@ html[data-theme="dark"] { --msg-color: #ffffff; --msg-me-bg: #212121; --msg-me-c
 .mc-mh .mc-face svg { width: 18px; height: 18px; }
 .mc-mh__n { color: var(--soft); }
 
-/* ---------- helper messages: markdown, no bubble ---------- */
+/* ---------- helper replies: the same bubble as yours, mirrored to the left ---------- */
 .mc-tv .mc-r--them .mc-rx--text,
-.mc-rxl__lift:not(.mc-rxl__lift--me) .mc-rx--text { width: fit-content; max-width: 100%; border-radius: var(--radius-sm); }
-/* badges sit above the text's top-right corner (no bubble edge to overlap), never over the words */
-.mc-r--them .mc-rx--text .mc-rxb--right,
-.mc-rxl__lift:not(.mc-rxl__lift--me) .mc-rx--text .mc-rxb--right { top: -30px; right: -4px; }
-.mc-tv .mc-r--them.mc-r--rx { margin-top: calc(var(--msg-u) * 3); }
-.mc-tv .mc-grp--them:has(.mc-r--them.mc-r--rx) .mc-mh { margin-bottom: 0; }
+.mc-rxl__lift:not(.mc-rxl__lift--me) .mc-rx--text { width: fit-content; max-width: 85%; border-radius: 16px; }
+.mc-r--them .mc-b--them,
+.mc-rxl__lift:not(.mc-rxl__lift--me) .mc-b--them {
+  max-width: 100%; padding: 10px 14px; border-radius: 16px; background: var(--msg-them-bg); color: var(--msg-them-color);
+  font-family: var(--msg-font); font-size: var(--msg-font-size); font-weight: var(--msg-font-weight); line-height: var(--msg-line-height);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.mc-b--them.mc-b--tail { border-bottom-left-radius: 4px; border-bottom-right-radius: 16px; }
+.mc-b--them a { color: inherit; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.mc-b--them a:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; border-radius: 2px; }
+/* markdown spacing for thoughts and routines (helper replies no longer use it) */
 .mc-md--msg {
   font-family: var(--msg-font); font-size: var(--msg-font-size); font-weight: var(--msg-font-weight);
   line-height: var(--msg-line-height); color: var(--msg-color); overflow-wrap: anywhere;
@@ -150,7 +159,7 @@ html[data-theme="dark"] { --msg-color: #ffffff; --msg-me-bg: #212121; --msg-me-c
   .mc-tv .mc-cmp { max-width: none; padding-inline: 12px; }
   .mc-tv .mc-plus { left: 12px; }
   .mc-tv .mc-rp { margin-left: 0; }
-  .mc-tv .mc-r--me .mc-rx--text { max-width: 85%; }
+  .mc-tv .mc-r--me .mc-rx--text, .mc-tv .mc-r--them .mc-rx--text { max-width: 85%; }
   .mc-tv .mc-r--them .mc-rx--card, .mc-tv .mc-r--them .mc-rx--poll,
   .mc-tv .mc-r--them .mc-rx--voice, .mc-tv .mc-r--them .mc-rx--proof,
   .mc-tv .mc-r--them > .mc-chipcard { width: 100%; max-width: 100%; flex: 1 1 auto; }

@@ -46,15 +46,15 @@ export const planRows = (): CardRow[] => [
   { label: "Kola Mart", amount: 120000, tone: "Firm", days: 3, flag: "Fake alert" },
 ];
 
-/** Collector's summary of who owes what (markdown: renders as a list in the thread). */
+/** Collector's summary of who owes what (plain text, one shop per line, like a WhatsApp message). */
 export const OWED_LIST = [
-  "5 shops owe **₦385,900** in all:",
+  "5 shops owe ₦385,900 in all:",
   "",
-  "- **Chuks & Sons** · ₦62,400 · 9 days, the oldest",
-  "- **Joy Supermarket** · ₦91,000 · 6 days, says POS",
-  "- **Bright Star** · ₦58,000 · 5 days",
-  "- **Ola & Daughters** · ₦54,500 · 4 days",
-  "- **Kola Mart** · ₦120,000 · 3 days",
+  "Chuks & Sons · ₦62,400 · 9 days, the oldest",
+  "Joy Supermarket · ₦91,000 · 6 days, says POS",
+  "Bright Star · ₦58,000 · 5 days",
+  "Ola & Daughters · ₦54,500 · 4 days",
+  "Kola Mart · ₦120,000 · 3 days",
 ].join("\n");
 
 export const chuksMessage =
@@ -243,7 +243,7 @@ const chaseMessages = (): Conversation["messages"] => {
     },
     { id: id(), kind: "text", from: "Proof", at: T(8, 45), text: "Took them off the list.", reactions: [{ by: "Collector", r: "like" }, { by: "me", r: "heart" }] },
     { id: id(), kind: "photos", from: "Proof", at: T(8, 47), label: "3 Photos · Joy Supermarket", photos: [photo.shelf, photo.shop, photo.counter] },
-    { id: id(), kind: "text", from: "Proof", at: T(8, 47), text: "Joy says they paid by POS, slip `POS 2281`. ==Self-reported== until it lands in GTB." },
+    { id: id(), kind: "text", from: "Proof", at: T(8, 47), text: "Joy says they paid by POS, slip POS 2281. Self-reported until it lands in GTB." },
     { id: id(), kind: "voice", from: "Proof", at: T(8, 48), seconds: 14, caption: "Voice note from Joy Supermarket", transcript: "Good morning. This is Joy Supermarket. We paid the ₦91,000 by POS yesterday evening, the slip number is 2281. Please check and confirm for us." },
     { id: id(), kind: "date", label: "Today 8:52 AM" },
     {
@@ -622,7 +622,7 @@ const liveConversations = (): Conversation[] => [
         kind: "text",
         from: "Proof",
         at: T(8, 59),
-        text: "Mama Tunde's **₦42,000** landed in GTB at 8:51 and it matches invoice INV-2304 exactly. Want me to mark it paid in the book?",
+        text: "Mama Tunde's ₦42,000 landed in GTB at 8:51 and it matches invoice INV-2304 exactly. Want me to mark it paid in the book?",
       },
       {
         id: "mt-card",
