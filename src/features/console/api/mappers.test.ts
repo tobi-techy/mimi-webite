@@ -341,3 +341,66 @@ test("errors read as plain words, with no em dashes", () => {
     assert.ok(!friendlyMessage(k).includes("—"), k);
   }
 });
+
+/* ---------- voice notes and attachments (items 9 and 10) ---------- */
+
+const ownerMsg = (over: Partial<ApiThreadDetail["messages"][number]>): ApiThreadDetail["messages"][number] => ({
+  ...detail.messages[0]!,
+  sender: "owner",
+  shop_id: "",
+  turn_id: "turn_9",
+  ...over,
+});
+
+test("a reply that went as a voice note gets a playable note under its text, fetched by message id", () => {
+  const spoken = { ...detail.messages[1]!, channel: "shop_whatsapp", voice: true };
+  const c = mapThread({ ...detail, messages: [detail.messages[0]!, spoken] }, [], NOW);
+  const i = c.messages.findIndex((m) => m.kind === "text");
+  const note = c.messages[i + 1];
+  assert.ok(note?.kind === "voice" && note.from === "Proof");
+  assert.deepEqual(note.audio, { from: "voice", id: "out:ik_1" });
+  /* no token, no URL: only the message id travels; the client adds the header */
+  assert.ok(!JSON.stringify(note).includes("http") && !JSON.stringify(note).includes("Bearer"));
+  /* a drafted reply never shows a voice note */
+  const draft = { ...detail.messages[2]!, voice: true };
+  assert.equal(mapThread({ ...detail, messages: [draft] }, [], NOW).messages.filter((m) => m.kind === "voice").length, 0);
+});
+
+test("the owner's own attachments map to a photo, a voice note and a document read through the API", () => {
+  const msgs = [
+    ownerMsg({ message_id: "in:console-a", kind: "image", text: "[image]", media: true }),
+    ownerMsg({ message_id: "in:console-b", kind: "voice", text: "[voice]", media: true }),
+    ownerMsg({ message_id: "in:console-c", kind: "document", text: "[document]", media: true }),
+    ownerMsg({ message_id: "in:wa-1", kind: "image", text: "[image]", media: false }),
+  ];
+  const c = mapThread({ ...detail, thread: ownerThread, messages: msgs, steps: [], turns: [] }, [], NOW);
+  const [, photo, voice, doc, other] = c.messages;
+  assert.ok(photo?.kind === "photos" && photo.remote === "in:console-a" && photo.photos.length === 0 && photo.from === "me");
+  assert.ok(voice?.kind === "voice" && voice.audio?.from === "media" && voice.audio.id === "in:console-b" && !voice.transcript);
+  assert.ok(doc?.kind === "file" && doc.remote === "in:console-c");
+  /* media the API did not keep (a channel ref) is a plain line, and "[image]" never shows as a bubble */
+  assert.ok(other?.kind === "system" && other.text === "You sent a photo");
+  assert.ok(!c.messages.some((m) => m.kind === "text" && /^\[/.test(m.text)));
+});
+
+test("an attachment sent from this tab keeps its preview and never shows twice", () => {
+  const mine = { id: "api-att1", kind: "photos" as const, from: "me" as const, at: NOW, label: "1 Photo", photos: ["blob:x"], apiId: "in:console-a" };
+  const sending = { ...mine, upload: { state: "sending" as const, progress: 1 } };
+  const empty = { ...detail, thread: ownerThread, messages: [], steps: [], turns: [] };
+  /* not stored yet: shown, and the thread is working */
+  const a = mapThread(empty, [], NOW, [sending]);
+  assert.equal(a.messages.at(-1)?.id, "api-att1");
+  assert.equal(a.state, "run");
+  /* still uploading or failed: shown, but nothing is running yet */
+  const up = mapThread(empty, [], NOW, [{ ...mine, upload: { state: "uploading" as const, progress: 0.4 } }]);
+  assert.equal(up.messages.at(-1)?.id, "api-att1");
+  assert.notEqual(up.state, "run");
+  const failed = mapThread(empty, [], NOW, [{ ...mine, upload: { state: "failed" as const, progress: 0, error: "x" } }]);
+  assert.equal(failed.messages.at(-1)?.id, "api-att1");
+  assert.notEqual(failed.state, "run");
+  /* stored: the API's copy is replaced by the local one (blob preview), once */
+  const stored = mapThread({ ...empty, messages: [ownerMsg({ message_id: "in:console-a", kind: "image", text: "[image]", media: true })] }, [], NOW, [mine], new Map([["in:console-a", mine]]));
+  const photos = stored.messages.filter((m) => m.kind === "photos");
+  assert.equal(photos.length, 1);
+  assert.ok(photos[0]?.kind === "photos" && photos[0].photos[0] === "blob:x");
+});

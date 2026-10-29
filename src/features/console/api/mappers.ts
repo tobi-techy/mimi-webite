@@ -279,10 +279,32 @@ export function foldSteps(turn: string, steps: ApiStep[], from: Roster): Message
 
 const WHO: Record<string, string> = { rep: "Rep", shop: "Shop", system: "System" };
 
-function mapMessage(m: ApiMessage, from: Roster, shopName: string): Message | null {
+const MEDIA_PLACEHOLDER = /^\[(image|voice|document)\]$/;
+
+/** The owner's own attachment from the console (demo): played or shown through the API, with the bearer in a header. */
+function ownerMedia(m: ApiMessage, id: string, at: number): Message | null {
+  const caption = MEDIA_PLACEHOLDER.test(m.text) ? "" : m.text;
+  const apiId = m.message_id;
+  if (/image|photo/.test(m.kind)) return { id, kind: "photos", from: "me", at, label: "1 Photo", photos: [], remote: apiId, apiId };
+  if (/voice|audio/.test(m.kind))
+    return { id, kind: "voice", from: "me", at, seconds: 0, caption: "Your voice note", transcript: caption || undefined, audio: { from: "media", id: apiId }, apiId };
+  if (/doc/.test(m.kind)) return { id, kind: "file", from: "me", at, name: caption || "Document", mime: "application/pdf", size: 0, remote: apiId, apiId };
+  return null;
+}
+
+function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: ReadonlyMap<string, Message>): Message | null {
   const at = parseApiTime(m.at) ?? 0;
   const id = `api-m:${m.message_id}`;
-  if (!m.text) {
+  if (m.direction === "in" && m.sender === "owner") {
+    /* an attachment sent from this tab keeps its own preview; anything else is read from the API */
+    const mine = local?.get(m.message_id);
+    if (mine) return mine;
+    if (m.media) {
+      const media = ownerMedia(m, id, at);
+      if (media) return media;
+    }
+  }
+  if (!m.text || (m.direction === "in" && MEDIA_PLACEHOLDER.test(m.text))) {
     /* media with no caption: say what arrived (photos and voice notes are read by the helpers) */
     const what = /image|photo/.test(m.kind) ? "a photo" : /voice|audio/.test(m.kind) ? "a voice note" : /doc/.test(m.kind) ? "a document" : "";
     if (!what || m.direction !== "in") return null;
@@ -299,12 +321,33 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string): Message | nu
   return { id, kind: "text", from, text: m.text, at };
 }
 
+/** A reply that also went as a voice note: the note itself, played through the API on tap. */
+function replyVoice(m: ApiMessage, from: Roster): Message | null {
+  if (!m.voice || m.direction !== "out" || m.status === "pending_approval" || m.status === "draft") return null;
+  return { id: `api-v:${m.message_id}`, kind: "voice", from, at: parseApiTime(m.at) ?? 0, seconds: 0, caption: "Voice note", audio: { from: "voice", id: m.message_id } };
+}
+
+/** Is this message's turn on its way to Mimi (sent or sending, not stored yet)? An upload still running or failed is not. */
+export function inFlight(m: Message, stored: { ids: ReadonlySet<string>; texts: ReadonlySet<string> }): boolean {
+  if (m.kind === "text") return !stored.texts.has(m.text);
+  if (m.kind === "photos" || m.kind === "voice" || m.kind === "file")
+    return (!m.upload || m.upload.state === "sending") && !(m.apiId && stored.ids.has(m.apiId));
+  return false;
+}
+
+/** Still to show after the API's own messages: unsent text, and attachments the API has not stored (failed ones keep Retry). */
+function stillShown(m: Message, stored: { ids: ReadonlySet<string>; texts: ReadonlySet<string> }): boolean {
+  if (m.kind === "text") return !stored.texts.has(m.text);
+  if (m.kind === "photos" || m.kind === "voice" || m.kind === "file") return !(m.apiId && stored.ids.has(m.apiId));
+  return false;
+}
+
 /**
  * One thread with its messages, the helpers' work steps (folded in before each turn's reply) and
  * its approvals as decision cards. `pending` is a message the owner just sent that the API has not
  * stored yet (kept so the bubble does not blink out while the turn is queued).
  */
-export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: number, pending: Message[] = []): Conversation {
+export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: number, pending: Message[] = [], local?: ReadonlyMap<string, Message>): Conversation {
   const base = mapThreadSummary(d.thread, now);
   const shopName = d.thread.shop_name;
   const helperByTurn = new Map(d.turns.map((t) => [t.turn_id, helperOf(t.helper)]));
@@ -333,8 +376,10 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
   d.messages.forEach((m, i) => {
     const turn = m.turn_id ?? "";
     if (m.direction === "out" && turn) emitSteps(turn);
-    const mapped = mapMessage(m, fromOf(m.turn_id), shopName);
+    const mapped = mapMessage(m, fromOf(m.turn_id), shopName, local);
     if (mapped) out.push(mapped);
+    const spoken = replyVoice(m, fromOf(m.turn_id));
+    if (spoken) out.push(spoken);
     /* a turn with no reply yet: its steps go right after its last inbound message */
     const next = d.messages[i + 1];
     if (turn && m.direction === "in" && (!next || (next.turn_id ?? "") !== turn)) {
@@ -350,8 +395,9 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
     out.push({ id: `apr:${a.approval_id}`, kind: "card", from: helperOf(a.helper), at: parseApiTime(a.created_at) ?? 0, card });
   }
 
-  const known = new Set(d.messages.map((m) => m.text));
-  const stillPending = pending.filter((p) => p.kind === "text" && !known.has(p.text));
+  const stored = { ids: new Set(d.messages.map((m) => m.message_id)), texts: new Set(d.messages.map((m) => m.text)) };
+  const shown = pending.filter((p) => stillShown(p, stored));
+  const stillPending = shown.filter((p) => inFlight(p, stored));
 
   const firstAt = parseApiTime(d.messages[0]?.at) ?? parseApiTime(d.thread.last_at);
   const date: Message[] = firstAt !== null ? [{ id: `api-d:${d.thread.thread_id}`, kind: "date", label: dateLine(firstAt, now) }] : [];
@@ -362,7 +408,7 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
     state,
     status: stillPending.length ? "reading your message" : statusLine[state],
     working: state === "run",
-    messages: [...date, ...out, ...stillPending],
+    messages: [...date, ...out, ...shown],
   };
 }
 

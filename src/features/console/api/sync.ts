@@ -3,7 +3,7 @@
 import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
 import { getLive, notify, setLive } from "@/features/console/api/live-store";
-import { friendlyMessage, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
+import { friendlyMessage, inFlight, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
@@ -33,6 +33,11 @@ let credit: ApiCredit | null = null;
 let threads: ApiThreadSummary[] = [];
 /** Messages the owner sent that the API has not stored yet, per thread. */
 export const pending = new Map<string, Message[]>();
+/**
+ * Attachments sent from this tab, by their API message id ("in:console-…"): the thread shows these
+ * (with their local preview) in place of the API's copy. Their blob: URLs are revoked on reset.
+ */
+export const localMedia = new Map<string, Message>();
 /** Turns sent from this console that have not finished: turn id to thread id. */
 export const openTurns = new Map<string, string>();
 /** Message ids already on screen, and when each new one arrived (drives the reveal). */
@@ -40,7 +45,21 @@ const seen = new Set<string>();
 const arrived = new Map<string, number>();
 let firstPaint = true;
 
+const localUrls = (m: Message): string[] =>
+  m.kind === "photos" ? m.photos.filter((u) => u.startsWith("blob:")) : m.kind === "voice" && m.audio?.from === "local" ? [m.audio.url] : m.kind === "file" && m.local ? [m.local] : [];
+
+function revokeLocal() {
+  if (typeof URL === "undefined" || !URL.revokeObjectURL) return;
+  const all = [...localMedia.values(), ...[...pending.values()].flat()];
+  for (const u of new Set(all.flatMap(localUrls))) URL.revokeObjectURL(u);
+}
+
+/** An attachment still uploading, or one that failed (Retry): kept when its thread's turn ends. */
+const keeps = (m: Message) => (m.kind === "photos" || m.kind === "voice" || m.kind === "file") && !!m.upload && m.upload.state !== "sending";
+
 export function resetCaches() {
+  revokeLocal();
+  localMedia.clear();
   details.clear();
   approvals = [];
   shopRows = [];
@@ -108,19 +127,19 @@ function running(t: ApiThreadSummary, d?: ApiThreadDetail): boolean {
   if (d && liveActivity(d) !== null) return true;
   const mine = pending.get(t.thread_id);
   if (!mine?.length) return false;
-  const stored = new Set(d?.messages.map((m) => m.text) ?? []);
-  return mine.some((m) => m.kind === "text" && !stored.has(m.text));
+  const stored = { ids: new Set(d?.messages.map((m) => m.message_id) ?? []), texts: new Set(d?.messages.map((m) => m.text) ?? []) };
+  return mine.some((m) => inFlight(m, stored));
 }
 
 /** Polling keeps going for these even before the summary says running. */
-const watched = (t: ApiThreadSummary) => pending.has(t.thread_id) || [...openTurns.values()].includes(t.thread_id);
+const watched = (t: ApiThreadSummary) => (pending.get(t.thread_id) ?? []).some((m) => !keeps(m)) || [...openTurns.values()].includes(t.thread_id);
 
 function publish() {
   const now = Date.now();
   let typing: { slug: string; who: Conversation["helper"] } | null = null;
   const convs = threads.map((t) => {
     const d = details.get(t.thread_id)?.detail;
-    let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id)) : mapThreadSummary(t, now);
+    let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id), localMedia) : mapThreadSummary(t, now);
     if (running(t, d)) {
       const doing = (d && liveActivity(d)) ?? "reading your message";
       c = { ...c, state: "run", working: true, status: doing };
@@ -187,7 +206,7 @@ let busy = false;
 let again = false;
 
 const hidden = () => typeof document !== "undefined" && document.hidden;
-const active = () => openTurns.size > 0 || pending.size > 0 || threads.some((t) => t.status === "running");
+const active = () => openTurns.size > 0 || [...pending.values()].some((l) => l.some((m) => !keeps(m))) || threads.some((t) => t.status === "running");
 
 function schedule() {
   clearTimeout(timer);
@@ -209,7 +228,9 @@ export async function refresh(withBook = false): Promise<void> {
           const turn = await mimiApi.turn(t, turnId);
           if (["done", "failed", "parked", "cancelled"].includes(turn.state)) {
             openTurns.delete(turnId);
-            pending.delete(thread);
+            const left = (pending.get(thread) ?? []).filter(keeps);
+            if (left.length) pending.set(thread, left);
+            else pending.delete(thread);
             if (turn.state === "failed") notify("other", "Mimi couldn't finish that one. Please ask again in a moment.");
             withBook = true;
           }

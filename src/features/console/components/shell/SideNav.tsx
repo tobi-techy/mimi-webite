@@ -111,7 +111,9 @@ export function SideNav({ settings }: { settings: ReactNode }) {
   const pathname = usePathname();
   const { toggleSidebar, openPalette } = useShell();
   const conversations = useDemo((s) => s.conversations);
-  const shopCount = useShops().shops.length;
+  const shopBook = useShops();
+  /* while the demo build waits for the API the count is unknown, not 0 */
+  const shopCount = shopBook.loading ? <span className="mc-skel mc-skel--k" role="img" aria-label="Loading" /> : shopBook.shops.length;
   const active = useDemo((s) => s.active);
   const autoCount = useDemo((s) => s.autos.length);
   const typing = useDemo((s) => s.typing);

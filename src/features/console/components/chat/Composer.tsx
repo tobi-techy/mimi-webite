@@ -11,6 +11,9 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { consoleRoutes } from "@/features/console/config";
 import { fileInvoice, sendMessage, sendPhoto, sendVoice, steerMessage } from "@/features/console/demo/engine";
+import { MAX_RECORD_S, pickRecorderMime, type AttachPurpose } from "@/features/console/api/attachments";
+import { isApiThread, liveAttach } from "@/features/console/api/actions";
+import { useLive } from "@/features/console/api/live-store";
 import { useDemo } from "@/features/console/demo/store";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
@@ -20,7 +23,17 @@ import { cx } from "@/lib/cx";
 const LIVE_BARS = Array.from({ length: 72 }, (_, i) => -((i * 211) % 900));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-type PlusItem = { icon: IconName; label: string; run: () => void };
+type PlusItem = { icon: IconName; label: string; key: "photo" | "poll" | "voice" | "invoice" };
+
+/** A real recording in an API thread (MediaRecorder): its stream, chunks and type. */
+type Recording = { mr: MediaRecorder; stream: MediaStream; chunks: Blob[]; mime: string; keep: boolean };
+const canRecord = () =>
+  typeof window !== "undefined" && typeof window.MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
+const ACCEPT: Record<AttachPurpose, string> = {
+  photo: "image/jpeg,image/png,image/webp",
+  voice: "audio/ogg,audio/webm,audio/mp4,audio/x-m4a,audio/mpeg,audio/wav,.ogg,.opus,.webm,.m4a,.mp3,.wav",
+  invoice: "application/pdf,image/jpeg,image/png,image/webp,.pdf",
+};
 
 type Worker = Exclude<Speaker, "me">;
 type Skill = { cmd: string; text: string };
@@ -59,27 +72,37 @@ const SKILLS: Record<Worker, Skill[]> = {
   ],
 };
 
+/**
+ * The live demo's `/` list: every owner message goes to Mimi there, and the shops are the demo
+ * copy's (not the sample ones above), so the asks name no sample shop.
+ */
+const LIVE_SKILLS: Skill[] = [
+  { cmd: "owes", text: "Who owes me the most this week?" },
+  { cmd: "chase", text: "Chase everyone over ₦50k this week" },
+  { cmd: "low", text: "Which shops are running low?" },
+  { cmd: "credit", text: "Which shops are close to their credit limit?" },
+];
+
 /** `@` offers helpers and the shops this distributor may see (the demo shop list is all consented). */
 type Mention = { label: string; kind: "helper" | "shop"; sub: string };
-const MENTIONS: Mention[] = [
-  ...(["Mimi", ...helperNames] as const).map((h) => ({ label: h, kind: "helper" as const, sub: "Helper" })),
-  ...shops.map((s) => ({ label: s.name, kind: "shop" as const, sub: s.area })),
-];
+const HELPER_MENTIONS: Mention[] = (["Mimi", ...helperNames] as const).map((h) => ({ label: h, kind: "helper" as const, sub: "Helper" }));
+const MENTIONS: Mention[] = [...HELPER_MENTIONS, ...shops.map((s) => ({ label: s.name, kind: "shop" as const, sub: s.area }))];
 
 type Menu = { kind: "slash"; items: Skill[] } | { kind: "at"; items: Mention[]; from: number };
 
-/** The `/` or `@` menu the text ends in, if any. */
-function menuFor(value: string, helper: Worker): Menu | null {
+/** The `/` or `@` menu the text ends in, if any. `live`: the demo copy's skills and shops. */
+function menuFor(value: string, helper: Worker, live: { shops: readonly { name: string; area: string }[] } | null): Menu | null {
   const slash = /^\/([\w-]*)$/.exec(value);
   if (slash) {
     const q = slash[1]!.toLowerCase();
-    const items = SKILLS[helper].filter((s) => s.cmd.startsWith(q));
+    const items = (live ? LIVE_SKILLS : SKILLS[helper]).filter((s) => s.cmd.startsWith(q));
     return items.length ? { kind: "slash", items } : null;
   }
   const at = /(^|\s)@([^@\n]{0,24})$/.exec(value);
   if (at) {
     const q = at[2]!.toLowerCase();
-    const items = MENTIONS.filter((m) => m.label.toLowerCase().includes(q)).slice(0, 7);
+    const pool = live ? [...HELPER_MENTIONS, ...live.shops.map((s) => ({ label: s.name, kind: "shop" as const, sub: s.area }))] : MENTIONS;
+    const items = pool.filter((m) => m.label.toLowerCase().includes(q)).slice(0, 7);
     return items.length ? { kind: "at", items, from: value.length - at[2]!.length - 1 } : null;
   }
   return null;
@@ -102,6 +125,65 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   const say = useToast();
   const wrap = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const pickers = useRef<Partial<Record<AttachPurpose, HTMLInputElement | null>>>({});
+  const recording = useRef<Recording | null>(null);
+  /* demo build, API thread: photos, voice notes and invoices go to Mimi for real */
+  const live = isApiThread(slug);
+
+  /* a recording never outlives the composer */
+  useEffect(
+    () => () => {
+      const r = recording.current;
+      if (r) {
+        r.keep = false;
+        if (r.mr.state !== "inactive") r.mr.stop();
+        r.stream.getTracks().forEach((t) => t.stop());
+      }
+    },
+    [],
+  );
+
+  function attach(file: Blob & { name?: string }, purpose: AttachPurpose, seconds?: number) {
+    void liveAttach(slug, file, purpose, { seconds }).then((err) => err && say(err));
+  }
+
+  function openPicker(purpose: AttachPurpose) {
+    pickers.current[purpose]?.click();
+  }
+
+  async function startRecording() {
+    if (!canRecord()) return openPicker("voice");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = pickRecorderMime((t) => MediaRecorder.isTypeSupported(t));
+      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const r: Recording = { mr, stream, chunks: [], mime: mr.mimeType || mime || "audio/webm", keep: false };
+      mr.ondataavailable = (e) => e.data.size && r.chunks.push(e.data);
+      recording.current = r;
+      mr.start(250);
+      sfx("console", "toggle");
+      setRec(1);
+    } catch (e) {
+      const denied = e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
+      say(denied ? "The browser blocked the microphone. Allow it, or attach a voice note file." : "Couldn't start the microphone. You can attach a voice note file instead.");
+    }
+  }
+
+  /** Stops the recording; sends it when `send`, else throws it away. */
+  function stopRecording(send: boolean, seconds: number) {
+    const r = recording.current;
+    recording.current = null;
+    if (!r) return;
+    r.keep = send;
+    r.mr.onstop = () => {
+      r.stream.getTracks().forEach((t) => t.stop());
+      if (!r.keep) return;
+      const blob = new Blob(r.chunks, { type: r.mime });
+      attach(blob, "voice", seconds);
+    };
+    if (r.mr.state !== "inactive") r.mr.stop();
+    else r.mr.onstop(new Event("stop"));
+  }
 
   useEffect(() => {
     if (!menu) return;
@@ -115,23 +197,40 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
     };
   }, [menu]);
 
-  /* voice note: counts up while recording, sends on second press */
+  /* voice note: counts up while recording, sends on second press (and at five minutes) */
   useEffect(() => {
     if (!rec) return;
-    const t = window.setTimeout(() => setRec((r) => r + 1), 1000);
+    const t = window.setTimeout(() => {
+      /* a real recording stops and sends itself at five minutes */
+      if (live && rec >= MAX_RECORD_S) {
+        stopRecording(true, rec);
+        setRec(0);
+      } else setRec((r) => r + 1);
+    }, 1000);
     return () => window.clearTimeout(t);
-  }, [rec]);
+    // stopRecording reads refs only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rec, live]);
 
   /* Escape cancels a recording */
   useEffect(() => {
     if (!rec) return;
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setRec(0);
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      stopRecording(false, 0);
+      setRec(0);
+    };
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rec]);
 
   const value = draft ?? text;
-  const ac = useMemo(() => (draft === null && shut !== text ? menuFor(text, helper) : null), [text, draft, helper, shut]);
+  const liveShops = useLive((s) => s.shops);
+  const ac = useMemo(
+    () => (draft === null && shut !== text ? menuFor(text, helper, live ? { shops: liveShops ?? [] } : null) : null),
+    [text, draft, helper, shut, live, liveShops],
+  );
   const sel = ac ? Math.min(pick, ac.items.length - 1) : 0;
 
   function choose(i: number) {
@@ -145,6 +244,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
 
   function cancelRec() {
     sfx("console", "close", { emphasis: "subtle" });
+    stopRecording(false, 0);
     setRec(0);
   }
 
@@ -157,6 +257,13 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   }
 
   function mic() {
+    if (live) {
+      if (rec) {
+        stopRecording(true, Math.max(1, rec - 1));
+        setRec(0);
+      } else void startRecording();
+      return;
+    }
     if (rec) {
       sendVoice(slug, Math.max(2, rec));
       setRec(0);
@@ -167,14 +274,41 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   }
 
   const items: PlusItem[] = [
-    { icon: "camera", label: "Photo or book snap", run: () => sendPhoto(slug) },
-    { icon: "bar-chart", label: "Poll", run: () => say("Helpers send polls when they need you to choose") },
-    { icon: "mic", label: "Voice note", run: mic },
-    { icon: "file-text", label: "Invoice", run: () => fileInvoice(slug) },
+    { icon: "camera", label: "Photo or book snap", key: "photo" },
+    { icon: "bar-chart", label: "Poll", key: "poll" },
+    { icon: "mic", label: "Voice note", key: "voice" },
+    { icon: "file-text", label: "Invoice", key: "invoice" },
   ];
+  /* runs on a tap (the pickers and the recorder are refs, read only in handlers) */
+  function runItem(key: PlusItem["key"]) {
+    if (key === "photo") return live ? openPicker("photo") : sendPhoto(slug);
+    if (key === "poll") return say("Helpers send polls when they need you to choose");
+    if (key === "voice") return mic();
+    return live ? openPicker("invoice") : fileInvoice(slug);
+  }
 
   return (
     <div className="mc-cmp" ref={wrap}>
+      {live &&
+        (Object.keys(ACCEPT) as AttachPurpose[]).map((p) => (
+          <input
+            key={p}
+            ref={(el) => {
+              pickers.current[p] = el;
+            }}
+            type="file"
+            accept={ACCEPT[p]}
+            hidden
+            tabIndex={-1}
+            aria-hidden="true"
+            data-pick={p}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) attach(f, p);
+            }}
+          />
+        ))}
       <button
         type="button"
         className={cx("mc-pl", menu && "is-on")}
@@ -197,7 +331,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
               role="menuitem"
               onClick={() => {
                 setMenu(false);
-                it.run();
+                runItem(it.key);
               }}
             >
               <i>

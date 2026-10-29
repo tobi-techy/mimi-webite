@@ -9,3 +9,14 @@ export function safeHref(raw: string | undefined): string | undefined {
   if (href.startsWith("/") && !href.startsWith("//")) return href;
   return undefined;
 }
+
+/**
+ * Images in markdown: https only (no http: mixed content, no data:, blob: or javascript:), or a path
+ * inside the console's own site. Anything else is shown as its alt text.
+ */
+export function safeImageSrc(raw: string | undefined): string | undefined {
+  const src = (raw ?? "").trim();
+  if (/^https:\/\/[^\s/]+/i.test(src)) return src;
+  if (src.startsWith("/") && !src.startsWith("//")) return src;
+  return undefined;
+}

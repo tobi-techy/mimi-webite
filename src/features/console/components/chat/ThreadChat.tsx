@@ -41,8 +41,23 @@ import { cx } from "@/lib/cx";
 const SETUP_DONE = 3;
 const SETUP_STEPS = 5;
 
-/** Setup progress, at the top of Mimi's conversation (it used to sit in the sidebar). */
+/**
+ * Setup progress, at the top of Mimi's conversation (it used to sit in the sidebar). The live demo
+ * has nothing to set up (it is a ready-made copy), so there it points at the demo's shops instead.
+ */
 function GettingStarted() {
+  const status = useLive((s) => s.status);
+  const shops = useLive((s) => s.shops);
+  if (status === "connecting") return null;
+  if (status === "ready")
+    return (
+      <Link href={consoleRoutes.shops} className="mc-gs mc-gs--feed" aria-label={`Explore the demo: ${shops?.length ?? 0} made-up shops`}>
+        <Icon name="store" />
+        <span className="mc-gs__t">Explore the demo</span>
+        <span className="mc-gs__k">{shops?.length ?? 0} made-up shops</span>
+        <Icon name="chevron-right" />
+      </Link>
+    );
   return (
     <Link
       href={`${consoleRoutes.settings}/connectors`}
@@ -166,9 +181,18 @@ export function ThreadChat({ slug }: { slug: string }) {
     const el = feed.current;
     const inner = el?.firstElementChild;
     if (!el || !inner) return;
+    /* only the reader moving up lets go of the bottom (our own scrolls only ever go down): a smooth
+       scroll still on its way, or content growing under it (a long reply revealing, an image
+       loading), never does. Back near the bottom, it holds on again */
+    let lastTop = el.scrollTop;
     const onScroll = () => {
-      if (Date.now() < autoUntil.current) return;
-      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+      const top = el.scrollTop;
+      const up = top < lastTop - 2;
+      lastTop = top;
+      const near = el.scrollHeight - top - el.clientHeight < 96;
+      if (near) stick.current = true;
+      else if (up) stick.current = false;
+      else if (Date.now() < autoUntil.current) return;
       setAway(!stick.current);
     };
     const ro = new ResizeObserver(() => {

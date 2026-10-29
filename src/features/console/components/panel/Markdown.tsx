@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
-import { safeHref } from "@/features/console/lib/safe-href";
+import { safeHref, safeImageSrc } from "@/features/console/lib/safe-href";
 
 /**
  * A small GitHub-flavoured Markdown renderer for the Docs viewer (no dependency): headings,
  * paragraphs, bullet and numbered lists, tables, fenced code, quotes, rules, and inline
- * **bold**, *italic*, ~~struck~~, `code`, [links](url) and ==your edits== (orange highlight).
+ * **bold**, *italic*, ~~struck~~, `code`, [links](url), ![images](https://…) and ==your edits==
+ * (orange highlight). Text comes from helpers and shops, so it only ever becomes React text nodes:
+ * links pass `safeHref`, images pass `safeImageSrc` and load lazily with no referrer.
  */
 function inline(text: string, key = 0): ReactNode[] {
   const out: ReactNode[] = [];
-  const re = /\*\*(.+?)\*\*|==(.+?)==|`([^`]+)`|\*(.+?)\*|\[([^\]]+)\]\(([^)\s]+)\)|~~(.+?)~~/g;
+  const re = /\*\*(.+?)\*\*|==(.+?)==|`([^`]+)`|\*(.+?)\*|!\[([^\]]*)\]\(([^)\s]+)\)|\[([^\]]+)\]\(([^)\s]+)\)|~~(.+?)~~/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let k = key;
@@ -18,17 +20,26 @@ function inline(text: string, key = 0): ReactNode[] {
     else if (m[2]) out.push(<span key={k++} className="mc-edit">{m[2]}</span>);
     else if (m[3]) out.push(<code key={k++}>{m[3]}</code>);
     else if (m[4]) out.push(<em key={k++}>{m[4]}</em>);
-    else if (m[5])
+    else if (m[6] !== undefined) {
+      const src = safeImageSrc(m[6]);
       out.push(
-        safeHref(m[6]) ? (
-          <a key={k++} href={safeHref(m[6])} target="_blank" rel="noopener noreferrer">
-            {m[5]}
-          </a>
+        src ? (
+          <img key={k++} className="mc-md__img" src={src} alt={m[5] ?? ""} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
         ) : (
-          m[5]
+          m[5] ?? ""
         ),
       );
-    else if (m[7]) out.push(<s key={k++}>{m[7]}</s>);
+    } else if (m[7])
+      out.push(
+        safeHref(m[8]) ? (
+          <a key={k++} href={safeHref(m[8])} target="_blank" rel="noopener noreferrer">
+            {m[7]}
+          </a>
+        ) : (
+          m[7]
+        ),
+      );
+    else if (m[9]) out.push(<s key={k++}>{m[9]}</s>);
     last = m.index + m[0].length;
   }
   if (last < text.length) out.push(text.slice(last));

@@ -8,6 +8,7 @@ import type { FaceState } from "@/features/console/demo/roster";
 import { Markdown } from "@/features/console/components/panel/Markdown";
 import { StepLine, ThoughtBlock } from "@/features/console/components/chat/Work";
 import { Answer } from "@/features/console/components/chat/answer/Answer";
+import { FileChip, UploadLine, useApiBlob, useVoicePlayer } from "@/features/console/components/chat/Attachments";
 import { Inline, plainInline } from "@/features/console/components/chat/answer/Inline";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { MimiLooking } from "@/components/ui/MimiLooking";
@@ -57,9 +58,12 @@ export function RichText({ text }: { text: string }) {
   return <>{parts}</>;
 }
 
-/** Drops markers left open mid-stream so half-revealed `**bold**`, `==edit==` or `code` never show raw. */
-function closeOpenMarks(text: string): string {
-  let t = text;
+/**
+ * Drops markers left open mid-stream so half-revealed `**bold**`, `==edit==`, `code`, a link or an
+ * image never show raw (an image appears whole once its closing bracket arrives).
+ */
+export function closeOpenMarks(text: string): string {
+  let t = text.replace(/!?\[[^\]\n]*(\]\([^)\s]*)?$/, "");
   for (const mark of ["**", "==", "`"]) {
     const parts = t.split(mark);
     if (parts.length % 2 === 0) {
@@ -138,9 +142,29 @@ const FAN_OPEN = [
 function PhotoFan({ m, ctx }: { m: Extract<Message, { kind: "photos" }>; ctx: Ctx }) {
   const open = !!m.open;
   const pos = open && consoleMotion.photoFan ? FAN_OPEN : FAN_CLOSED;
-  const shown = m.photos.slice(0, 3);
+  /* an attachment the owner sent earlier: read through the API (bearer in a header), shown from a blob: URL */
+  const remote = useApiBlob(m.remote && !m.photos.length ? { from: "media", id: m.remote } : undefined, true);
+  const photos = m.photos.length ? m.photos : remote.url ? [remote.url] : [];
+  const shown = photos.slice(0, 3);
+  if (!shown.length && m.remote)
+    return (
+      <div className="mc-fanwrap">
+        {remote.state === "error" ? (
+          <button type="button" className="mc-fan mc-fan--one mc-fan--ph" onClick={remote.retry} aria-label="Couldn't load the photo. Try again">
+            <span className="mc-mono">Couldn't load the photo · Retry</span>
+          </button>
+        ) : (
+          <span className="mc-fan mc-fan--one mc-fan--ph mc-skel" role="img" aria-label="Loading the photo" />
+        )}
+        <span className="mc-fanl">
+          <Icon name="image" />
+          {m.label}
+        </span>
+      </div>
+    );
   return (
     <div className="mc-fanwrap">
+      {m.upload && <UploadLine slug={ctx.slug} id={m.id} upload={m.upload} />}
       <button
         type="button"
         className={cx("mc-fan", open && "is-open", shown.length === 1 && "mc-fan--one")}
@@ -150,7 +174,7 @@ function PhotoFan({ m, ctx }: { m: Extract<Message, { kind: "photos" }>; ctx: Ct
       >
         {shown.map((src, i) => {
           const [x, y, r] = pos[i + (3 - shown.length)] ?? [0, 0, 0];
-          return <img key={src} src={src} alt="" style={{ left: x, top: y, transform: `rotate(${r}deg)`, zIndex: i }} />;
+          return <img key={src} src={src} alt="" decoding="async" style={{ left: x, top: y, transform: `rotate(${r}deg)`, zIndex: i }} />;
         })}
       </button>
       <span className="mc-fanl">
@@ -204,17 +228,23 @@ function waveOf(seed: string, n: number): number[] {
   return out;
 }
 
-function VoiceNote({ m }: { m: Extract<Message, { kind: "voice" }> }) {
+function VoiceNote({ m, ctx }: { m: Extract<Message, { kind: "voice" }>; ctx: Ctx }) {
   const me = m.from === "me";
-  const [playing, setPlaying] = useState(false);
-  const [p, setP] = useState(0);
+  const [simPlaying, setPlaying] = useState(false);
+  const [simP, setP] = useState(0);
   const [open, setOpen] = useState(false);
   const at = useRef(0);
   const bars = useMemo(() => waveOf(m.id, VOICE_BARS), [m.id]);
+  /* real audio (API threads): fetched on the first tap through the API client, played from a blob: URL */
+  const player = useVoicePlayer(m.audio);
+  const real = !!m.audio;
+  const playing = real ? player.playing : simPlaying;
+  const p = real ? player.progress : simP;
+  const seconds = real ? (player.duration ?? m.seconds) : m.seconds;
 
-  /* simulated playback: rAF progress over the stated duration, resumes where it paused */
+  /* simulated playback (sample threads): rAF progress over the stated duration, resumes where it paused */
   useEffect(() => {
-    if (!playing) return;
+    if (!simPlaying || real) return;
     const dur = m.seconds * 1000;
     const start = performance.now() - at.current * dur;
     let raf = 0;
@@ -232,22 +262,25 @@ function VoiceNote({ m }: { m: Extract<Message, { kind: "voice" }> }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, m.seconds]);
+  }, [simPlaying, m.seconds, real]);
 
   const started = playing || p > 0;
-  const left = started ? Math.max(0, Math.ceil(m.seconds * (1 - p))) : m.seconds;
-  const toggle = () => setPlaying((x) => !x);
+  const left = started ? Math.max(0, Math.ceil(seconds * (1 - p))) : seconds;
+  const toggle = () => (real ? player.toggle() : setPlaying((x) => !x));
+  const loading = real && player.state === "loading";
+  const known = seconds > 0;
   return (
     <div className={cx("mc-vn", me && "mc-vn--me")}>
-      <div className={cx("mc-vn__b", playing && "is-play")}>
+      {m.upload && <UploadLine slug={ctx.slug} id={m.id} upload={m.upload} />}
+      <div className={cx("mc-vn__b", playing && "is-play")} aria-busy={loading || undefined}>
         <button
           type="button"
           className="mc-vn__p"
-          aria-label={`${playing ? "Pause" : "Play"} voice note, ${clock(m.seconds)}`}
+          aria-label={loading ? "Loading voice note" : `${playing ? "Pause" : "Play"} voice note${known ? `, ${clock(seconds)}` : ""}`}
           aria-pressed={playing}
           onClick={toggle}
         >
-          <Icon name={playing ? "pause" : "play"} />
+          {loading ? <i className="mc-spin" aria-hidden="true" /> : <Icon name={playing ? "pause" : "play"} />}
         </button>
         <span className="mc-vn__w" aria-hidden="true" onClick={toggle}>
           {bars.map((h, i) => (
@@ -255,9 +288,17 @@ function VoiceNote({ m }: { m: Extract<Message, { kind: "voice" }> }) {
           ))}
         </span>
         <span className="mc-vn__t mc-mono" aria-hidden="true">
-          {clock(left)}
+          {known ? clock(left) : "-:--"}
         </span>
       </div>
+      {real && player.state === "error" && (
+        <p className="mc-up mc-up--bad mc-mono" role="alert">
+          <span>Couldn't play the voice note.</span>
+          <button type="button" className="mc-up__retry" onClick={player.toggle}>
+            Retry
+          </button>
+        </p>
+      )}
       {m.transcript && (
         <div className="mc-vn__tr">
           <button type="button" className="mc-vn__tg" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -411,7 +452,8 @@ function bodyOf(m: Message, ctx: Ctx, tail: boolean): ReactNode {
   if (m.kind === "proof") return <ProofCard m={m} />;
   if (m.kind === "photos") return <PhotoFan m={m} ctx={ctx} />;
   if (m.kind === "poll") return <Poll m={m} ctx={ctx} />;
-  if (m.kind === "voice") return <VoiceNote m={m} />;
+  if (m.kind === "voice") return <VoiceNote m={m} ctx={ctx} />;
+  if (m.kind === "file") return <FileChip m={m} slug={ctx.slug} />;
   if (m.kind === "card") return <CardView m={m} ctx={ctx} />;
   if (m.kind === "doc") return <DocChip m={m} />;
   if (m.kind === "computer") return <ComputerChip m={m} />;

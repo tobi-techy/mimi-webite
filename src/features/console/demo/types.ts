@@ -76,6 +76,25 @@ export type TapbackKey = (typeof tapbackKeys)[number];
 export type Reaction = { by: string; r: TapbackKey | string; at?: number };
 type Reactable = { reactions?: Reaction[] };
 
+/**
+ * An attachment the owner sent from the console (demo build): while it uploads, while its turn is
+ * sent, or after either failed (the bubble offers Retry). Absent once the API has it.
+ */
+export type Upload = {
+  state: "uploading" | "sending" | "failed";
+  progress: number;
+  error?: string;
+  /** The API refused the file itself (its type or size): trying again would not help, so it offers Remove. */
+  final?: boolean;
+};
+/**
+ * Where a voice note's sound comes from: a reply read aloud (`voice`) or an attachment the owner
+ * sent (`media`), both fetched with the bearer in a header; or a recording still in this tab.
+ */
+export type VoiceAudio = { from: "voice" | "media"; id: string } | { from: "local"; url: string };
+/** Demo build: an attachment's API message id ("in:console-…"), its upload state, its bytes on the API. */
+type Sent = { apiId?: string; upload?: Upload; remote?: string };
+
 export type Message =
   | { id: string; kind: "date"; label: string }
   | ({ id: string; kind: "text"; from: Speaker; text: string; at: number; read?: boolean } & Reactable)
@@ -92,7 +111,7 @@ export type Message =
       footSub: string;
       verdict: Verdict;
     } & Reactable)
-  | ({ id: string; kind: "photos"; from: Speaker; at: number; label: string; photos: string[]; open?: boolean } & Reactable)
+  | ({ id: string; kind: "photos"; from: Speaker; at: number; label: string; photos: string[]; open?: boolean } & Sent & Reactable)
   | ({
       id: string;
       kind: "poll";
@@ -104,7 +123,9 @@ export type Message =
       /** What the helper says after the vote ({choice} is replaced). */
       reply?: string;
     } & Reactable)
-  | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string; transcript?: string } & Reactable)
+  | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string; transcript?: string; audio?: VoiceAudio } & Sent & Reactable)
+  /** A document the owner attached (an invoice PDF). `local` is a blob: URL while the tab keeps it. */
+  | ({ id: string; kind: "file"; from: Speaker; at: number; name: string; mime: string; size: number; local?: string } & Sent)
   | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }

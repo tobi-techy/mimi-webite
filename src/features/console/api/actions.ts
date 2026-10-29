@@ -1,12 +1,13 @@
 "use client";
 
-import { MimiApiError, mimiApi } from "@/features/console/api/client";
+import { attachLabel, checkAttachment, uploadRefusal, type AttachPurpose } from "@/features/console/api/attachments";
+import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
 import { apiActive, notify } from "@/features/console/api/live-store";
 import { friendlyMessage } from "@/features/console/api/mappers";
 import { newSession, readSession, writeSession } from "@/features/console/api/session";
-import { authed, openTurns, pending, refresh, report, resetCaches } from "@/features/console/api/sync";
+import { authed, localMedia, openTurns, pending, refresh, report, resetCaches } from "@/features/console/api/sync";
 import { findConversation, getDemo, nextId, patchConversation, patchMessage } from "@/features/console/demo/store";
-import type { Conversation, Message } from "@/features/console/demo/types";
+import type { Conversation, Message, Upload, VoiceAudio } from "@/features/console/demo/types";
 
 /**
  * What the owner does on API threads. The demo engine hands over to these when a thread or card
@@ -129,4 +130,122 @@ export async function liveReset(): Promise<void> {
   resetCaches();
   notify("info", "Fresh start: a new copy of Coral Lane Trading.");
   await refresh(true);
+}
+
+/* ---------- attachments (photos, voice notes, invoices) ---------- */
+
+type AttachMessage = Extract<Message, { kind: "photos" | "voice" | "file" }>;
+/** What a failed attachment needs to try again: its bytes and its turn's message id (the API dedupes on it). */
+const retries = new Map<string, { thread: string; blob: Blob; mime: string; messageId: string }>();
+
+const makeUrl = (b: Blob) => (typeof URL !== "undefined" && URL.createObjectURL ? URL.createObjectURL(b) : "");
+
+/** Updates an attachment bubble both where the next poll reads it (pending) and on screen. */
+function patchAttach(thread: string, id: string, f: (m: AttachMessage) => AttachMessage) {
+  const list = pending.get(thread);
+  if (list) pending.set(thread, list.map((m) => (m.id === id && (m.kind === "photos" || m.kind === "voice" || m.kind === "file") ? f(m) : m)));
+  patchMessage(thread, id, (m) => (m.kind === "photos" || m.kind === "voice" || m.kind === "file" ? f(m) : m));
+}
+
+const setUpload = (thread: string, id: string, upload: Upload | undefined) => patchAttach(thread, id, (m) => ({ ...m, upload }));
+
+/**
+ * The owner attaches a photo, a voice note or an invoice. Checked here first (type for what it was
+ * picked as, at most 10 MB), shown at once as its own bubble with progress, uploaded to the API
+ * (POST /v1/media), then sent as a turn that points at it. A failure leaves the bubble with the
+ * reason and Retry. Returns the refusal when the file was not accepted (nothing is shown then).
+ */
+export async function liveAttach(slug: string, file: Blob & { name?: string }, purpose: AttachPurpose, opts: { seconds?: number } = {}): Promise<string | null> {
+  const name = file.name ?? "";
+  const check = checkAttachment({ name, type: file.type, size: file.size }, purpose);
+  if (!check.ok) return check.error;
+  const target = ownerThread()?.slug ?? slug;
+  const id = nextId("api-att");
+  const messageId = newMessageId();
+  const apiId = `in:${messageId}`;
+  const url = check.kind === "document" ? "" : makeUrl(file);
+  const upload: Upload = { state: "uploading", progress: 0 };
+  const at = Date.now();
+  const bubble: AttachMessage =
+    check.kind === "image"
+      ? { id, kind: "photos", from: "me", at, label: attachLabel("image", name), photos: url ? [url] : [], apiId, upload }
+      : check.kind === "voice"
+        ? { id, kind: "voice", from: "me", at, seconds: Math.max(1, Math.round(opts.seconds ?? 0)), caption: attachLabel("voice", name), audio: url ? { from: "local", url } : undefined, apiId, upload }
+        : { id, kind: "file", from: "me", at, name: name || "Invoice", mime: check.mime, size: file.size, local: makeUrl(file) || undefined, apiId, upload };
+  pending.set(target, [...(pending.get(target) ?? []), bubble]);
+  patchConversation(target, (c) => ({ ...c, ago: "now", messages: [...c.messages, bubble] }));
+  if (target !== slug) addEvent(slug, "Sent to Mimi. Her answer comes in your thread with her.");
+  retries.set(id, { thread: target, blob: file, mime: check.mime, messageId });
+  await sendAttach(target, id);
+  return null;
+}
+
+/** Retry a failed attachment: the same bytes and the same turn message id, so nothing doubles. */
+export function liveRetryAttach(slug: string, id: string): void {
+  const r = retries.get(id);
+  if (!r) return void notify("other", "Mimi lost that file. Attach it again.");
+  void sendAttach(r.thread, id);
+}
+
+/** Remove an attachment the API refused (its blob: URL goes with it). */
+export function liveDropAttach(slug: string, id: string): void {
+  const thread = retries.get(id)?.thread ?? ownerThread()?.slug ?? slug;
+  retries.delete(id);
+  const gone = (pending.get(thread) ?? []).find((m) => m.id === id);
+  const left = (pending.get(thread) ?? []).filter((m) => m.id !== id);
+  if (left.length) pending.set(thread, left);
+  else pending.delete(thread);
+  patchConversation(thread, (c) => ({ ...c, messages: c.messages.filter((m) => m.id !== id) }));
+  if (gone && typeof URL !== "undefined" && URL.revokeObjectURL) {
+    const urls = gone.kind === "photos" ? gone.photos : gone.kind === "voice" && gone.audio?.from === "local" ? [gone.audio.url] : gone.kind === "file" && gone.local ? [gone.local] : [];
+    for (const u of urls) if (u.startsWith("blob:")) URL.revokeObjectURL(u);
+  }
+}
+
+async function sendAttach(thread: string, id: string): Promise<void> {
+  const r = retries.get(id);
+  if (!r) return;
+  let last = -1;
+  setUpload(thread, id, { state: "uploading", progress: 0 });
+  try {
+    const media = await authed((t) =>
+      mimiApi.upload(t, r.blob, r.mime, {
+        onProgress: (p) => {
+          const pct = Math.floor(p * 20) * 5; /* every 5%: no re-render per byte */
+          if (pct !== last) {
+            last = pct;
+            setUpload(thread, id, { state: "uploading", progress: pct / 100 });
+          }
+        },
+      }),
+    );
+    setUpload(thread, id, { state: "sending", progress: 1 });
+    patchConversation(thread, (c) => ({ ...c, state: "run", working: true, status: "reading your message" }));
+    const body = { message_id: r.messageId, source: "owner_message" as const, text: "", media: { kind: media.kind, ref: media.ref, sha256: media.sha256, mime: media.mime } };
+    const turn = await authed((t) => mimiApi.postTurn(t, body));
+    retries.delete(id);
+    const sent = (pending.get(thread) ?? []).find((m) => m.id === id);
+    setUpload(thread, id, undefined);
+    if (sent && (sent.kind === "photos" || sent.kind === "voice" || sent.kind === "file")) localMedia.set(`in:${r.messageId}`, { ...sent, upload: undefined });
+    openTurns.set(turn.turn_id, turn.thread_id || thread);
+  } catch (e) {
+    if (isAbort(e)) return;
+    const err = e instanceof MimiApiError ? e : new MimiApiError(-1, "");
+    const refusal = uploadRefusal(err.status, err.detail);
+    const offline = err.kind === "unreachable";
+    const words = refusal ?? (offline ? "Mimi can't be reached right now. Check your connection, then Retry." : friendlyMessage(err.kind, err.detail));
+    setUpload(thread, id, { state: "failed", progress: 0, error: words, final: !!refusal && err.status !== 422 });
+    patchConversation(thread, (c) => ({ ...c, state: "idle", working: false, status: "waiting for your next message" }));
+    /* caps, a paused demo or a renewed session also go to the notice line; a refused file or a dropped connection stays on its bubble */
+    if (!refusal && !offline) report(err);
+  }
+  void refresh();
+}
+
+/**
+ * The bytes behind a voice note or an attachment, through the one API client with the bearer in
+ * the header. The caller makes the blob: URL and revokes it when it unmounts.
+ */
+export async function loadMediaBlob(src: Exclude<VoiceAudio, { from: "local" }>, signal: AbortSignal): Promise<Blob> {
+  return authed((t) => (src.from === "voice" ? mimiApi.voice(t, src.id, { signal }) : mimiApi.media(t, src.id, { signal })));
 }

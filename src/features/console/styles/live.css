@@ -27,3 +27,29 @@
 
 /* the threads list is a <ul>: no list bullets (they showed in both builds) */
 .mc-ti { list-style: none; }
+
+/* ---------- attachments in API threads (demo build) ---------- */
+/* the upload line under an attachment: hairline bar, mono label; orange only when it was not sent */
+.mc-up { display: inline-flex; align-items: center; gap: 8px; margin: 0; min-height: 18px; font-size: 10.5px; color: var(--muted); }
+.mc-up__bar { position: relative; width: 64px; height: 2px; background: var(--hair); border-radius: 1px; overflow: hidden; }
+.mc-up__bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); transition: width .15s var(--mech); }
+.mc-up--bad { color: var(--color-signal-orange); flex-wrap: wrap; max-width: 320px; }
+.mc-up__retry { padding: 2px 8px; border: 1px solid var(--hair); border-radius: 3px; color: var(--ink); font: inherit; text-transform: uppercase; letter-spacing: .04em; }
+.mc-up__retry:hover { background: var(--tint); }
+.mc-fanwrap .mc-up { order: -1; align-self: flex-end; }
+.mc-vn .mc-up { align-self: inherit; }
+.mc-att { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 100%; }
+.mc-r--them .mc-att { align-items: flex-start; }
+.mc-fan--ph { display: grid; place-items: center; width: 200px; height: 236px; border: 1px solid var(--hair); border-radius: var(--radius-lg); color: var(--muted); font-size: 10.5px; }
+.mc-vn__p .mc-spin { width: 12px; height: 12px; }
+
+/* rich replies: images fit the column and load lazily; wide tables scroll inside their frame */
+.mc-md__img { display: block; max-width: 100%; height: auto; max-height: 420px; border: 1px solid var(--hair); border-radius: var(--radius-lg); background: var(--surface); }
+.mc-md--msg .mc-md__tw { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.mc-md--msg .mc-md__tw th, .mc-md--msg .mc-md__tw td { overflow-wrap: normal; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .mc-up__bar i { transition: none; }
+}
+
+/* the sidebar's shop count while the API loads */
+.mc-skel--k { display: inline-block; width: 14px; height: 9px; vertical-align: middle; }

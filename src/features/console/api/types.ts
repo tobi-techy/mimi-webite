@@ -36,6 +36,10 @@ export type ApiMessage = {
   turn_id: string | null;
   simulated: boolean;
   at: string;
+  /** A reply read aloud: GET /v1/messages/{id}/voice (bearer in the header). */
+  voice?: boolean;
+  /** Demo: the owner's console attachment, GET /v1/messages/{id}/media. */
+  media?: boolean;
 };
 
 export type ApiStep = {
@@ -101,11 +105,17 @@ export type ApiTurn = {
   error: string;
 };
 
+export type ApiMediaKind = "image" | "voice" | "document";
+
+/** POST /v1/media (demo): where the API kept one console attachment. */
+export type ApiMedia = { ref: string; sha256: string; mime: string; kind: ApiMediaKind; size: number };
+
 export type ApiTurnIn = {
   message_id: string;
   source: "owner_message" | "shop_message" | "rep_message";
   text: string;
   phone?: string;
+  media?: { kind: ApiMediaKind; ref: string; sha256: string; mime: string; caption?: string };
 };
 
 export type ApiApprovalStatus = "pending" | "approved" | "rejected" | "superseded" | "withdrawn";

@@ -85,8 +85,11 @@ export function ShellProvider({ sidebar, children }: ShellProviderProps) {
     [collapsed, drawerOpen, toggleSidebar, closeDrawer, openPalette],
   );
 
-  /* chat routes bring their own header (with a back button on phones) */
+  /* chat routes bring their own header (with a back button on phones). Mimi's home is her thread,
+     so on phones it has one top bar (the thread's, which has the menu), not two */
+  const home = consoleRoutes.home.replace(/\/$/, "");
   const isChat =
+    (pathname.replace(/\/$/, "") || "/") === (home || "/") ||
     pathname === `${consoleRoutes.threads}/new` ||
     conversations.some((c) => pathname === `${consoleRoutes.threads}/${c.slug}`);
 
