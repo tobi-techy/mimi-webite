@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ConsoleView } from "@/features/console/components/shell/ConsoleView";
+import { ShopsSummary } from "@/features/console/components/shops/ShopsSummary";
 import { ShopsTable } from "@/features/console/components/shops/ShopsTable";
 import { ButtonLink } from "@/features/console/components/ui/Button";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -26,7 +27,7 @@ export default function ShopsLayout({ children }: { children: ReactNode }) {
               Add shop
             </ToastButton>
           </div>
-          <p className="x-sub">48 shops · 41 on WhatsApp · ₦4.82m outstanding</p>
+          <ShopsSummary />
           <ShopsTable />
         </Page>
       </ConsoleView>

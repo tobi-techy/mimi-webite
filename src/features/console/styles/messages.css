@@ -304,3 +304,62 @@ html[data-theme="dark"] .c-shop--20 { outline: 1px solid rgba(250,250,250,.85); 
 .mc-nr__shop { flex: none; }
 .x-utbl .x-n { display: inline-flex; align-items: center; gap: 8px; }
 .x-utbl .x-n .c-shop svg { width: 20px; height: 20px; }
+
+/* ---------- soft bouncy motion (Tobi, 29 Oct 2026: "soft bouncy feel when users send a message or when
+   they scroll through a thread") ----------
+ * Springs are CSS linear() curves sampled from a damped spring (zeta in the name), on the individual
+ * translate / scale properties, so they are transform + opacity only (browsers without linear() fall
+ * back to a plain ease). Switches: consoleMotion.spring / sendSquish / scrollSettle (config/console-motion.ts).
+ * Reduced motion: a short plain fade, no spring, no scale (end of this block). */
+.mc-app {
+  --mc-spring-36: linear(0, 0.101, 0.344, 0.641, 0.919, 1.132, 1.258, 1.298, 1.269, 1.197, 1.109, 1.026, 0.962, 0.924, 0.912, 0.92, 0.941, 0.967, 0.992, 1.011, 1.022, 1.026, 1.024, 1.018, 1.01, 1.003, 0.997, 0.993, 0.992, 0.993, 0.995, 0.997, 1);
+  --mc-spring-55: linear(0, 0.044, 0.154, 0.301, 0.463, 0.623, 0.767, 0.888, 0.983, 1.052, 1.096, 1.12, 1.126, 1.121, 1.107, 1.088, 1.068, 1.047, 1.029, 1.014, 1.002, 0.993, 0.988, 0.985, 0.984, 0.985, 0.987, 0.989, 0.991, 0.994, 0.996, 0.998, 1);
+  --mc-spring-70: linear(0, 0.027, 0.096, 0.191, 0.3, 0.412, 0.522, 0.624, 0.716, 0.795, 0.862, 0.916, 0.959, 0.991, 1.015, 1.031, 1.04, 1.045, 1.046, 1.044, 1.041, 1.036, 1.031, 1.026, 1.021, 1.017, 1.012, 1.009, 1.006, 1.004, 1.002, 1, 1);
+  --mc-spring-80: linear(0, 0.021, 0.074, 0.148, 0.233, 0.324, 0.415, 0.502, 0.583, 0.657, 0.723, 0.78, 0.83, 0.871, 0.906, 0.934, 0.956, 0.974, 0.987, 0.998, 1.005, 1.01, 1.013, 1.014, 1.015, 1.015, 1.014, 1.013, 1.012, 1.011, 1.009, 1.008, 1);
+  --mc-spring-send: 420ms; /* your bubble: rises from the composer, overshoots to ~1.03 */
+  --mc-spring-in: 380ms; /* replies and steps: softer settle */
+  --mc-spring-settle: 320ms; /* first time a message scrolls into view */
+}
+/* the thread scroller keeps native momentum and the iOS rubber band, but never chains into the page */
+.mc-feed { overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+
+/* your message: rise from the composer, gentle overshoot, settle */
+.mc-feed[data-motion~="spring"] .mc-grp--me.mc-in {
+  transform-origin: right bottom;
+  animation:
+    mc-spr-fade 140ms ease-out both,
+    mc-spr-rise var(--mc-spring-send) cubic-bezier(.2,.9,.3,1) both,
+    mc-spr-grow var(--mc-spring-send) cubic-bezier(.2,.9,.25,1.3) both;
+  animation-timing-function: ease-out, var(--mc-spring-70), var(--mc-spring-36);
+}
+/* replies, work steps and events: the same idea, softer */
+.mc-feed[data-motion~="spring"] .mc-grp:not(.mc-grp--me).mc-in {
+  transform-origin: left bottom;
+  animation:
+    mc-spr-fade 180ms ease-out both,
+    mc-spr-rise-soft var(--mc-spring-in) cubic-bezier(.2,.9,.3,1) both,
+    mc-spr-grow-soft var(--mc-spring-in) cubic-bezier(.2,.9,.25,1.1) both;
+  animation-timing-function: ease-out, var(--mc-spring-80), var(--mc-spring-55);
+}
+/* scroll: a message settles once the first time it comes into view (tagged by ThreadChat, never scroll-linked) */
+.mc-feed[data-motion~="spring"] .mc-grp[data-settle]:not(.mc-in) {
+  animation: mc-spr-settle var(--mc-spring-settle) cubic-bezier(.2,.9,.3,1) both;
+  animation-timing-function: var(--mc-spring-55);
+}
+@keyframes mc-spr-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mc-spr-rise { from { translate: 0 18px; } to { translate: 0 0; } }
+@keyframes mc-spr-grow { from { scale: .89; } to { scale: 1; } }
+@keyframes mc-spr-rise-soft { from { translate: 0 10px; } to { translate: 0 0; } }
+@keyframes mc-spr-grow-soft { from { scale: .97; } to { scale: 1; } }
+@keyframes mc-spr-settle { from { translate: 0 8px; } to { translate: 0 0; } }
+
+/* send button: a small squish on press (Composer adds a spring back when the message goes) */
+.mc-snd { transition: opacity .15s var(--mech), scale .28s cubic-bezier(.2,.9,.25,1.3); transition-timing-function: var(--mech), var(--mc-spring-36); }
+.mc-snd:not(:disabled):active { scale: .9; transition-duration: .08s; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* beats the console-wide "animation: none" (v3.css) with a higher specificity: a short plain fade */
+  .mc-app .mc-feed .mc-grp.mc-in { animation: mc-spr-fade 160ms ease-out both !important; }
+  .mc-app .mc-feed .mc-grp[data-settle] { animation: none !important; }
+  .mc-app .mc-snd:active { scale: none; }
+}

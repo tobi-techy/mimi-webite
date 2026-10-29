@@ -40,3 +40,25 @@ html[data-theme="dark"] .mc-app {
 .mc-app .mimi-helper[data-helper="brand"] { --h-fg: var(--helper-brand); }
 .mc-app .mimi-helper[data-helper="proof"] { --h-fg: var(--helper-proof); }
 .mc-app .mimi-helper:not([data-helper="mimi"]) { --h-eye: #101010; }
+
+/*
+ * Helper threads in colour (29 Oct 2026, Dots-inspired). In a helper's thread your bubbles and the
+ * send button take that helper's colour (the tokens above, light and dark), with near-black text:
+ * every fill clears WCAG AA with #101010 in both themes (lowest: Credit #9a6bf7, 5.3:1). Mimi's
+ * replies stay neutral, orange stays for approvals and status, and Mimi's own thread (no
+ * data-helper) keeps the neutral bubble.
+ */
+.mc-thread[data-helper="order"] { --thread-accent: var(--helper-order); }
+.mc-thread[data-helper="collector"] { --thread-accent: var(--helper-collector); }
+.mc-thread[data-helper="credit"] { --thread-accent: var(--helper-credit); }
+.mc-thread[data-helper="stock"] { --thread-accent: var(--helper-stock); }
+.mc-thread[data-helper="brand"] { --thread-accent: var(--helper-brand); }
+.mc-thread[data-helper="proof"] { --thread-accent: var(--helper-proof); }
+.mc-thread[data-helper] {
+  --thread-accent-ink: #101010;
+  /* your text bubbles and voice notes read these */
+  --msg-me-bg: var(--thread-accent);
+  --msg-me-color: var(--thread-accent-ink);
+}
+.mc-thread[data-helper] .mc-snd,
+.mc-thread[data-helper] .mc-rec__s { background: var(--thread-accent); color: var(--thread-accent-ink); }

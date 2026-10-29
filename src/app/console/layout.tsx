@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { ConsoleShell } from "@/features/console/components/shell/ConsoleShell";
 import { siteViewport } from "@/lib/seo";
 
-/** Edge to edge on phones; the console pads itself with safe-area insets. */
-export const viewport: Viewport = { ...siteViewport, viewportFit: "cover" };
+/* Edge to edge on phones; the on-screen keyboard resizes the layout so it never covers the composer */
+export const viewport: Viewport = { ...siteViewport, viewportFit: "cover", interactiveWidget: "resizes-content" };
 
 /** The console is a product demo with sample data: never indexed. */
 export const metadata: Metadata = {

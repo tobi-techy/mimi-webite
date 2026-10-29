@@ -1,7 +1,14 @@
 import { shops, type Shop } from "@/features/console/content/shops";
 
 export type CreditLine = { shop: Shop; limit: number; due: string; late: boolean; recommendation: string };
-export type CreditRecommendation = { shopId: string; to: number; verb: "Raise" | "Lower"; why: string };
+export type CreditRecommendation = {
+  shopId: string;
+  to: number;
+  verb: "Raise" | "Lower";
+  why: string;
+  /** API credit requests: the approval that accepting or dismissing decides. */
+  approvalId?: string;
+};
 
 const byIndex = (i: number): Shop => {
   const s = shops[i];

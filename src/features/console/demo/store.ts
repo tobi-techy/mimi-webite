@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { USES_API } from "@/features/console/api/config";
 import { DEMO_VERSION, seedState } from "@/features/console/demo/seed";
 import type { Conversation, DemoState, Message } from "@/features/console/demo/types";
 
@@ -8,9 +9,13 @@ import type { Conversation, DemoState, Message } from "@/features/console/demo/t
  * The console demo store: one plain object, saved to localStorage after every change until the
  * demo is reset. Server render and first client render both use the seed, then `hydrateDemo()`
  * swaps in the saved copy (so markup never mismatches).
+ *
+ * In the demo build (USES_API) the sample threads are held back until the API answers, so the
+ * first paint is a skeleton rather than sample threads that then swap out; if the API cannot be
+ * reached they come back (`restoreSampleConversations`).
  */
 const KEY = "mimi-console-demo";
-const SEED = seedState();
+const SEED: DemoState = USES_API ? { ...seedState(), conversations: [] } : seedState();
 let state: DemoState = SEED;
 const listeners = new Set<() => void>();
 let saveTimer: number | undefined;
@@ -23,8 +28,16 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+/**
+ * True once threads come from the MIMI-AGENT API (demo build). The sample demo is then neither
+ * saved nor restored: the API is the source of truth, and the saved sample copy stays as it was
+ * for the fallback.
+ */
+let apiBacked = false;
+export const isApiBacked = () => apiBacked;
+
 function save() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || apiBacked) return;
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     try {
@@ -44,6 +57,19 @@ export function setDemo(update: (s: DemoState) => DemoState) {
 /** Loads the saved demo once on the client. Anything mid-animation comes back settled. */
 let hydrated = false;
 export function hydrateDemo() {
+  if (hydrated || apiBacked || USES_API) return;
+  hydrateSaved();
+}
+
+/** The API could not be reached on first load: show the sample threads (and the saved copy). */
+export function restoreSampleConversations() {
+  if (apiBacked) return;
+  state = { ...state, conversations: seedState().conversations };
+  emit();
+  hydrateSaved();
+}
+
+function hydrateSaved() {
   if (hydrated) return;
   hydrated = true;
   try {
@@ -76,6 +102,14 @@ export function hydrateDemo() {
   } catch {
     /* corrupt copy: keep the seed */
   }
+}
+
+/** Shows the API's threads instead of the sample ones (the rest of the demo state stays as it is). */
+export function setApiConversations(conversations: Conversation[]) {
+  apiBacked = true;
+  hydrated = true;
+  state = { ...state, conversations };
+  emit();
 }
 
 export function resetDemoState() {

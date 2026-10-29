@@ -1,0 +1,25 @@
+// Cloudflare Worker (static assets only) for the live demo console at demo.userail.money.
+// PREPARED, NOT DEPLOYED. Nothing here has been run against Cloudflare.
+//
+// Build and deploy, from the repository root, once the demo API has a public address:
+//   MIMI_DEMO_API_URL=https://<the demo API host> npm run build:console-demo-cf
+//   npx wrangler@4 deploy --config deploy/demo-console/wrangler.jsonc
+//
+// The build bakes in NEXT_PUBLIC_MIMI_MODE=demo and NEXT_PUBLIC_MIMI_API_URL (the only two public
+// values; no key is ever in the bundle) and writes out-console/_headers for this host.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "mimi-console-demo",
+  "compatibility_date": "2026-10-29",
+  // no Worker script: Cloudflare serves the static export straight from its edge
+  "assets": {
+    "directory": "../../out-console",
+    // "/shops" serves shops.html, "/threads/x" serves threads/x.html
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "demo.userail.money", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": false }
+}

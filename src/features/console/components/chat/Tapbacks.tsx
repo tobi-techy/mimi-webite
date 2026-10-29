@@ -14,7 +14,7 @@ import { cx } from "@/lib/cx";
  * iMessage tapbacks in the Factory skin. Double-tap / double-click, long-press (350ms) or
  * right-click a message: it lifts in place, the thread dims (flat, no blur), and the six classic
  * tapbacks pop above it (below when near the top) with a "+" for any emoji. Phones also get
- * Reply / Copy under the message. One reaction per person; the same one again removes it.
+ * Reply / Copy under the message (phones and desktop). One reaction per person; the same one again removes it.
  */
 
 export const TAPBACKS: { key: TapbackKey; label: string; verb: string }[] = [
@@ -377,14 +377,10 @@ export function ReactionLayer({
   let top = r.top;
   const minTop = EDGE + BAR_H + GAP;
   let barAbove = top - BAR_H - GAP >= EDGE + (phone ? 0 : 56);
-  if (phone) {
-    const bottom = top + r.height + GAP + MENU_H + EDGE + (barAbove ? 0 : BAR_H + GAP);
-    if (bottom > vh) {
-      top = Math.max(minTop, top - (bottom - vh));
-      barAbove = true;
-    }
-  } else if (!barAbove && top + r.height + GAP + BAR_H + EDGE > vh) {
-    top = Math.max(minTop, vh - EDGE - BAR_H - GAP - r.height);
+  /* the Reply / Copy list sits under the message on every screen size */
+  const bottom = top + r.height + GAP + MENU_H + EDGE + (barAbove ? 0 : BAR_H + GAP);
+  if (bottom > vh) {
+    top = Math.max(minTop, top - (bottom - vh));
     barAbove = true;
   }
   const barTop = barAbove ? top - BAR_H - GAP : top + r.height + GAP;
@@ -462,7 +458,7 @@ export function ReactionLayer({
           </div>
         </div>
       )}
-      {phone && !picker && (
+      {!picker && (
         <div className="mc-rxm" style={{ top: menuTop, left: menuLeft }} role="menu" aria-label="Message actions">
           <button
             type="button"

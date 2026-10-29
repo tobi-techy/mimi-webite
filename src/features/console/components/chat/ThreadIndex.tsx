@@ -5,7 +5,9 @@ import { useMemo, useState } from "react";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { conversationHref } from "@/features/console/demo/engine";
 import { threadFaceState } from "@/features/console/demo/roster";
-import { useDemo } from "@/features/console/demo/store";
+import { useThreads } from "@/features/console/api/hooks";
+import { SkeletonRows } from "@/features/console/components/live/Skeleton";
+import { EmptyState } from "@/features/console/components/ui/EmptyState";
 import type { Conversation } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
@@ -16,7 +18,7 @@ const inTab = (c: Conversation, t: Tab) =>
 
 /** Every thread, newest first, filtered by state. */
 export function ThreadIndex() {
-  const conversations = useDemo((s) => s.conversations);
+  const { conversations, loading } = useThreads();
   const [tab, setTab] = useState<Tab>("All");
   const list = useMemo(() => conversations.filter((c) => inTab(c, tab)), [conversations, tab]);
   return (
@@ -28,7 +30,11 @@ export function ThreadIndex() {
           </button>
         ))}
       </div>
-      <ul className="mc-hl__card mc-ti">
+      {loading && <SkeletonRows count={6} />}
+      {!loading && list.length === 0 && (
+        <EmptyState>{conversations.length ? "Nothing in this tab right now" : "No threads yet. Ask Mimi something to start one."}</EmptyState>
+      )}
+      <ul className="mc-hl__card mc-ti" hidden={loading || list.length === 0}>
         {list.map((c, i) => (
           <li key={c.slug}>
             <Link href={conversationHref(c)} className="mc-hl__r">

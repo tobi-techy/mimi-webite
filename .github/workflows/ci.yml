@@ -24,7 +24,13 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
+      - name: Console unit tests (mappers, attachment checks, safe links and images)
+        run: npm run test:console
       - name: Static export (out/)
         run: npm run build:export
       - name: Console export (out-console/)
         run: npm run build:console
+      - name: Console export in demo mode (API address is a local placeholder; nothing is deployed)
+        run: npm run build:console-demo
+        env:
+          NEXT_PUBLIC_MIMI_API_URL: http://127.0.0.1:8000

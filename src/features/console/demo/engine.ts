@@ -1,5 +1,7 @@
 "use client";
 
+import { isApiCard, isApiThread, liveDecide, liveReset, liveSend, liveStart } from "@/features/console/api/actions";
+import { apiActive, notify } from "@/features/console/api/live-store";
 import { consoleMotion } from "@/config/console-motion";
 import { sfx } from "@/lib/sound";
 import { CHASE_THOUGHT, OWED_LIST, brandCard, idleComputer, owner, photo, planReplies, reminderPlan } from "@/features/console/demo/seed";
@@ -358,6 +360,10 @@ export async function tapChip(slug: string, reply: Reply): Promise<void> {
 
 /** The owner types and sends a message in a thread; the right helper answers. */
 export function sendMessage(slug: string, text: string) {
+  if (isApiThread(slug)) {
+    sfx("console", "tap");
+    return void liveSend(slug, text);
+  }
   const clean = text.trim();
   if (!clean) return;
   const step = stepFor(slug, clean);
@@ -372,6 +378,10 @@ export function sendMessage(slug: string, text: string) {
  * taken at the next step, and the helper picks it up as soon as the current step ends (RAI-283).
  */
 export function steerMessage(slug: string, text: string) {
+  if (isApiThread(slug)) {
+    sfx("console", "tap");
+    return void liveSend(slug, text);
+  }
   const clean = text.trim();
   if (!clean) return;
   const c = findConversation(getDemo(), slug);
@@ -397,6 +407,10 @@ export function steerMessage(slug: string, text: string) {
 
 /** Home composer: a new thread with the helper the words point at. Returns its slug. */
 export function startThread(text: string, pick?: HelperName | "Mimi"): string {
+  if (apiActive()) {
+    sfx("console", "tap");
+    return liveStart(text);
+  }
   const clean = text.trim();
   const key = keyOf(clean);
   const helper: HelperName | "Mimi" = pick && pick !== "Mimi" ? pick : key === "fallback" ? "Mimi" : scriptHelper[key];
@@ -1248,6 +1262,7 @@ async function afterApprove(slug: string, card: DecisionCard, ep: number) {
 
 /** Approve a card (from its thread, the plan sheet or the Needs you pile: one shared store). */
 export function approveCard(slug: string, messageId: string, quiet = false) {
+  if (isApiCard(messageId)) return void liveDecide(slug, messageId, true);
   const ep = epoch;
   const c = findConversation(getDemo(), slug);
   const m = c?.messages.find((x) => x.id === messageId);
@@ -1283,6 +1298,7 @@ async function approvePending(slug: string, kind: DecisionCard["kind"] | undefin
 }
 
 export function declineCard(slug: string, messageId: string) {
+  if (isApiCard(messageId)) return void liveDecide(slug, messageId, false);
   sfx("console", "tap");
   const c = findConversation(getDemo(), slug);
   patchMessage(slug, messageId, (x) => (x.kind === "card" ? { ...x, card: { ...x.card, status: "declined" } } : x));
@@ -1619,6 +1635,7 @@ export function toggleAutomation(key: string, on: boolean) {
 /* ---------- reset and the guided demo ---------- */
 
 export function resetDemo() {
+  if (apiActive()) return void liveReset();
   epoch += 1;
   chipBusy = false;
   resetDemoState();
@@ -1632,6 +1649,7 @@ const STORY_ASK = "Chase everyone over ₦50k this week. Polite, but firm past a
  * (a presenter tapping, or the guided demo tapping for them).
  */
 export function stageStory(playing = false) {
+  if (apiActive()) return void notify("info", "The guided demo uses sample data, so it is not part of the live demo. Everything else here is live.");
   resetDemo();
   patchConversation(DEMO_SLUG, (c) => ({
     ...c,
@@ -1683,6 +1701,7 @@ async function tapStep(slug: string, step: string, ep: number): Promise<boolean>
 
 /** Auto-plays the collections story through the same chips a presenter taps (~70s). */
 export async function playDemo(go: (href: string) => void) {
+  if (apiActive()) return void notify("info", "The guided demo uses sample data, so it is not part of the live demo. Everything else here is live.");
   stageStory(true);
   const ep = epoch;
   const slug = DEMO_SLUG;
@@ -1713,6 +1732,7 @@ export { owner };
 /* ---------- composer extras ---------- */
 
 export function sendPhoto(slug: string) {
+  if (isApiThread(slug)) return void notify("info", "Photos, voice notes and invoices from the console are not wired to Mimi yet.");
   const ep = epoch;
   push(slug, { kind: "photos", from: "me", at: Date.now(), label: "1 Photo · debt book page", photos: ["/media/photos/photo2-counter-480.webp"] });
   sfx("console", "tap");
@@ -1723,6 +1743,7 @@ export function sendPhoto(slug: string) {
 }
 
 export function sendVoice(slug: string, seconds: number) {
+  if (isApiThread(slug)) return void notify("info", "Photos, voice notes and invoices from the console are not wired to Mimi yet.");
   const ep = epoch;
   push(slug, { kind: "voice", from: "me", at: Date.now(), seconds, caption: "Your voice note" });
   sfx("console", "tap");
@@ -1731,6 +1752,7 @@ export function sendVoice(slug: string, seconds: number) {
 }
 
 export function fileInvoice(slug: string) {
+  if (isApiThread(slug)) return void notify("info", "Photos, voice notes and invoices from the console are not wired to Mimi yet.");
   const ep = epoch;
   void (async () => {
     if (!(await say(slug, "Collector", "Pulling the latest invoice from the debt book.", ep, 900))) return;

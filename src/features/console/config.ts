@@ -1,4 +1,5 @@
 import { consolePath } from "@/config/routes";
+import { findShop } from "@/features/console/content/shops";
 
 /** Console routes and constants. Every path goes through consolePath (the build's base: "/console" or root). */
 export const consoleRoutes = {
@@ -18,7 +19,9 @@ export const consoleRoutes = {
 
 export const threadHref = (slug: string): string => `${consoleRoutes.threads}/${slug}`;
 export const helperHref = (name: string): string => `${consoleRoutes.helpers}/${name.toLowerCase()}`;
-export const shopHref = (id: string): string => `${consoleRoutes.shops}/${id}`;
+/** Sample shops have their own static page; shops from the API open at /shops/live?id=… (static-export safe). */
+export const shopHref = (id: string): string =>
+  findShop(id) ? `${consoleRoutes.shops}/${id}` : `${consoleRoutes.shops}/live?id=${encodeURIComponent(id)}`;
 
 /** First console visit in a session shows "Opening your book" (see lib/boot-script.ts, components/layout/BootLoader.tsx). */
 export const CONSOLE_LOADER_KEY = "mimi-console-loaded";

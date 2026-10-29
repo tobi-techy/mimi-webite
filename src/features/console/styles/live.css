@@ -1,0 +1,55 @@
+/* Live data states (demo build): loading skeletons and the jump-to-latest pill. Tokens only, so
+   both themes follow; nothing here restyles an existing component. */
+
+.mc-skel { display: block; height: 12px; border-radius: var(--radius-sm, 3px); background: var(--surface); position: relative; overflow: hidden; }
+.mc-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--hair) 70%, transparent), transparent); animation: mc-skel 1.3s ease-in-out infinite; }
+.mc-skel--line { width: 60%; }
+.mc-skel--short { width: 32%; }
+.mc-skel--block { height: 44px; width: 100%; }
+.mc-skel--bubble { height: 40px; width: 46%; border-radius: 14px; }
+.mc-skel--me { margin-left: auto; width: 38%; }
+.mc-skel--num { display: inline-block; height: 20px; width: 72px; }
+.mc-skels { display: flex; flex-direction: column; gap: 12px; padding: 8px 0; }
+.mc-skels--feed { gap: 18px; padding: 24px 0; }
+.mc-skel-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.mc-skel-row .mc-skel:first-child { width: 24px; height: 24px; border-radius: 50%; flex: none; }
+.mc-skel-row .mc-skel:nth-child(2) { flex: 1; }
+.mc-skel-row .mc-skel:last-child { width: 40px; flex: none; }
+@keyframes mc-skel { to { transform: translateX(100%); } }
+
+/* jump to the newest message when the owner has scrolled up */
+.mc-jump { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 3; gap: 6px; background: var(--bg); border: 1px solid var(--hair); white-space: nowrap; }
+.mc-jump-host { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-skel::after { animation: none; }
+}
+
+/* the threads list is a <ul>: no list bullets (they showed in both builds) */
+.mc-ti { list-style: none; }
+
+/* ---------- attachments in API threads (demo build) ---------- */
+/* the upload line under an attachment: hairline bar, mono label; orange only when it was not sent */
+.mc-up { display: inline-flex; align-items: center; gap: 8px; margin: 0; min-height: 18px; font-size: 10.5px; color: var(--muted); }
+.mc-up__bar { position: relative; width: 64px; height: 2px; background: var(--hair); border-radius: 1px; overflow: hidden; }
+.mc-up__bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); transition: width .15s var(--mech); }
+.mc-up--bad { color: var(--color-signal-orange); flex-wrap: wrap; max-width: 320px; }
+.mc-up__retry { padding: 2px 8px; border: 1px solid var(--hair); border-radius: 3px; color: var(--ink); font: inherit; text-transform: uppercase; letter-spacing: .04em; }
+.mc-up__retry:hover { background: var(--tint); }
+.mc-fanwrap .mc-up { order: -1; align-self: flex-end; }
+.mc-vn .mc-up { align-self: inherit; }
+.mc-att { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 100%; }
+.mc-r--them .mc-att { align-items: flex-start; }
+.mc-fan--ph { display: grid; place-items: center; width: 200px; height: 236px; border: 1px solid var(--hair); border-radius: var(--radius-lg); color: var(--muted); font-size: 10.5px; }
+.mc-vn__p .mc-spin { width: 12px; height: 12px; }
+
+/* rich replies: images fit the column and load lazily; wide tables scroll inside their frame */
+.mc-md__img { display: block; max-width: 100%; height: auto; max-height: 420px; border: 1px solid var(--hair); border-radius: var(--radius-lg); background: var(--surface); }
+.mc-md--msg .mc-md__tw { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.mc-md--msg .mc-md__tw th, .mc-md--msg .mc-md__tw td { overflow-wrap: normal; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .mc-up__bar i { transition: none; }
+}
+
+/* the sidebar's shop count while the API loads */
+.mc-skel--k { display: inline-block; width: 14px; height: 9px; vertical-align: middle; }

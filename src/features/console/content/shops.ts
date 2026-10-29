@@ -1,5 +1,20 @@
 export type ShopStatus = "g" | "w" | "o";
-export type Route = "Oshodi" | "Mushin" | "Ikeja";
+/** Sample routes; shops from the API are grouped by their rep instead ("Rep 1"). */
+export type Route = "Oshodi" | "Mushin" | "Ikeja" | (string & {});
+
+/**
+ * What the MIMI-AGENT API knows about a shop beyond the shared fields. Present only on shops from
+ * the API, which have no sell-through, score or weekly sales: screens show a dash for those.
+ */
+export type LiveShopExtra = {
+  creditLimit: number;
+  overdue: number;
+  openInvoices: number;
+  shopType: string;
+  threadId?: string;
+  receivables?: { id: string; due: string; daysOverdue: number; outstanding: number }[];
+  disputes?: string[];
+};
 
 export type ShopPayment = { date: string; amount: number; verified: boolean };
 
@@ -19,6 +34,7 @@ export type Shop = {
   salesThisWeek: number;
   avgDaysToPay: number;
   payments: readonly ShopPayment[];
+  live?: LiveShopExtra;
 };
 
 export const shopStatus: Record<

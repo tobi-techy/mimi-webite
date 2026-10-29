@@ -1,4 +1,5 @@
 import { BarChart } from "@/features/console/components/charts/BarChart";
+import { LiveShopDetail } from "@/features/console/components/shops/LiveShopDetail";
 import { ShopDrawer } from "@/features/console/components/shops/ShopDrawer";
 import { Avatar } from "@/features/console/components/ui/Avatar";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -18,6 +19,7 @@ const TITLE_ID = "shop-title";
 
 /** One shop in the drawer: contact, this week's numbers, best sellers, payments and score. */
 export function ShopDetail({ shop }: { shop: Shop }) {
+  if (shop.live) return <LiveShopDetail shop={shop} live={shop.live} />;
   const scale = shop.salesThisWeek / BEST_SELLER_BASE_SALES;
   const sold = bestSellers.map((b) => ({ ...b, qty: Math.max(1, Math.round(b.qty * scale)) }));
 
@@ -104,3 +106,4 @@ export function ShopDetail({ shop }: { shop: Shop }) {
     </ShopDrawer>
   );
 }
+
