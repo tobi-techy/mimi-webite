@@ -378,7 +378,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
         <span className={cx("mc-tier", `mc-tier--${tier.toLowerCase()}`)} title={`Risk tier: ${tier}`}>
           {tier}
         </span>
-        {c.status === "needs" && <span className="mc-nd">Needs you</span>}
+        {/* a card waiting on you shows its action buttons and nothing else: no "Needs you" tag */}
         {c.status === "sending" && <span className="mc-nd mc-nd--run">Sending</span>}
         {c.status === "sent" && <span className="mc-nd mc-nd--ok">{plan || c.kind === "brand" ? "Sent" : "Done"}</span>}
         {c.status === "declined" && <span className="mc-nd mc-nd--off">Discarded</span>}
@@ -671,12 +671,7 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
           Queued · after current task
         </p>,
       );
-    else if (me && m.kind === "text" && m.read && (i === messages.length - 1 || speakerOf(messages[i + 1]!) !== "me"))
-      items.push(
-        <p key={`${m.id}-rd`} className="mc-rd mc-mono">
-          Read
-        </p>,
-      );
+    /* no "Read" receipts (Tobi, 29 Oct 2026: threads too crowded with text) */
   });
   if (typing && typing !== "me") {
     const prev = speakerBefore(messages.length);
@@ -815,7 +810,7 @@ function Row({
   if (kind === "system") return <div className={cx("mc-grp mc-grp--act", turn && "mc-grp--turn", anim && "mc-in")}>{children}</div>;
   if (kind === "work")
     return (
-      <div id={id ? `m-${id}` : undefined} className={cx("mc-grp mc-grp--them mc-grp--work", turn && "mc-grp--turn", anim && "mc-in")}>
+      <div id={id ? `m-${id}` : undefined} className={cx("mc-grp mc-grp--them mc-grp--work", turn && "mc-grp--turn", anim && "mc-in")} data-from={who && who !== "me" ? who : undefined}>
         {showName && who && who !== "me" && (
           <p className="mc-mh">
             <HelperFace name={who} size={32} state={face} quiet />

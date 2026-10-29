@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/features/console/components/chat/Composer";
-import { DateLine, EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/console/components/chat/Messages";
+import { EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/console/components/chat/Messages";
 import { PlanSheet } from "@/features/console/components/chat/PlanSheet";
 import { MemorySheet, StepsSheet, TaskSheet, taskWord } from "@/features/console/components/chat/QuietSheets";
-import { Waiting } from "@/features/console/components/chat/Waiting";
 import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
@@ -103,9 +102,12 @@ function TaskSection({
   prevLabel,
   typing,
   onTask,
+  quiet,
 }: {
   c: Conversation;
   open: boolean;
+  /** Mimi's conversation: a task that waits on you reads "Waiting", no orange mark (the header carries the one count). */
+  quiet?: boolean;
   prevLabel?: string;
   typing: Speaker | null;
   /** Opens this task's own thread (fresh context). */
@@ -114,28 +116,21 @@ function TaskSection({
   const label = labelOf(c);
   const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
   const by = updatedBy(c);
+  const st = taskState(c);
+  const word = quiet && st === "needs" ? taskStateLabel.waiting : taskWord(c);
   return (
     <div className={cx("mc-task", open && "is-open")} id={`task-${c.slug}`} data-task={c.slug}>
-      {label !== prevLabel && <DateLine label={label} />}
-      {/* each long job reads as one quiet task line; tapping it opens that task's own thread */}
+      {/* each long job reads as one quiet muted line: the date (when it changes) and the title, nothing else.
+          State, proof and "updated by" live in the task's own thread (TaskSheet) and the Steps sheet. */}
       <button
         type="button"
         className="mc-ev mc-ev--task mc-taskln"
         aria-haspopup="dialog"
-        title={`${c.title} · ${taskWord(c)}${by ? ` · Updated by ${by} · ${c.ago}` : ""}`}
+        aria-label={`${label !== prevLabel ? `${label}. ` : ""}${c.title}. ${word}${by ? `, updated by ${by} ${c.ago} ago` : ""}. Open the task`}
         onClick={() => onTask(c.slug)}
       >
+        {label !== prevLabel && <span className="mc-taskln__d">{label}</span>}
         <span className="mc-taskln__t">{c.title}</span>
-        {/* state (with the proof when done), then who changed it last: one line, cut at the end on small phones */}
-        <span className="mc-taskln__by">
-          <span className={cx("mc-taskln__st", `is-${taskState(c)}`)}>{taskWord(c)}</span>
-          {by && (
-            <>
-              {" "}
-              · Updated by {by} · {c.ago}
-            </>
-          )}
-        </span>
       </button>
       {rest.length === 0 && !typing ? (
         open ? (
@@ -325,16 +320,28 @@ export function ThreadChat({ slug }: { slug: string }) {
   const live = consoleThread.showWork ? null : liveWork(conv.messages);
   const writing = (typing && typing !== "me") || conv.status === "typing";
   /* one state for the open task: Working / Waiting / Needs you / Stuck / Done next to the status */
-  const tstate = taskState(conv);
-  const statusText = live
-    ? statusLine(live, "")
-    : writing
-      ? "Writing the reply…"
-      : tstate === "needs" || tstate === "stuck"
-        ? `${taskStateLabel[tstate]}${conv.status ? ` · ${conv.status}` : ""}`
-        : conv.status;
+  const isMimi = conv.helper === "Mimi";
+  /* Mimi's thread carries no "Needs you" state word: the one quiet "N waiting" link below stands for the pile */
+  const tstateRaw = taskState(conv);
+  const tstate = isMimi && tstateRaw === "needs" ? "waiting" : tstateRaw;
+  /* ONE short item in the status line, never stacked (Tobi, 29 Oct 2026: "threads are too crowded"):
+     "Needs you" when something waits, else the working status, else nothing. The role lives in the name menu. */
+  const statusText =
+    tstate === "needs" || tstate === "stuck"
+      ? taskStateLabel[tstate]
+      : live
+        ? statusLine(live, "")
+        : writing
+          ? "Writing the reply…"
+          : tstate === "working"
+            ? conv.status || taskStateLabel.working
+            : "";
   /* the back pill's badge: things waiting on you in other threads (the console has no unread count) */
-  const elsewhere = needItems(conversations).filter((n) => n.status === "needs" && n.conv.slug !== slug).length;
+  const needs = needItems(conversations).filter((n) => n.status === "needs");
+  /* in Mimi's thread the back badge would repeat the waiting count, so it stays off there */
+  const elsewhere = isMimi ? 0 : needs.filter((n) => n.conv.slug !== slug).length;
+  /* Mimi's one quiet indicator: an orange dot and a muted "N waiting" in the status line, opening the pile */
+  const waitingAll = isMimi ? needs.length : 0;
   /* the header face follows the helper's real state: working while a task runs, waiting on an approval, a done pop when it finishes */
   const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper);
   /* one conversation per helper: every task she has worked on, the open one last */
@@ -381,8 +388,10 @@ export function ThreadChat({ slug }: { slug: string }) {
                   <HelperFace
                     name={conv.helper}
                     size={60}
-                    state={live || writing ? "working" : tstate === "stuck" ? "blocked" : tstate === "needs" ? "waiting" : face.state}
-                    dot={face.needs > 0 || tstate === "needs"}
+                    state={live || writing ? "working" : tstate === "stuck" ? "blocked" : tstate === "needs" ? "waiting" : isMimi && face.state === "waiting" ? "idle" : face.state}
+                    dot={!isMimi && (face.needs > 0 || tstate === "needs")}
+                    /* the status line already says "Needs you" / working: no side mark, so the face sits centred in its chip */
+                    quiet
                   />
                 </span>
                 <span className={cx("mc-tt__nm", conv.helper === "Mimi" && "is-mimi")}>
@@ -391,19 +400,32 @@ export function ThreadChat({ slug }: { slug: string }) {
                 </span>
               </button>
               <p className={cx("mc-tt__s", (live || writing) && "is-busy")} aria-live="polite">
-                <button type="button" className="mc-tt__sb" aria-haspopup="dialog" aria-label={`${statusText || job}. Show steps`} onClick={() => setQuiet({ kind: "steps" })}>
-                  {live || writing || !statusText ? null : <span className="mc-tt__h mc-tt__job">{job}</span>}
-                  <span key={statusText} className="mc-tt__st">
-                    {statusText || job}
-                  </span>
-                </button>
+                {waitingAll > 0 ? null : statusText ? (
+                  <button type="button" className="mc-tt__sb" aria-haspopup="dialog" aria-label={`${statusText}. Show steps`} onClick={() => setQuiet({ kind: "steps" })}>
+                    <span key={statusText} className="mc-tt__st">
+                      {statusText}
+                    </span>
+                  </button>
+                ) : null}
+                {waitingAll > 0 && (
+                  <Link className="mc-tt__wt" href={consoleRoutes.needs} aria-label={`${waitingAll} waiting on you. Open them`}>
+                    <i aria-hidden="true" />
+                    {waitingAll} waiting
+                  </Link>
+                )}
               </p>
               {menu && (
             <div className="mc-menu mc-menu--l" role="menu">
+              {/* the role moved here from the header status line */}
+              <p className="mc-menu__job">{job}</p>
               <Link role="menuitem" href={helperHref(conv.helper)} onClick={() => setMenu(false)}>
                 <Icon name="users" />
                 About {conv.helper}
               </Link>
+              <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "steps" }))}>
+                <Icon name="list-checks" />
+                Steps
+              </button>
               <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "memory" }))}>
                 <Icon name="file-text" />
                 What I remember
@@ -535,9 +557,9 @@ export function ThreadChat({ slug }: { slug: string }) {
                 prevLabel={i > 0 ? labelOf(sections[i - 1]!) : undefined}
                 typing={typingAny?.slug === c.slug ? typingAny.who : null}
                 onTask={(t) => setQuiet({ kind: "task", slug: t })}
+                quiet={conv.helper === "Mimi"}
               />
             ))}
-            {conv.helper === "Mimi" && <Waiting />}
             <Replies slug={slug} />
           </div>
         </div>
@@ -546,7 +568,9 @@ export function ThreadChat({ slug }: { slug: string }) {
           {away && (
             <button
               type="button"
-              className="mc-btn mc-jump"
+              className="mc-jump"
+              aria-label="Jump to latest"
+              title="Jump to latest"
               onClick={() => {
                 const el = feed.current;
                 if (!el) return;
@@ -556,7 +580,6 @@ export function ThreadChat({ slug }: { slug: string }) {
               }}
             >
               <Icon name="chevron-down" />
-              Jump to latest
             </button>
           )}
           <Composer slug={slug} helper={conv.helper} />

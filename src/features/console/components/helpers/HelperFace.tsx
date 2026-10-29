@@ -77,7 +77,7 @@ export function HelperFace({
   expression?: HelperExpression;
   /** Force a still face (no loops). */
   still?: boolean;
-  /** Rig motion only: no console overlay marks (rows that already say their state in words). */
+  /** Rig motion only: no orange marks at all, console overlay or rig (rows and headers that already say their state in words). */
   quiet?: boolean;
   /** Index in a list, so neighbouring faces don't loop in unison. */
   stagger?: number;
@@ -95,7 +95,7 @@ export function HelperFace({
         state={rig}
         expression={expression}
         still={still || size < STILL_BELOW}
-        marks={big}
+        marks={big && !quiet}
         stagger={stagger}
       />
     );

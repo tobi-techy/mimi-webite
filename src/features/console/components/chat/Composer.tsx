@@ -461,9 +461,6 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
           </div>
         ) : (
           <>
-          <span className="mc-to" title={`Talking to ${helper}`} aria-hidden="true">
-            <HelperFace name={helper} size={16} />
-          </span>
           <textarea
             ref={input}
             rows={1}

@@ -191,12 +191,13 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
   background: var(--ink); color: var(--bg); font: 400 11px/20px var(--font-geist-mono), ui-monospace, monospace; text-align: center;
 }
 
-/* the helper: mascot in a round hairline chip, name in a small 3px chip with a muted chevron, one muted status line */
+/* the helper: mascot in a round filled chip, name in a small 3px filled chip with a muted chevron, one muted status line.
+ * No borders on either (Tobi, 29 Oct 2026): the fill alone carries them; keyboard focus keeps its outline. */
 .mc-hdr--center .mc-tt { gap: 6px; }
 .mc-hdr--center .mc-tt__b { gap: 6px; }
 .mc-tt__chip {
   width: 60px; height: 60px; display: grid; place-items: center; flex: none; border-radius: 50%;
-  background: var(--mc-float-bg); border: var(--mc-float-line);
+  background: var(--mc-float-bg); border: 0;
 }
 .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face,
 .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face .mimi-helper,
@@ -204,13 +205,14 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 .mc-tt__chip.is-working { animation: mc-chipwork 2.2s ease-in-out infinite; }
 @keyframes mc-chipwork { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 .mc-hdr--center .mc-tt__nm {
-  padding: 0 6px 0 10px; height: 28px; box-sizing: border-box; gap: 2px; border-radius: var(--radius-sm); background: var(--mc-float-bg); border: var(--mc-float-line);
+  padding: 0 6px 0 10px; height: 28px; box-sizing: border-box; gap: 2px; border-radius: var(--radius-sm); background: var(--mc-float-bg); border: 0;
 }
 .mc-hdr--center .mc-tt__t { color: var(--ink); }
 .mc-hdr--center .mc-tt__c { width: 13px; height: 13px; color: var(--muted); }
-.mc-hdr--center .mc-tt__b:hover .mc-tt__nm { border-color: var(--soft); }
+.mc-hdr--center .mc-tt__b:hover .mc-tt__t { color: var(--soft); }
 .mc-hdr--center .mc-tt__b:focus-visible { outline: 0; }
-.mc-hdr--center .mc-tt__b:focus-visible .mc-tt__nm { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mc-hdr--center .mc-tt__b:focus-visible .mc-tt__nm,
+.mc-hdr--center .mc-tt__b:focus-visible .mc-tt__chip { outline: 2px solid var(--ink); outline-offset: 2px; }
 .mc-hdr--center .mc-tt__s { height: 16px; font-size: 11.5px; color: var(--muted); }
 .mc-hdr--center .mc-tt__s.is-busy .mc-tt__st { color: var(--soft); }
 .mc-hdr--center .mc-menu--l { top: calc(100% + 8px); border: var(--mc-float-line); background: var(--mc-float-bg); border-radius: var(--radius-lg); }
@@ -240,22 +242,18 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 .mc-tt__sb:hover .mc-tt__st { color: var(--soft); }
 .mc-tt__sb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-/* task lines: the old "New task · …" line, now the way into that task's own thread */
+/* task lines (Tobi, 29 Oct 2026: "threads are too crowded with text"): one muted line, the date when
+ * it changes and the task title, no mono meta under it. State, proof and "updated by" live in the
+ * task's own thread (TaskSheet). Tapping the line opens it. */
 .mc-taskln {
-  display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-sm);
-  font-family: var(--msg-font, inherit); font-size: 12px; line-height: 16px; color: var(--muted);
+  display: flex; align-items: baseline; justify-content: center; gap: 8px; width: 100%; min-width: 0; padding: 0; border: 0; background: none;
+  cursor: pointer; border-radius: var(--radius-sm); font-family: var(--msg-font, inherit); font-size: 12.5px; line-height: 16px; color: var(--muted);
 }
-.mc-taskln:hover { color: var(--soft); }
+.mc-taskln:hover, .mc-taskln:hover .mc-taskln__t { color: var(--soft); }
 .mc-taskln:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-.mc-taskln__st { font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; }
-.mc-taskln__t, .mc-taskln__by { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mc-taskln__t { font-size: 13px; color: var(--soft); }
-.mc-taskln__by { margin-top: 2px; font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.mc-taskln__st.is-working, .mc-taskln__st.is-stuck { color: var(--soft); }
-/* "Needs you" is the one place the orange mark appears on a task */
-.mc-taskln__st.is-needs::before {
-  content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 6px 1px 0; border-radius: 50%; background: var(--color-signal-orange); vertical-align: middle;
-}
+.mc-taskln__d { flex: none; }
+.mc-taskln__d::after { content: "·"; margin-left: 8px; }
+.mc-taskln__t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 
 /* folded helper chatter: one muted mono row that opens the run */
 .mc-tv .mc-chat {
@@ -334,23 +332,43 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 }
 
 /* ---------- 7. Mimi's orange identity (Tobi, 29 Oct 2026; the one exception to "orange only for status") ----------
- * Mimi's reply bubbles (and her typing dots) are a deeper Mimi orange with white text: #c2410c,
- * 5.18:1 for white text, the same in light and dark. #ee6018 stays for her marks: the mascot chip
- * ring and the dot in her name chip. Other helpers keep the neutral grey bubbles; your bubbles stay
- * neutral. "Needs you" stays a 6px #ee6018 dot, never a fill, so it never reads as a Mimi bubble. */
-.mc-app { --mimi-bubble: #c2410c; --mimi-ink: #ffffff; --mimi-mark: var(--color-signal-orange); }
+ * Your own bubbles and Mimi's reply bubbles share one orange-red fill, --mimi-bubble #d4380d, with
+ * white text: 4.80:1 (WCAG AA for 14-16px body text), the same in light and dark, in every thread
+ * (helper threads too: your bubble no longer takes the helper's colour). Other helpers' replies
+ * keep the neutral grey bubble. #ee6018 stays for small marks only (the dot in Mimi's name chip and
+ * the "N waiting" dot); it is never a fill. Links, selection, typing dots and reaction badges inside
+ * an orange bubble all switch to white so they read on the fill. */
+.mc-app { --mimi-bubble: #d4380d; --mimi-ink: #ffffff; --mimi-mark: var(--color-signal-orange); }
+.mc-app, html[data-theme="dark"] .mc-app { --msg-me-bg: var(--mimi-bubble); --msg-me-color: var(--mimi-ink); }
+.mc-app .mc-thread[data-helper] { --msg-me-bg: var(--mimi-bubble); --msg-me-color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"], .mc-rxl__lift[data-from="Mimi"] { --msg-them-bg: var(--mimi-bubble); --msg-them-color: var(--mimi-ink); }
-.mc-grp[data-from="Mimi"] .mc-b--them a, .mc-rxl__lift[data-from="Mimi"] .mc-b--them a { color: var(--mimi-ink); text-decoration-thickness: 1px; }
-.mc-grp[data-from="Mimi"] .mc-b--them a:focus-visible { outline-color: var(--mimi-ink); }
-.mc-grp[data-from="Mimi"] .mc-b--them ::selection { background: rgba(255, 255, 255, .3); color: var(--mimi-ink); }
+.mc-grp[data-from="Mimi"] .mc-b--them, .mc-thread .mc-r--me .mc-b { --msg-color: var(--mimi-ink); }
+/* text inside an orange bubble (Mimi's, or yours) */
+.mc-grp[data-from="Mimi"] .mc-b--them a, .mc-rxl__lift[data-from="Mimi"] .mc-b--them a,
+.mc-thread .mc-r--me .mc-b a, .mc-rxl__lift--me .mc-b a { color: var(--mimi-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.mc-grp[data-from="Mimi"] .mc-b--them a:focus-visible,
+.mc-thread .mc-r--me .mc-b a:focus-visible { outline-color: var(--mimi-ink); }
+.mc-grp[data-from="Mimi"] .mc-b--them ::selection, .mc-grp[data-from="Mimi"] .mc-b--them::selection,
+.mc-thread .mc-r--me .mc-b ::selection, .mc-thread .mc-r--me .mc-b::selection { background: rgba(255, 255, 255, .32); color: var(--mimi-ink); }
+/* orange-marked words and inline code would vanish on the orange fill: white, underlined / tinted instead */
+.mc-grp[data-from="Mimi"] .mc-b--them .mc-or, .mc-rxl__lift[data-from="Mimi"] .mc-b--them .mc-or,
+.mc-thread .mc-r--me .mc-b .mc-or { color: var(--mimi-ink); font-weight: 500; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.mc-grp[data-from="Mimi"] .mc-b--them code, .mc-thread .mc-r--me .mc-b code { background: rgba(255, 255, 255, .18); color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"] .mc-typd i { background: var(--mimi-ink); opacity: .7; }
 .mc-grp[data-from="Mimi"] .mc-typd i { animation-name: mc-typd-mimi; }
 @keyframes mc-typd-mimi { 0%, 60%, 100% { transform: translateY(0); opacity: .75; } 30% { transform: translateY(-3px); opacity: 1; } }
-/* her marks */
-.mc-tt__chip.is-mimi { border-color: var(--mimi-mark); }
+/* her marks: no ring on the mascot chip any more, just the dot in her name chip */
 .mc-hdr--center .mc-tt__nm.is-mimi::before {
   content: ""; width: 6px; height: 6px; margin-right: 6px; flex: none; border-radius: 50%; background: var(--mimi-mark);
 }
+/* Mimi's one "needs you" indicator: an orange dot and a muted count in the status line, opening the pile */
+.mc-tt__wt {
+  display: inline-flex; align-items: center; gap: 6px; flex: none; height: 16px; margin-left: 8px; border-radius: var(--radius-sm);
+  font: inherit; color: var(--muted); text-decoration: none; white-space: nowrap;
+}
+.mc-tt__wt i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--color-signal-orange); }
+.mc-tt__wt:hover { color: var(--soft); }
+.mc-tt__wt:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .mc-grp[data-from="Mimi"] .mc-typd i { animation: none; opacity: .85; }
 }
@@ -370,3 +388,87 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 .mc-tv .mc-mh__n { color: var(--soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-height: 760px) { .mc-side__team .mc-ro { min-height: 54px; padding-block: 6px; } }
 @media (max-width: 899px) { .mc-side__team .mc-ro { min-height: 60px; } }
+
+/* ---------- 9. quieter threads (Tobi, 29 Oct 2026: "the threads are too crowded with text") ----------
+ * In a helper's own 1:1 thread the header already says who it is: no name + face above her bubble
+ * groups. Mimi's thread keeps them, since several speakers appear there. */
+.mc-thread[data-helper="order"] .mc-grp[data-from="Order"] > .mc-mh,
+.mc-thread[data-helper="collector"] .mc-grp[data-from="Collector"] > .mc-mh,
+.mc-thread[data-helper="credit"] .mc-grp[data-from="Credit"] > .mc-mh,
+.mc-thread[data-helper="stock"] .mc-grp[data-from="Stock"] > .mc-mh,
+.mc-thread[data-helper="brand"] .mc-grp[data-from="Brand"] > .mc-mh,
+.mc-thread[data-helper="proof"] .mc-grp[data-from="Proof"] > .mc-mh { display: none; }
+/* the role, moved out of the header status line, heads the name menu */
+.mc-menu__job {
+  margin: 0; padding: 10px 16px 8px; max-width: 280px; font-size: 12.5px; line-height: 16px; color: var(--muted);
+  border-bottom: 1px solid var(--hair); white-space: normal;
+}
+/* jump to latest: a small round icon-only chip */
+.mc-jump-host .mc-jump {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 3;
+  width: 36px; height: 36px; padding: 0; display: grid; place-items: center; border-radius: 50%; cursor: pointer;
+  background: var(--mc-float-bg); color: var(--ink); border: 0;
+}
+.mc-jump-host .mc-jump .i { width: 18px; height: 18px; }
+.mc-jump-host .mc-jump:hover { color: var(--soft); }
+.mc-jump-host .mc-jump:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---------- 10. consistency pass (Tobi, 29 Oct 2026: "look for other inconsistencies also") ----------
+ * Faces: every helper face is optically centred in its box (chip, sidebar, rail, bubble label). The
+ * rig draws each helper sitting on a 222 baseline in a 240 box, with accessories off to one side,
+ * so the visible shape is off-centre by a different amount per helper. Offsets measured from each
+ * rig's idle render (bounding box of the filled shape, status marks excluded), as a % of the face. */
+.mc-face > .mimi-helper[data-helper="order"] { translate: 3.3% -5.9%; }
+.mc-face > .mimi-helper[data-helper="collector"] { translate: 0.9% -12%; }
+.mc-face > .mimi-helper[data-helper="credit"] { translate: 2.8% -17.5%; }
+.mc-face > .mimi-helper[data-helper="stock"] { translate: -3.8% -10.2%; }
+.mc-face > .mimi-helper[data-helper="brand"] { translate: 0.2% -11.1%; }
+.mc-face > .mimi-helper[data-helper="proof"] { translate: -4.4% -16.7%; }
+.mc-face > .mc-mimi { translate: 1.3% -1.5%; }
+
+/* Header: the chip + pill sit on the exact midline whatever the side buttons hold (equal 1fr sides,
+ * clipped rather than pushing), and the pill's padding is even so its box centres on the chip. */
+.mc-hdr.mc-hdr--center { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.mc-hdr--center .mc-hdr__l, .mc-hdr--center .mc-hdr__r { min-width: 0; }
+.mc-hdr--center .mc-tt { max-width: calc(100vw - 132px); }
+.mc-hdr--center .mc-tt__nm { padding: 0 8px; }
+.mc-hdr--center .mc-tt__s { display: flex; justify-content: center; width: 100%; }
+
+/* One shape for every floating control: round (back, actions, composer +, mic, send), capsules where
+ * they hold text (back with a count, the composer field). Fill only, no hairlines, like the header
+ * chip; keyboard focus keeps a 2px outline. Bubbles keep 16px corners, cards and panels 10px. */
+html:not([data-theme="dark"]) .mc-app { --mc-float-bg: #ebe9e7; } /* light: a fill that still reads on #fafafa */
+.mc-fb { border: 0; border-radius: 999px; }
+.mc-fb:hover { border-color: transparent; background: color-mix(in srgb, var(--mc-float-bg), var(--ink) 8%); }
+.mc-fb.is-on { border-color: transparent; }
+.mc-fb__n { border-radius: 999px; }
+.mc-fb--back:has(.mc-fb__n) { padding: 0 12px 0 8px; }
+.mc-pl { border: 0; border-radius: 50%; background: var(--mc-float-bg); }
+.mc-pl:hover, .mc-pl.is-on { background: color-mix(in srgb, var(--mc-float-bg), var(--ink) 8%); }
+.mc-pl:focus-visible, .mc-mic:focus-visible, .mc-snd:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mc-pill { border: 0; border-radius: 22px; background: var(--mc-float-bg); }
+.mc-pill:focus-within { outline: 1px solid var(--muted); outline-offset: 0; }
+.mc-pill.is-rec { outline: 1px solid var(--color-signal-orange); }
+.mc-mic { border-radius: 50%; }
+/* send: the same orange-red as your bubbles, in every thread; disabled is a neutral fill, not a faded colour */
+.mc-snd, .mc-rec__s { border-radius: 50%; background: var(--mimi-bubble); color: var(--mimi-ink); }
+.mc-snd:disabled { opacity: 1; background: var(--tint2); color: var(--muted); }
+
+/* Reactions: the badge sat 10px into the bubble and covered the first letter. It now hangs off the
+ * corner (6px overlap, clear of the 10px text inset), with room above the row to match. */
+.mc-rxb { top: -24px; }
+.mc-rxb--right { right: -16px; }
+.mc-rxb--left { left: -16px; }
+.mc-tv .mc-r--rx { margin-top: 22px; }
+/* badges: fill + the 2px canvas ring that cuts them out of the bubble, no hairline (same rule as the chips) */
+.mc-rxg { border: 0; }
+
+/* Type: Geist everywhere in the thread; mono stays only for tiny tags (risk tier, timers, sheets). */
+.mc-mh { font: 500 12.5px/1 var(--font-geist-sans), "Geist", system-ui, sans-serif; text-transform: none; letter-spacing: 0; }
+.mc-tv .mc-mh { font-size: 13px; letter-spacing: -0.005em; }
+.mc-tv .mc-chat { font: 400 12.5px/32px var(--font-geist-sans), "Geist", system-ui, sans-serif; text-transform: none; letter-spacing: 0; }
+.mc-tv .mc-qd { font: 400 12px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif; text-transform: none; letter-spacing: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-app .mc-pl, .mc-app .mc-fb, .mc-app .mc-jump { transition: none; }
+}
