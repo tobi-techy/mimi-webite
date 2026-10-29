@@ -382,8 +382,9 @@ export function sendMessage(slug: string, text: string) {
 }
 
 /**
- * The owner writes while the helper is mid-run: the message lands now, the thread says it will be
- * taken at the next step, and the helper picks it up as soon as the current step ends (RAI-283).
+ * The owner writes while the helper is mid-run: the bubble lands now tagged "Queued, after current
+ * task", and the helper picks it up as soon as the current step ends (RAI-283). "Interrupt now" in the
+ * bubble's menu (interruptQueued) lets her take it straight away.
  */
 export function steerMessage(slug: string, text: string) {
   if (isApiThread(slug)) {
@@ -394,23 +395,62 @@ export function steerMessage(slug: string, text: string) {
   if (!clean) return;
   const c = findConversation(getDemo(), slug);
   if (!c) return;
-  push(slug, { kind: "text", from: "me", text: clean, at: Date.now() });
+  const mid = push(slug, { kind: "text", from: "me", text: clean, at: Date.now(), queued: true });
   sfx("console", "tap");
-  event(slug, `${c.helper} will take this at the next step`);
   const ep = epoch;
   const started = Date.now();
   const poll = () => {
     if (!alive(ep)) return;
     const s = getDemo();
     const now = findConversation(s, slug);
+    const mine = now?.messages.find((x) => x.id === mid);
+    // interrupted (or taken elsewhere): interruptQueued already ran it
+    if (!mine || (mine.kind === "text" && !mine.queued)) return;
     if (now && runningIn(s, now) && Date.now() - started < 30000) {
       window.setTimeout(poll, 400);
       return;
     }
+    unqueue(slug, mid);
     event(slug, `Steered by you · ${c.helper} took it at the next step`);
     void runStep(slug, stepFor(slug, clean), clean, ep);
   };
   window.setTimeout(poll, 400);
+}
+
+function unqueue(slug: string, id: string) {
+  patchConversation(slug, (c) => ({
+    ...c,
+    messages: c.messages.map((m) => (m.id === id && m.kind === "text" ? { ...m, queued: undefined } : m)),
+  }));
+}
+
+/** Ends whatever the helper is doing in this thread: live reasoning and running steps stop as "Paused by you". */
+export function pauseRun(slug: string) {
+  if (isApiThread(slug)) return void notify("info", "Pausing a live run from the console is not wired to Mimi yet.");
+  epoch += 1;
+  chipBusy = false;
+  setDemo((s) => ({ ...s, playing: false, typing: s.typing?.slug === slug ? null : s.typing, draft: null }));
+  patchConversation(slug, (c) => ({
+    ...c,
+    status: "Paused by you",
+    working: false,
+    state: c.state === "run" ? "idle" : c.state,
+    messages: c.messages.map((m) =>
+      m.kind === "thought" && m.live ? { ...m, live: false } : m.kind === "step" && m.state === "run" ? { ...m, state: "done", text: `${m.text} · paused` } : m,
+    ),
+  }));
+  event(slug, "Paused by you");
+}
+
+/** "Interrupt now" on a queued bubble: the helper stops the current task and takes this message. */
+export function interruptQueued(slug: string, id: string) {
+  const c = findConversation(getDemo(), slug);
+  const m = c?.messages.find((x) => x.id === id);
+  if (!c || !m || m.kind !== "text" || !m.queued) return;
+  pauseRun(slug);
+  unqueue(slug, id);
+  event(slug, `Interrupted by you · ${c.helper} took your message now`);
+  void runStep(slug, stepFor(slug, m.text), m.text, epoch);
 }
 
 /** Home composer: a new thread with the helper the words point at. Returns its slug. */

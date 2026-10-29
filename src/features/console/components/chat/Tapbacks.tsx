@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { ShopAvatar } from "@/features/console/components/ui/ShopAvatar";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { react, unreact } from "@/features/console/demo/engine";
+import { interruptQueued, react, unreact } from "@/features/console/demo/engine";
 import { helperNames, type Reaction, type TapbackKey } from "@/features/console/demo/types";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { badgeOrder, leftReactions, reactionEmoji } from "@/features/console/lib/reactions";
@@ -278,6 +278,7 @@ export function ReactionLayer({
   copyText,
   speaker,
   at,
+  queued,
   copy,
   onClose,
 }: {
@@ -289,6 +290,8 @@ export function ReactionLayer({
   speaker: string;
   /** When the message was sent: shown at the top of the actions menu (no per-bubble timestamps). */
   at?: number;
+  /** Your message is waiting for the current task: the menu offers "Interrupt now". */
+  queued?: boolean;
   /** The lifted copy of the message (rendered inert). */
   copy: ReactNode;
   onClose: () => void;
@@ -408,7 +411,7 @@ export function ReactionLayer({
   const minTop = EDGE + BAR_H + GAP;
   let barAbove = top - BAR_H - GAP >= EDGE + (phone ? 0 : 56);
   /* the Reply / Copy list sits under the message on every screen size */
-  const bottom = top + r.height + GAP + MENU_H + EDGE + (barAbove ? 0 : BAR_H + GAP);
+  const bottom = top + r.height + GAP + MENU_H + (queued ? 48 : 0) + EDGE + (barAbove ? 0 : BAR_H + GAP);
   if (bottom > vh) {
     top = Math.max(minTop, top - (bottom - vh));
     barAbove = true;
@@ -506,6 +509,18 @@ export function ReactionLayer({
       {!picker && (
         <div className="mc-rxm" style={{ top: menuTop, left: menuLeft }} role="menu" aria-label="Message actions">
           {!!at && at > 0 && <p className="mc-rxm__t mc-mono">{timeLabel(at)}</p>}
+          {queued && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose();
+                interruptQueued(slug, state.id);
+              }}
+            >
+              Interrupt now
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"

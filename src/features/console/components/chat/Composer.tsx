@@ -19,6 +19,7 @@ import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
 import { consoleMotion } from "@/config/console-motion";
+import { STEER_EVENT } from "@/features/console/lib/thread-view";
 
 /** Stagger (ms) for the live recording bars. */
 const LIVE_BARS = Array.from({ length: 72 }, (_, i) => -((i * 211) % 900));
@@ -138,6 +139,18 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
     return !!c && runningIn(s, c);
   });
   const [pick, setPick] = useState(0);
+  /* "Steer" from the Steps sheet: the next message goes to the running task */
+  const [steering, setSteering] = useState<string | null>(null);
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ slug: string; task: string }>).detail;
+      if (d?.slug !== slug) return;
+      setSteering(d.task);
+      window.setTimeout(() => input.current?.focus(), 0);
+    };
+    window.addEventListener(STEER_EVENT, on);
+    return () => window.removeEventListener(STEER_EVENT, on);
+  }, [slug]);
   const [shut, setShut] = useState<string | null>(null);
   const say = useToast();
   const wrap = useRef<HTMLDivElement>(null);
@@ -271,6 +284,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
     squish(sendBtn.current);
     if (running) steerMessage(slug, value);
     else sendMessage(slug, value);
+    setSteering(null);
     setText("");
     input.current?.focus();
   }
@@ -359,6 +373,12 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
               {it.label}
             </button>
           ))}
+          <Link role="menuitem" href={consoleRoutes.newThread} onClick={() => setMenu(false)}>
+            <i>
+              <Icon name="plus" />
+            </i>
+            New task (fresh context)
+          </Link>
           <Link role="menuitem" href={consoleRoutes.settings} onClick={() => setMenu(false)}>
             <i>
               <Icon name="settings" />
@@ -406,10 +426,20 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
               ))}
         </div>
       )}
-      {running && value.trim() && (
-        <p className="mc-steer" role="status">
-          Will steer at next step
+      {steering ? (
+        <p className="mc-steer mc-steer--on" role="status">
+          <span>Steering: {steering}</span>
+          <button type="button" className="mc-steer__x" onClick={() => setSteering(null)}>
+            Cancel
+          </button>
         </p>
+      ) : (
+        running &&
+        value.trim() && (
+          <p className="mc-steer" role="status">
+            Queued · after current task
+          </p>
+        )
       )}
       <div className={cx("mc-pill", rec > 0 && "is-rec")}>
         {rec > 0 ? (

@@ -25,6 +25,27 @@ type Old = {
 };
 
 const OLD: Old[] = [
+  /* a multi-helper job: Collector and Credit talk it through, Mimi gives the one answer (collapsed in the feed) */
+  {
+    slug: "joy-credit-check",
+    title: "Can Joy's Store take another order",
+    helper: "Mimi",
+    folder: "General",
+    code: "GEN-4",
+    state: "done",
+    status: "Order allowed",
+    ago: "3d",
+    day: 20,
+    dateLabel: "Tuesday 10:00 AM",
+    ask: "Can Joy's Store take another order on credit?",
+    lines: [
+      ["Collector", "Joy's Store paid ₦80,000 on Friday. ₦40,000 is still open, 6 days late."],
+      ["Credit", "Their limit is ₦150,000, so they have ₦110,000 left."],
+      ["Collector", "They usually clear within 10 days. No missed weeks this quarter."],
+      ["Credit", "Then I'd keep the limit and allow the order."],
+      ["Mimi", "Yes, Joy's Store can take the order. They have ₦110,000 of credit left and usually pay within 10 days."],
+    ],
+  },
   {
     slug: "check-transfer-alerts",
     title: "Check 9 transfer alerts",

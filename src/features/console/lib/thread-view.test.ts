@@ -1,13 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  liveWork,
-  splitLongReplies,
-  splitReply,
-  statusLine,
-  timeLabel,
-  visibleMessages,
-} from "./thread-view.ts";
+import { chatterRuns, joinNames, liveWork, splitLongReplies, splitReply, statusLine, stepLine, timeLabel, visibleMessages } from "./thread-view.ts";
 
 const feed = [
   { kind: "text", from: "me", text: "chase joy" },
@@ -77,4 +70,21 @@ test("seeded long helper replies split with stable ids, reactions on the last bu
     out.slice(a.length).map((m) => m.id),
     ["b", "c"],
   );
+});
+
+test("helper-to-helper chatter folds into one row, Mimi and you never fold", () => {
+  const list = [
+    { kind: "text", from: "me" },
+    { kind: "text", from: "Collector" },
+    { kind: "text", from: "Credit" },
+    { kind: "text", from: "Collector" },
+    { kind: "text", from: "Mimi" },
+    { kind: "text", from: "Proof" },
+    { kind: "text", from: "Proof" },
+    { kind: "text", from: "Proof" },
+  ];
+  assert.deepEqual(chatterRuns(list), [{ start: 1, count: 3, names: ["Collector", "Credit"] }]);
+  assert.equal(joinNames(["Collector", "Credit"]), "Collector and Credit");
+  assert.equal(joinNames(["A", "B", "C"]), "A, B and C");
+  assert.equal(stepLine("Checking **Ikeja** `POS 2281`  payments"), "Checking Ikeja POS 2281 payments");
 });

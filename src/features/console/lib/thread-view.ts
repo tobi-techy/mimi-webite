@@ -114,3 +114,45 @@ export function splitLongReplies<T extends { kind: string }>(list: T[]): T[] {
   }
   return out;
 }
+
+/**
+ * Helper-to-helper chatter: a run of 3+ consecutive text messages between helpers (not you, not
+ * Mimi) with at least two different speakers. The feed folds each run into one quiet row
+ * ("3 messages between Collector and Credit") and Mimi's own message after it is the answer.
+ * Returns each run's start index, its length and the helpers in order of first appearance.
+ */
+export function chatterRuns(list: Line[], min = 3): { start: number; count: number; names: string[] }[] {
+  const out: { start: number; count: number; names: string[] }[] = [];
+  const chatter = (m: Line) => m.kind === "text" && !!m.from && m.from !== "me" && m.from !== "Mimi";
+  for (let i = 0; i < list.length; ) {
+    if (!chatter(list[i]!)) {
+      i++;
+      continue;
+    }
+    let j = i;
+    const names: string[] = [];
+    while (j < list.length && chatter(list[j]!)) {
+      if (!names.includes(list[j]!.from!)) names.push(list[j]!.from!);
+      j++;
+    }
+    if (j - i >= min && names.length >= 2) out.push({ start: i, count: j - i, names });
+    i = j;
+  }
+  return out;
+}
+
+/** "Collector and Credit", "Collector, Credit and Proof". */
+export function joinNames(names: string[]): string {
+  return names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+/** A step's text for the Steps sheet: one plain line, no markdown marks or raw tokens. */
+export function stepLine(text: string): string {
+  return text
+    .replace(/\*\*|`|==|~~/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Window event the Steps sheet fires so the composer shows "Steering: <task>" and takes focus. */
+export const STEER_EVENT = "mc:steer";

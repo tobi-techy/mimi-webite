@@ -97,7 +97,16 @@ type Sent = { apiId?: string; upload?: Upload; remote?: string };
 
 export type Message =
   | { id: string; kind: "date"; label: string }
-  | ({ id: string; kind: "text"; from: Speaker; text: string; at: number; read?: boolean } & Reactable)
+  | ({
+      id: string;
+      kind: "text";
+      from: Speaker;
+      text: string;
+      at: number;
+      read?: boolean;
+      /** Sent while the helper was mid-task: waits for the current task ("Queued, after current task"). */
+      queued?: boolean;
+    } & Reactable)
   | ({
       id: string;
       kind: "proof";

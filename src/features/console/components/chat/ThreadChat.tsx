@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/features/console/components/chat/Composer";
 import { DateLine, EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/console/components/chat/Messages";
 import { PlanSheet } from "@/features/console/components/chat/PlanSheet";
+import { MemorySheet, StepsSheet, TaskSheet, taskWord } from "@/features/console/components/chat/QuietSheets";
 import { Waiting } from "@/features/console/components/chat/Waiting";
 import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
@@ -101,20 +102,24 @@ function TaskSection({
   open,
   prevLabel,
   typing,
+  onTask,
 }: {
   c: Conversation;
   open: boolean;
   prevLabel?: string;
   typing: Speaker | null;
+  /** Opens this task's own thread (fresh context). */
+  onTask: (slug: string) => void;
 }) {
   const label = labelOf(c);
   const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
   return (
     <div className={cx("mc-task", open && "is-open")} id={`task-${c.slug}`} data-task={c.slug}>
       {label !== prevLabel && <DateLine label={label} />}
-      <p className="mc-ev mc-ev--task" role="note">
-        New task · {c.title}
-      </p>
+      {/* each long job reads as one quiet task line; tapping it opens that task's own thread */}
+      <button type="button" className="mc-ev mc-ev--task mc-taskln" aria-haspopup="dialog" onClick={() => onTask(c.slug)}>
+        {c.title} · <span className={cx("mc-taskln__st", c.state === "run" && "is-run")}>{taskWord(c)}</span>
+      </button>
       {rest.length === 0 && !typing ? (
         open ? (
           <EmptyThread helper={c.helper} />
@@ -137,6 +142,8 @@ export function ThreadChat({ slug }: { slug: string }) {
   const playing = useDemo((s) => s.playing);
   const computer = useDemo((s) => s.computer);
   const sheetOpen = useDemo((s) => s.sheet?.slug === slug);
+  /* quiet sheets: Steps (from the status line), a task's own thread, What I remember */
+  const [quiet, setQuiet] = useState<{ kind: "steps" | "memory" } | { kind: "task"; slug: string } | null>(null);
   const liveStatus = useLive((s) => s.status);
   const { toggleSidebar } = useShell();
   const host = useRef<HTMLDivElement>(null);
@@ -354,10 +361,12 @@ export function ThreadChat({ slug }: { slug: string }) {
                 </span>
               </button>
               <p className={cx("mc-tt__s", (live || writing) && "is-busy")} aria-live="polite">
-                {live || writing || !statusText ? null : <span className="mc-tt__h mc-tt__job">{job}</span>}
-                <span key={statusText} className="mc-tt__st" title={statusText}>
-                  {statusText || job}
-                </span>
+                <button type="button" className="mc-tt__sb" aria-haspopup="dialog" aria-label={`${statusText || job}. Show steps`} onClick={() => setQuiet({ kind: "steps" })}>
+                  {live || writing || !statusText ? null : <span className="mc-tt__h mc-tt__job">{job}</span>}
+                  <span key={statusText} className="mc-tt__st">
+                    {statusText || job}
+                  </span>
+                </button>
               </p>
               {menu && (
             <div className="mc-menu mc-menu--l" role="menu">
@@ -365,6 +374,10 @@ export function ThreadChat({ slug }: { slug: string }) {
                 <Icon name="users" />
                 About {conv.helper}
               </Link>
+              <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "memory" }))}>
+                <Icon name="file-text" />
+                What I remember
+              </button>
               <Link
                 role="menuitem"
                 href={consoleRoutes.home}
@@ -491,6 +504,7 @@ export function ThreadChat({ slug }: { slug: string }) {
                 open={c.slug === slug}
                 prevLabel={i > 0 ? labelOf(sections[i - 1]!) : undefined}
                 typing={typingAny?.slug === c.slug ? typingAny.who : null}
+                onTask={(t) => setQuiet({ kind: "task", slug: t })}
               />
             ))}
             {conv.helper === "Mimi" && <Waiting />}
@@ -518,6 +532,12 @@ export function ThreadChat({ slug }: { slug: string }) {
           <Composer slug={slug} helper={conv.helper} />
         </div>
         {sheetOpen && <PlanSheet />}
+        {quiet?.kind === "steps" && <StepsSheet slug={slug} onClose={() => setQuiet(null)} />}
+        {quiet?.kind === "memory" && <MemorySheet helper={conv.helper} onClose={() => setQuiet(null)} />}
+        {quiet?.kind === "task" && (() => {
+          const t = conversations.find((x) => x.slug === quiet.slug);
+          return t ? <TaskSheet c={t} onClose={() => setQuiet(null)} /> : null;
+        })()}
       </section>
       <WorkspacePanel slug={slug} host={host} />
     </div>

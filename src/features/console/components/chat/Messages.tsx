@@ -27,7 +27,7 @@ import {
 import { cardActions, tierOf } from "@/features/console/demo/needs";
 import { helperNames, reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
 import { consoleThread } from "@/features/console/config";
-import { liveWork, visibleMessages } from "@/features/console/lib/thread-view";
+import { chatterRuns, joinNames, liveWork, visibleMessages } from "@/features/console/lib/thread-view";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
@@ -526,6 +526,9 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
   const messages = useMemo(() => visibleMessages(all, showWork), [all, showWork]);
   const busy = showWork ? null : (liveWork(all)?.who as Speaker | undefined);
   const typing: Speaker | null = typingIn ?? busy ?? null;
+  /* helper-to-helper chatter folds into one quiet row; Mimi's message after it is the answer */
+  const runs = useMemo(() => chatterRuns(messages), [messages]);
+  const [openRuns, setOpenRuns] = useState<string[]>([]);
   const [layer, setLayer] = useState<LayerState | null>(null);
   const close = useCallback(() => {
     setLayer((cur) => {
@@ -558,6 +561,24 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
     return waiting ? "waiting" : "idle";
   };
   messages.forEach((m, i) => {
+    const run = runs.find((r) => i >= r.start && i < r.start + r.count);
+    if (run) {
+      const key = messages[run.start]!.id;
+      const open = openRuns.includes(key);
+      if (i === run.start)
+        items.push(
+          <button
+            key={`chat-${key}`}
+            type="button"
+            className={cx("mc-chat", open && "is-open")}
+            aria-expanded={open}
+            onClick={() => setOpenRuns((cur) => (open ? cur.filter((x) => x !== key) : [...cur, key]))}
+          >
+            {open ? "Hide" : `${run.count} messages between ${joinNames(run.names)}`}
+          </button>,
+        );
+      if (!open) return;
+    }
     const who = speakerOf(m);
     const prev = speakerBefore(i);
     const next = i < messages.length - 1 ? speakerOf(messages[i + 1]!) : typing;
@@ -644,7 +665,13 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
         {body}
       </Row>,
     );
-    if (me && m.kind === "text" && m.read && (i === messages.length - 1 || speakerOf(messages[i + 1]!) !== "me"))
+    if (me && m.kind === "text" && m.queued)
+      items.push(
+        <p key={`${m.id}-q`} className="mc-qd" role="status">
+          Queued · after current task
+        </p>,
+      );
+    else if (me && m.kind === "text" && m.read && (i === messages.length - 1 || speakerOf(messages[i + 1]!) !== "me"))
       items.push(
         <p key={`${m.id}-rd`} className="mc-rd mc-mono">
           Read
@@ -679,6 +706,7 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
         copyText={plainOf(target)}
         speaker={who === "me" ? "You" : who}
         at={target.at}
+        queued={target.kind === "text" && !!target.queued}
         onClose={close}
         copy={
           <div className={cx("mc-rx", `mc-rx--${target.kind}`, !!target.reactions?.length && "has-rx")}>{bodyOf(target, ctx, who !== after)}</div>

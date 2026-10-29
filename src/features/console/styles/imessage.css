@@ -6,25 +6,23 @@
  *     (consoleThread.showWork in config.ts brings it back), iMessage rhythm.
  *  3. Helper replies with presence ("the agent message should take good enough weight").
  *  4. Grok Bot / Dots reading: the header avatar carries the working state and a one-line status.
- *  5. iOS 26 header: no bar, no border, a frosted fade, floating chips with one soft shadow.
- * Factory palette, Geist, no hairlines on the new floating parts. Reduced motion: short fades only.
+ *  5. iOS 26-style header (no bar, no bottom border, floating chips), held to the locked Factory system
+ *     (Tobi, 29 Oct 2026: "clean wins"): no shadows or blur, hairlines and contrast for depth, 3px
+ *     corners on buttons, 10px on panels, #ee6018 only as a status mark.
+ *  6. Quiet work views: Steps sheet, Queued tag, task lines, What I remember, folded helper chatter.
+ *     Muted Geist, Geist Mono labels, one action per row, nothing new on screen by default.
+ * Reduced motion: short fades only.
  * ===================================================================================== */
 
 .mc-app {
-  /* one shadow language for every floating part (light), a subtle equivalent in dark */
-  --mc-float-bg: #ffffff;
-  --mc-float: 0 4px 16px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .05);
-  --mc-float-hi: 0 6px 22px rgba(0, 0, 0, .11), 0 1px 3px rgba(0, 0, 0, .06);
+  /* floating parts: Factory surface + hairline (no shadows, no blur) */
+  --mc-float-bg: var(--surface);
+  --mc-float-line: 1px solid var(--hair);
   --mc-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
   --mc-rx-pop: 420ms; /* the pill springing out of the message */
   --mc-rx-land: 420ms; /* a new badge popping 0 -> 1.2 -> 1 */
   --mc-rx-out: 220ms; /* a removed badge shrinking out */
   --mc-rx-step: 25ms; /* stagger between the pill's emoji */
-}
-html[data-theme="dark"] .mc-app {
-  --mc-float-bg: #24211f;
-  --mc-float: 0 4px 18px rgba(0, 0, 0, .5), 0 1px 2px rgba(0, 0, 0, .4);
-  --mc-float-hi: 0 6px 24px rgba(0, 0, 0, .6), 0 1px 2px rgba(0, 0, 0, .45);
 }
 
 /* ---------- 1. tapbacks: real emoji ---------- */
@@ -40,12 +38,12 @@ html[data-theme="dark"] .mc-app {
 .mc-rx--photos .mc-rxb { top: 4px; }
 .mc-rxg {
   position: relative; width: 30px; height: 30px; font-size: 18px; border-radius: 50%;
-  background: var(--mc-float-bg); color: var(--ink); border: 0; outline: 2px solid var(--bg); box-shadow: var(--mc-float);
+  background: var(--mc-float-bg); color: var(--ink); outline: 2px solid var(--bg); border: var(--mc-float-line); box-sizing: border-box;
 }
 .mc-rxb--right .mc-rxg + .mc-rxg { margin-left: -8px; }
 .mc-rxb--left .mc-rxg + .mc-rxg { margin-right: -8px; }
 /* yours: inverted, like iMessage's blue, never orange */
-.mc-rxg.is-mine { background: var(--pri-bg); border: 0; }
+.mc-rxg.is-mine { background: var(--pri-bg); border-color: var(--pri-bg); }
 /* the iMessage tapback tail: two small dots trailing toward the bubble */
 .mc-rxb::before, .mc-rxb::after {
   content: ""; position: absolute; border-radius: 50%; background: var(--mc-float-bg); outline: 2px solid var(--bg); pointer-events: none;
@@ -58,7 +56,7 @@ html[data-theme="dark"] .mc-app {
 .mc-rxb--left::after { right: -2px; }
 .mc-rxb:has(.mc-rxg.is-mine:last-child)::before, .mc-rxb:has(.mc-rxg.is-mine:last-child)::after { background: var(--pri-bg); }
 .mc-rxb:not(:has(.mc-rxg:not(.is-leaving)))::before, .mc-rxb:not(:has(.mc-rxg:not(.is-leaving)))::after { display: none; }
-.mc-rxb:hover .mc-rxg:not(.is-mine) { box-shadow: var(--mc-float-hi); }
+.mc-rxb:hover .mc-rxg:not(.is-mine) { border-color: var(--soft); }
 .mc-tv .mc-r--rx { margin-top: 18px; }
 
 /* a new badge pops in on a spring: 0 -> 1.2 -> 1 */
@@ -76,11 +74,11 @@ html[data-theme="dark"] .mc-app {
 
 /* the pill: six tapbacks and "+", 30px emoji, springing out of the message */
 .mc-rxbar {
-  width: 332px; height: 56px; gap: 2px; padding: 5px; border: 0; border-radius: 999px;
-  background: var(--mc-float-bg); box-shadow: var(--mc-float-hi); align-items: center;
+  width: 332px; height: 56px; gap: 2px; padding: 5px; box-sizing: border-box; border-radius: var(--radius-lg);
+  background: var(--mc-float-bg); border: var(--mc-float-line); align-items: center;
 }
 .mc-rxbar__b {
-  width: 44px; height: 44px; border-radius: 50%; font-size: 30px; line-height: 1;
+  width: 44px; height: 44px; border-radius: var(--radius-sm); font-size: 30px; line-height: 1;
   transition: background-color .12s var(--mech), scale .18s cubic-bezier(.2, .9, .25, 1.4);
 }
 .mc-rxbar__b .mc-gl--emoji { font-size: 30px; }
@@ -101,14 +99,15 @@ html[data-theme="dark"] .mc-app {
 @keyframes mc-rxitem { from { opacity: 0; transform: scale(.4) translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* any-emoji picker: bigger emoji, same floating surface */
-.mc-rxp { width: 332px; border: 0; box-shadow: var(--mc-float-hi); border-radius: 22px; }
+.mc-rxp { width: 332px; border: var(--mc-float-line); border-radius: var(--radius-lg); }
 .mc-rxp__h { border-bottom: 0; }
-.mc-rxp__g button { height: 44px; font-size: 28px; border-radius: 50%; font-family: var(--mc-emoji); }
+.mc-rxp__g button { height: 44px; font-size: 28px; border-radius: var(--radius-sm); font-family: var(--mc-emoji); }
 
 /* the actions menu: the message time sits at its top (no timestamps under bubbles) */
-.mc-rxm { border: 0; box-shadow: var(--mc-float-hi); border-radius: 16px; background: var(--mc-float-bg); }
+.mc-rxm { border: var(--mc-float-line); border-radius: var(--radius-lg); background: var(--mc-float-bg); }
 .mc-rxm__t { margin: 0; height: 33px; display: flex; align-items: center; padding: 0 16px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .mc-rxm__t + button { border-top: 1px solid var(--hair); }
+.mc-rxm button { font-size: 15px; }
 
 @media (prefers-reduced-motion: reduce) {
   /* beats v3.css's "animation: none" for the layer: a short plain fade, no scale, no flight */
@@ -145,12 +144,12 @@ html[data-theme="dark"] .mc-app {
 }
 
 /* ---------- 3. helper replies with presence ---------- */
-.mc-app { --msg-them-weight: 480; }
-html[data-theme="dark"] { --msg-them-bg: #2a2725; } /* 1.28:1 against the #101010 canvas, white text 14.8:1 */
+.mc-app { --msg-them-weight: 500; } /* Factory's emphasis weight (the font is instanced 400-500) */
+html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 1.7:1 against the #101010 canvas, white text 11:1 */
 .mc-r--them .mc-b--them,
 .mc-rxl__lift:not(.mc-rxl__lift--me) .mc-b--them {
   font-weight: var(--msg-them-weight); font-size: 14px; line-height: 1.45; color: var(--msg-them-color);
-  font-synthesis-weight: none; letter-spacing: -0.003em;
+  font-synthesis-weight: none; letter-spacing: -0.005em;
 }
 .mc-r--me .mc-b { font-size: 14px; line-height: 1.45; }
 @media (max-width: 899px) {
@@ -162,61 +161,57 @@ html[data-theme="dark"] { --msg-them-bg: #2a2725; } /* 1.28:1 against the #10101
 .mc-hdr.mc-hdr--center {
   background: none; border-bottom: 0; padding: 12px 20px 10px; align-items: start; isolation: isolate;
 }
-/* messages scroll under a soft frosted fade (blur + canvas gradient to transparent) */
+/* messages scroll under a soft fade to the canvas (Factory: no blur) */
 .mc-hdr.mc-hdr--center::before {
   content: ""; position: absolute; inset: 0 0 -36px; z-index: -1; pointer-events: none;
   background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 55%, transparent 100%);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1);
   -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent); mask-image: linear-gradient(to bottom, #000 60%, transparent);
 }
 .mc-hdr--center .mc-hdr__l, .mc-hdr--center .mc-hdr__r { align-self: start; padding-top: 10px; }
 
-/* floating buttons: a pill back button (unread badge) on the left, one round action on the right */
+/* floating buttons: a back button (waiting count) on the left, one square action on the right; 3px corners */
 .mc-fb {
   position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
-  height: 44px; min-width: 44px; padding: 0 12px 0 10px; box-sizing: border-box; border: 0; border-radius: 999px;
-  background: var(--mc-float-bg); color: var(--ink); box-shadow: var(--mc-float); cursor: pointer;
+  height: 44px; min-width: 44px; padding: 0 12px 0 10px; box-sizing: border-box; border-radius: var(--radius-sm);
+  background: var(--mc-float-bg); color: var(--ink); border: var(--mc-float-line); cursor: pointer;
   font: 500 13px/1 var(--font-geist-sans), "Geist", system-ui, sans-serif;
-  transition: box-shadow .16s var(--mech), scale .2s cubic-bezier(.2, .9, .25, 1.4);
+  transition: border-color .12s var(--mech), scale .2s cubic-bezier(.2, .9, .25, 1.4);
 }
 .mc-fb .i { width: 20px; height: 20px; flex: none; }
-.mc-fb:hover { box-shadow: var(--mc-float-hi); }
+.mc-fb:hover { border-color: var(--soft); }
 .mc-fb:active { scale: .94; transition-duration: .06s; }
 .mc-fb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .mc-fb--round { width: 44px; padding: 0; }
-.mc-fb.is-on { background: var(--pri-bg); color: var(--pri-fg); }
+.mc-fb.is-on { background: var(--pri-bg); color: var(--pri-fg); border-color: var(--pri-bg); }
 .mc-fb--back:not(:has(.mc-fb__n)) { width: 44px; padding: 0; }
 .mc-fb__n {
-  min-width: 22px; height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 999px;
-  background: var(--ink); color: var(--bg); font: 500 12px/22px var(--font-geist-sans), "Geist", system-ui, sans-serif; text-align: center;
+  min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: var(--radius-sm);
+  background: var(--ink); color: var(--bg); font: 400 11px/20px var(--font-geist-mono), ui-monospace, monospace; text-align: center;
 }
 
-/* the helper: mascot in a round chip, name in a small pill with a muted chevron, one muted status line */
+/* the helper: mascot in a round hairline chip, name in a small 3px chip with a muted chevron, one muted status line */
 .mc-hdr--center .mc-tt { gap: 6px; }
 .mc-hdr--center .mc-tt__b { gap: 6px; }
 .mc-tt__chip {
   width: 60px; height: 60px; display: grid; place-items: center; flex: none; border-radius: 50%;
-  background: var(--mc-float-bg); box-shadow: var(--mc-float);
+  background: var(--mc-float-bg); border: var(--mc-float-line);
 }
 .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face,
 .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face .mimi-helper,
 .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face > svg { width: 46px; height: 46px; }
 .mc-tt__chip.is-working { animation: mc-chipwork 2.2s ease-in-out infinite; }
-@keyframes mc-chipwork {
-  0%, 100% { transform: scale(1); box-shadow: var(--mc-float); }
-  50% { transform: scale(1.04); box-shadow: var(--mc-float-hi); }
-}
+@keyframes mc-chipwork { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 .mc-hdr--center .mc-tt__nm {
-  padding: 0 8px 0 12px; height: 28px; gap: 2px; border-radius: 999px; background: var(--mc-float-bg); box-shadow: var(--mc-float);
+  padding: 0 6px 0 10px; height: 28px; box-sizing: border-box; gap: 2px; border-radius: var(--radius-sm); background: var(--mc-float-bg); border: var(--mc-float-line);
 }
 .mc-hdr--center .mc-tt__t { color: var(--ink); }
 .mc-hdr--center .mc-tt__c { width: 13px; height: 13px; color: var(--muted); }
-.mc-hdr--center .mc-tt__b:hover .mc-tt__nm { box-shadow: var(--mc-float-hi); }
+.mc-hdr--center .mc-tt__b:hover .mc-tt__nm { border-color: var(--soft); }
 .mc-hdr--center .mc-tt__b:focus-visible { outline: 0; }
 .mc-hdr--center .mc-tt__b:focus-visible .mc-tt__nm { outline: 2px solid var(--ink); outline-offset: 2px; }
 .mc-hdr--center .mc-tt__s { height: 16px; font-size: 11.5px; color: var(--muted); }
 .mc-hdr--center .mc-tt__s.is-busy .mc-tt__st { color: var(--soft); }
-.mc-hdr--center .mc-menu--l { top: calc(100% + 8px); border: 0; box-shadow: var(--mc-float-hi); background: var(--mc-float-bg); border-radius: 14px; }
+.mc-hdr--center .mc-menu--l { top: calc(100% + 8px); border: var(--mc-float-line); background: var(--mc-float-bg); border-radius: var(--radius-lg); }
 .mc-tv .mc-hdr--center ~ .mc-feed .mc-fi { padding-top: 156px; }
 
 @media (max-width: 899px) {
@@ -232,4 +227,95 @@ html[data-theme="dark"] { --msg-them-bg: #2a2725; } /* 1.28:1 against the #10101
 @media (prefers-reduced-motion: reduce) {
   .mc-app .mc-tt__chip.is-working { animation: none !important; transform: none; }
   .mc-fb, .mc-fb:active { transition: none; scale: none; }
+}
+
+/* ---------- 6. quiet work views ---------- */
+/* the status line under the name opens Steps: same muted text, no chrome */
+.mc-tt__sb {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; height: 16px; padding: 0; border: 0; background: none;
+  font: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-sm);
+}
+.mc-tt__sb:hover .mc-tt__st { color: var(--soft); }
+.mc-tt__sb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* task lines: the old "New task · …" line, now the way into that task's own thread */
+.mc-taskln {
+  display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-sm);
+  font-family: var(--msg-font, inherit); font-size: 12px; line-height: 16px; color: var(--muted);
+}
+.mc-taskln:hover { color: var(--soft); }
+.mc-taskln:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.mc-taskln__st { font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; }
+.mc-taskln__st.is-run::before, .mc-qs__r.is-run .mc-qs__st::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 6px 1px 0; border-radius: 50%; background: var(--color-signal-orange); vertical-align: middle;
+}
+
+/* folded helper chatter: one muted mono row that opens the run */
+.mc-tv .mc-chat {
+  justify-self: start; height: 32px; margin: 6px 0; padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-sm);
+  font: 400 11px/32px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+}
+.mc-tv .mc-chat:hover { color: var(--soft); }
+.mc-tv .mc-chat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* queued: a small mono tag under your bubble ("Interrupt now" lives in its menu) */
+.mc-tv .mc-qd {
+  justify-self: end; margin: 4px 4px 0; font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+}
+/* steering the running task from the composer */
+.mc-steer--on { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mc-steer--on span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-steer__x {
+  flex: none; height: 28px; padding: 0 8px; border: 0; background: none; border-radius: var(--radius-sm); cursor: pointer;
+  font: inherit; text-transform: inherit; letter-spacing: inherit; color: var(--muted);
+}
+.mc-steer__x:hover { color: var(--ink); background: var(--tint2); }
+
+/* the sheets: the plan sheet's surface, quiet inside */
+.mc-qs { width: min(480px, calc(100% - 32px)); }
+.mc-qs__h { display: flex; align-items: flex-start; gap: 16px; padding: 8px 24px 16px; border-bottom: 1px solid var(--line); }
+.mc-qs__h > div { flex: 1; min-width: 0; }
+.mc-qs__l, .mc-qs__st, .mc-qs__x, .mc-qs__rb {
+  font: 400 11px/16px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+}
+.mc-qs__l { margin: 0 0 6px; }
+.mc-qs__t { margin: 0; font-size: 16px; line-height: 1.3; color: var(--ink); letter-spacing: -0.01em; }
+.mc-qs__s { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.mc-qs__x, .mc-qs__rb { flex: none; height: 32px; padding: 0 8px; border: 0; background: none; border-radius: var(--radius-sm); cursor: pointer; }
+.mc-qs__x:hover, .mc-qs__rb:hover { color: var(--ink); background: var(--tint2); }
+.mc-qs__x:focus-visible, .mc-qs__rb:focus-visible, .mc-qs__a:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.mc-qs__b { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 24px 16px; }
+.mc-qs__list { list-style: none; margin: 0; padding: 0; }
+.mc-qs__r { display: flex; align-items: center; gap: 16px; min-height: 48px; padding: 8px 0; box-sizing: border-box; }
+.mc-qs__r + .mc-qs__r { border-top: 1px solid var(--line); }
+.mc-qs__tx { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; color: var(--soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-qs__r.is-run .mc-qs__tx { color: var(--ink); }
+.mc-qs__st { flex: none; }
+.mc-qs__none { margin: 0; padding: 24px 0; font-size: 13px; color: var(--muted); }
+.mc-qs__in {
+  flex: 1; min-width: 0; height: 36px; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--hair); border-radius: var(--radius-sm);
+  background: transparent; color: var(--ink); font: 400 14px/1 var(--font-geist-sans), "Geist", system-ui, sans-serif;
+}
+.mc-qs__in:focus { outline: 0; border-color: var(--ink); }
+/* Pause / Steer: one action per row */
+.mc-qs__acts { display: flex; flex-direction: column; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+.mc-qs__a {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px; min-height: 52px; padding: 0 24px; border: 0; background: none;
+  cursor: pointer; text-align: left; font: 400 14px/52px var(--font-geist-sans), "Geist", system-ui, sans-serif; color: var(--ink);
+}
+.mc-qs__a + .mc-qs__a { border-top: 1px solid var(--line); }
+.mc-qs__a small { font-size: 12px; color: var(--muted); }
+.mc-qs__a:hover { background: var(--tint); }
+/* a task's own thread inside the sheet */
+.mc-qs__feed { padding: 0 16px; }
+.mc-qs .mc-fi.mc-qs__fi { max-width: none; padding: 16px 0 24px; margin: 0; }
+
+@media (max-width: 899px) {
+  .mc-qs { width: 100%; }
+  .mc-qs__h, .mc-qs__b { padding-inline: 16px; }
+  .mc-qs__a { padding-inline: 16px; min-height: 56px; line-height: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-app .mc-qs { animation: mc-fade .16s ease-out both !important; }
 }
