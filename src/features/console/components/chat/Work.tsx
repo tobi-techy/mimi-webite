@@ -149,7 +149,7 @@ function StateMark({ state }: { state: StepMsg["state"] }) {
   if (state === "run") return <i className="mc-spin mc-ws__spin" aria-label="Running" role="img" />;
   if (state === "done") return <Icon name="check" className="i mc-ws__ok" />;
   if (state === "failed") return <span className="mc-ws__bad">Failed</span>;
-  return <span className="mc-ws__wait">Needs you</span>;
+  return <i className="mc-ws__wait" role="img" aria-label="Waiting on you" />;
 }
 
 /** Scrolls the decision card a gate waits on into view and flashes it. */

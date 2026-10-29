@@ -42,11 +42,9 @@ html[data-theme="dark"] .mc-app {
 .mc-app .mimi-helper:not([data-helper="mimi"]) { --h-eye: #101010; }
 
 /*
- * Helper threads in colour (29 Oct 2026, Dots-inspired). In a helper's thread your bubbles and the
- * send button take that helper's colour (the tokens above, light and dark), with near-black text:
- * every fill clears WCAG AA with #101010 in both themes (lowest: Credit #9a6bf7, 5.3:1). Mimi's
- * replies stay neutral, orange stays for approvals and status, and Mimi's own thread (no
- * data-helper) keeps the neutral bubble.
+ * Helper colours (29 Oct 2026, Dots-inspired): the tokens above, light and dark, paint the helper
+ * faces. Your bubbles and the send button are the Mimi orange-red in every thread (imessage.css,
+ * sections 7 and 10), never the helper's colour. Every fill clears WCAG AA with #101010 in both themes (lowest: Credit #9a6bf7, 5.3:1).
  */
 .mc-thread[data-helper="order"] { --thread-accent: var(--helper-order); }
 .mc-thread[data-helper="collector"] { --thread-accent: var(--helper-collector); }
@@ -56,12 +54,9 @@ html[data-theme="dark"] .mc-app {
 .mc-thread[data-helper="proof"] { --thread-accent: var(--helper-proof); }
 .mc-thread[data-helper] {
   --thread-accent-ink: #101010;
-  /* your text bubbles and voice notes read these */
-  --msg-me-bg: var(--thread-accent);
-  --msg-me-color: var(--thread-accent-ink);
+  /* your bubbles no longer take the helper colour: they are the Mimi orange-red everywhere (imessage.css, section 7) */
 }
-.mc-thread[data-helper] .mc-snd,
-.mc-thread[data-helper] .mc-rec__s { background: var(--thread-accent); color: var(--thread-accent-ink); }
+/* the send button is the Mimi orange-red in every thread too (imessage.css, section 10), never the helper colour */
 
 /*
  * Thread header, iMessage-style (Tobi, 29 Oct 2026): the helper's face (56px desktop, 60px phone) with
