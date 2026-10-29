@@ -18,6 +18,7 @@ import { useDemo } from "@/features/console/demo/store";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
+import { consoleMotion } from "@/config/console-motion";
 
 /** Stagger (ms) for the live recording bars. */
 const LIVE_BARS = Array.from({ length: 72 }, (_, i) => -((i * 211) % 900));
@@ -108,6 +109,22 @@ function menuFor(value: string, helper: Worker, live: { shops: readonly { name: 
   return null;
 }
 
+/** A small squish on the send button (also when you send with Enter). Transform only; off for reduced motion. */
+function squish(el: HTMLElement | null) {
+  if (!el || !consoleMotion.sendSquish || typeof el.animate !== "function") return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  el.animate(
+    [
+      { transform: "scale(1)" },
+      { transform: "scale(0.86)", offset: 0.3 },
+      { transform: "scale(1.06)", offset: 0.62 },
+      { transform: "scale(0.99)", offset: 0.84 },
+      { transform: "scale(1)" },
+    ],
+    { duration: 340, easing: "cubic-bezier(.3,.7,.4,1)" },
+  );
+}
+
 /** The docked pill composer: + menu, text, mic (voice note) and send. */
 export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   const [text, setText] = useState("");
@@ -125,6 +142,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   const say = useToast();
   const wrap = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
+  const sendBtn = useRef<HTMLButtonElement>(null);
   const pickers = useRef<Partial<Record<AttachPurpose, HTMLInputElement | null>>>({});
   const recording = useRef<Recording | null>(null);
   /* demo build, API thread: photos, voice notes and invoices go to Mimi for real */
@@ -250,6 +268,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
 
   function send() {
     if (!value.trim() || playing) return;
+    squish(sendBtn.current);
     if (running) steerMessage(slug, value);
     else sendMessage(slug, value);
     setText("");
@@ -461,7 +480,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
             <button type="button" className="mc-mic" aria-label="Record a voice note" onClick={mic}>
               <Icon name="mic" />
             </button>
-            <button type="button" className="mc-snd" aria-label="Send" disabled={!value.trim()} onClick={send}>
+            <button ref={sendBtn} type="button" className="mc-snd" aria-label="Send" disabled={!value.trim()} onClick={send}>
               <Icon name="arrow-up" />
             </button>
           </>

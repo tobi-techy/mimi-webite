@@ -36,6 +36,7 @@ import { useShell } from "@/features/console/hooks/use-shell";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { isSoundOn, setSound } from "@/lib/sound";
 import { cx } from "@/lib/cx";
+import { consoleMotion } from "@/config/console-motion";
 
 /** Demo setup progress: WhatsApp, Sheets and Paystack connected; shops import and team invite left. */
 const SETUP_DONE = 3;
@@ -206,6 +207,37 @@ export function ThreadChat({ slug }: { slug: string }) {
     };
   }, [slug]);
 
+  /* soft settle the first time a message scrolls into view (Tobi, 29 Oct 2026). Native scrolling is
+     untouched: an IntersectionObserver only tags a group once, and CSS plays one short transform.
+     Messages already on screen, new ones (they have their own spring) and anything passed during our
+     own scroll to the bottom are marked seen without moving */
+  const seen = useRef<WeakSet<Element>>(new WeakSet());
+  useEffect(() => {
+    const el = feed.current;
+    if (!el || !consoleMotion.scrollSettle || prefersReducedMotion() || typeof IntersectionObserver === "undefined") return;
+    let primed = false;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          const g = e.target;
+          io.unobserve(g);
+          if (seen.current.has(g)) continue;
+          seen.current.add(g);
+          if (primed && Date.now() >= autoUntil.current) g.setAttribute("data-settle", "");
+        }
+        primed = true;
+      },
+      { root: el },
+    );
+    el.querySelectorAll(".mc-grp").forEach((g) => {
+      if (seen.current.has(g)) return;
+      if (g.classList.contains("mc-in")) seen.current.add(g);
+      else io.observe(g);
+    });
+    return () => io.disconnect();
+  }, [slug, count]);
+
   /* panel shortcuts: ⌘J computer, ⌥⌘S side chat, ⌘P docs, ⌘O files */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -273,7 +305,12 @@ export function ThreadChat({ slug }: { slug: string }) {
 
   return (
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
-      <section className="mc-thread" aria-label={`${conv.helper}: conversation`}>
+      <section
+        className="mc-thread"
+        aria-label={`${conv.helper}: conversation`}
+        /* helper threads take the helper's colour on your bubbles and the send button (helpers-v6.css) */
+        data-helper={conv.helper === "Mimi" ? undefined : conv.helper.toLowerCase()}
+      >
         <header className="mc-hdr mc-hdr--title">
           <div className="mc-hdr__l">
             <button className="mc-gb mc-gb--icon mc-show-phone" type="button" aria-label="Open menu" onClick={toggleSidebar}>
@@ -419,7 +456,7 @@ export function ThreadChat({ slug }: { slug: string }) {
             </Link>
           </div>
         </header>
-        <div className="mc-feed" ref={feed}>
+        <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
             {conv.helper === "Mimi" && <GettingStarted />}
             {conv.helper === "Mimi" && <LiveDemoNote />}
