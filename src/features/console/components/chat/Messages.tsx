@@ -26,6 +26,8 @@ import {
 } from "@/features/console/demo/engine";
 import { cardActions, tierOf } from "@/features/console/demo/needs";
 import { helperNames, reactableKinds, type ProofLevel, type DecisionCard, type Message, type ReactableMessage, type Speaker, type Verdict } from "@/features/console/demo/types";
+import { consoleThread } from "@/features/console/config";
+import { chatterRuns, joinNames, liveWork, visibleMessages } from "@/features/console/lib/thread-view";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
@@ -516,8 +518,17 @@ const boxOf = (el: HTMLElement) => {
   return { top: b.top, left: b.left, width: b.width, height: b.height };
 };
 
-export function MessageFeed({ slug, messages, typing }: { slug: string; messages: Message[]; typing: Speaker | null }) {
+export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: string; messages: Message[]; typing: Speaker | null }) {
   const ctx = { slug };
+  /* iMessage reading (consoleThread.showWork off): no reasoning or step lines, just bubbles and cards,
+     with typing dots while the helper writes or works (the header carries the one-line status) */
+  const showWork = consoleThread.showWork;
+  const messages = useMemo(() => visibleMessages(all, showWork), [all, showWork]);
+  const busy = showWork ? null : (liveWork(all)?.who as Speaker | undefined);
+  const typing: Speaker | null = typingIn ?? busy ?? null;
+  /* helper-to-helper chatter folds into one quiet row; Mimi's message after it is the answer */
+  const runs = useMemo(() => chatterRuns(messages), [messages]);
+  const [openRuns, setOpenRuns] = useState<string[]>([]);
   const [layer, setLayer] = useState<LayerState | null>(null);
   const close = useCallback(() => {
     setLayer((cur) => {
@@ -550,6 +561,24 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
     return waiting ? "waiting" : "idle";
   };
   messages.forEach((m, i) => {
+    const run = runs.find((r) => i >= r.start && i < r.start + r.count);
+    if (run) {
+      const key = messages[run.start]!.id;
+      const open = openRuns.includes(key);
+      if (i === run.start)
+        items.push(
+          <button
+            key={`chat-${key}`}
+            type="button"
+            className={cx("mc-chat", open && "is-open")}
+            aria-expanded={open}
+            onClick={() => setOpenRuns((cur) => (open ? cur.filter((x) => x !== key) : [...cur, key]))}
+          >
+            {open ? "Hide" : `${run.count} messages between ${joinNames(run.names)}`}
+          </button>,
+        );
+      if (!open) return;
+    }
     const who = speakerOf(m);
     const prev = speakerBefore(i);
     const next = i < messages.length - 1 ? speakerOf(messages[i + 1]!) : typing;
@@ -606,6 +635,7 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
       };
       body = (
         <ReactTarget
+          id={m.id}
           kind={m.kind}
           side={me ? "right" : "left"}
           label={`${kindName[m.kind]} from ${me ? "you" : who}: ${plainOf(m).slice(0, 80)}`}
@@ -635,7 +665,13 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
         {body}
       </Row>,
     );
-    if (me && m.kind === "text" && m.read && (i === messages.length - 1 || speakerOf(messages[i + 1]!) !== "me"))
+    if (me && m.kind === "text" && m.queued)
+      items.push(
+        <p key={`${m.id}-q`} className="mc-qd" role="status">
+          Queued · after current task
+        </p>,
+      );
+    else if (me && m.kind === "text" && m.read && (i === messages.length - 1 || speakerOf(messages[i + 1]!) !== "me"))
       items.push(
         <p key={`${m.id}-rd`} className="mc-rd mc-mono">
           Read
@@ -645,9 +681,15 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   if (typing && typing !== "me") {
     const prev = speakerBefore(messages.length);
     items.push(
-      <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
-        <Working who={typing} slug={slug} />
-      </Row>,
+      showWork ? (
+        <Row key="typing" at={-1} kind="work" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
+          <Working who={typing} slug={slug} />
+        </Row>
+      ) : (
+        <Row key="typing" at={-1} kind="them" who={typing} showName={typing !== prev} turn={typing !== prev} face="working" tail>
+          <TypingDots who={typing} />
+        </Row>
+      ),
     );
   }
   const target = layer ? messages.find((x) => x.id === layer.id) : undefined;
@@ -663,6 +705,8 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
         reactions={target.reactions ?? []}
         copyText={plainOf(target)}
         speaker={who === "me" ? "You" : who}
+        at={target.at}
+        queued={target.kind === "text" && !!target.queued}
         onClose={close}
         copy={
           <div className={cx("mc-rx", `mc-rx--${target.kind}`, !!target.reactions?.length && "has-rx")}>{bodyOf(target, ctx, who !== after)}</div>
@@ -673,8 +717,19 @@ export function MessageFeed({ slug, messages, typing }: { slug: string; messages
   return <>{items}</>;
 }
 
+/** iMessage typing indicator: three dots in a reply-grey bubble with a tail. */
+function TypingDots({ who }: { who: Exclude<Speaker, "me"> }) {
+  return (
+    <div className="mc-typd" role="status" aria-live="polite" aria-label={`${who} is typing`}>
+      <i />
+      <i />
+      <i />
+    </div>
+  );
+}
+
 /**
- * While a helper works: a live work-step line instead of a loader ("Reply → writing · 0.8s"),
+ * While a helper works (consoleThread.showWork on): a live work-step line instead of a loader ("Reply → writing · 0.8s"),
  * the same grey tool → result · time shape as finished steps. No dots, no "is working".
  */
 function Working({ who, slug }: { who: Exclude<Speaker, "me">; slug: string }) {
@@ -763,7 +818,7 @@ function Row({
       <div id={id ? `m-${id}` : undefined} className={cx("mc-grp mc-grp--them mc-grp--work", turn && "mc-grp--turn", anim && "mc-in")}>
         {showName && who && who !== "me" && (
           <p className="mc-mh">
-            <HelperFace name={who} size={18} state={face} quiet />
+            <HelperFace name={who} size={32} state={face} quiet />
             <span className="mc-mh__n">{who}</span>
           </p>
         )}
@@ -775,10 +830,11 @@ function Row({
       id={id ? `m-${id}` : undefined}
       className={cx("mc-grp", kind === "me" ? "mc-grp--me" : "mc-grp--them", wide && "mc-grp--answer", turn && "mc-grp--turn", anim && "mc-in")}
       data-tail={tail || undefined}
+      data-from={kind === "them" && who ? who : undefined}
     >
       {showName && who && who !== "me" && (
         <p className="mc-mh">
-          <HelperFace name={who} size={18} state={face} quiet />
+          <HelperFace name={who} size={32} state={face} quiet />
           <span className="mc-mh__n">{who}</span>
         </p>
       )}

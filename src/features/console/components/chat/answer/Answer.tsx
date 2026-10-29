@@ -3,6 +3,7 @@ import { Deliverables } from "@/features/console/components/chat/answer/Delivera
 import { Highlights } from "@/features/console/components/chat/answer/Highlights";
 import { Inline } from "@/features/console/components/chat/answer/Inline";
 import { StatCards } from "@/features/console/components/chat/answer/StatCards";
+import { consoleThread } from "@/features/console/config";
 import { WorkedFor } from "@/features/console/components/chat/answer/WorkedFor";
 import type { AnswerBlock, Message, Source } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
@@ -32,7 +33,7 @@ function Block({ b, cites }: { b: AnswerBlock; cites?: Record<number, Source> })
 export function Answer({ m }: { m: AnswerMessage }) {
   return (
     <div className="mc-ans">
-      {m.worked && <WorkedFor id={m.id} secs={m.worked.secs} work={m.worked.work} />}
+      {m.worked && consoleThread.showWork && <WorkedFor id={m.id} secs={m.worked.secs} work={m.worked.work} />}
       {m.blocks.map((b, i) => (
         <Block key={i} b={b} cites={m.cites} />
       ))}

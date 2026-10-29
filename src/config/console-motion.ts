@@ -21,6 +21,18 @@ export const consoleMotion = {
   typingDots: true,
   /** A card that needs you pulses its orange mark once when it arrives. */
   approvalAttention: true,
+  /**
+   * iMessage tapbacks (Tobi, 29 Oct 2026: "real emoji, bigger, smooth motion like Apple iMessage").
+   * The tapback pill springs out of the message (0.6 to 1 with a small overshoot). Timings live in
+   * styles/imessage.css (--mc-rx-*). Reduced motion gets a short plain fade everywhere below.
+   */
+  reactionPop: true,
+  /** The emojis in the pill land one after another (25ms apart). */
+  reactionStagger: true,
+  /** The emoji you pick flies from the pill into the badge on the message and pops (0 to 1.2 to 1). */
+  reactionFly: true,
+  /** A removed reaction shrinks out of its badge instead of vanishing. */
+  reactionExit: true,
   /** Photo stacks fan open on tap. */
   photoFan: true,
   /** Plan sheet slides up from the bottom. */

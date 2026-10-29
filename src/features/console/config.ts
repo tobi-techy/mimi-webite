@@ -28,3 +28,13 @@ export const CONSOLE_LOADER_KEY = "mimi-console-loaded";
 
 /** Below this width the sidebar becomes a drawer. */
 export const DRAWER_BREAKPOINT = 899;
+
+/**
+ * How a thread reads (Tobi, 29 Oct 2026: "keep ui clean, maybe remove the thinking state").
+ * Off by default: threads read like iMessage, bubbles only, with three typing dots while a helper works.
+ * On: the full work trail comes back ("Thought for 4s" reasoning, tool steps, handoffs, approval gates,
+ * "Worked for" on answers and the checklist pinned above the composer).
+ */
+export const consoleThread = {
+  showWork: false,
+} as const;

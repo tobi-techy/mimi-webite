@@ -97,7 +97,16 @@ type Sent = { apiId?: string; upload?: Upload; remote?: string };
 
 export type Message =
   | { id: string; kind: "date"; label: string }
-  | ({ id: string; kind: "text"; from: Speaker; text: string; at: number; read?: boolean } & Reactable)
+  | ({
+      id: string;
+      kind: "text";
+      from: Speaker;
+      text: string;
+      at: number;
+      read?: boolean;
+      /** Sent while the helper was mid-task: waits for the current task ("Queued, after current task"). */
+      queued?: boolean;
+    } & Reactable)
   | ({
       id: string;
       kind: "proof";
@@ -300,6 +309,8 @@ export type Conversation = {
   preview: string;
   /** Reply chips offered under the newest helper message (the scripted, film-safe path). */
   replies?: Reply[];
+  /** What a finished task proves ("Paid · 3 of 3 witnesses"); done without it reads "Check needed". */
+  proof?: string;
   /** Live checklist pinned above the composer while the helper works through a job. */
   plan?: WorkPlan;
   messages: Message[];

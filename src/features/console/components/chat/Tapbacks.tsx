@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { consoleMotion } from "@/config/console-motion";
 import { createPortal } from "react-dom";
 import { ShopAvatar } from "@/features/console/components/ui/ShopAvatar";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { react, unreact } from "@/features/console/demo/engine";
+import { interruptQueued, react, unreact } from "@/features/console/demo/engine";
 import { helperNames, type Reaction, type TapbackKey } from "@/features/console/demo/types";
 import { useToast } from "@/features/console/hooks/use-toast";
+import { badgeOrder, leftReactions, reactionEmoji } from "@/features/console/lib/reactions";
+import { timeLabel } from "@/features/console/lib/thread-view";
 import { cx } from "@/lib/cx";
 
 /**
- * iMessage tapbacks in the Factory skin. Double-tap / double-click, long-press (350ms) or
+ * iMessage tapbacks in the Factory skin, as real emoji (29 Oct 2026): ❤️ 👍 👎 😂 ‼️ ❓ in the system
+ * emoji font, a 30px badge on the message's top corner, a pill of 30px emoji that springs out of the
+ * message, and the emoji you pick flies into the badge and pops (motion switches in console-motion.ts). Double-tap / double-click, long-press (350ms) or
  * right-click a message: it lifts in place, the thread dims (flat, no blur), and the six classic
  * tapbacks pop above it (below when near the top) with a "+" for any emoji. Phones also get
  * Reply / Copy under the message (phones and desktop). One reaction per person; the same one again removes it.
@@ -51,75 +56,93 @@ const initials = (by: string) =>
         .map((w) => w[0]!.toUpperCase())
         .join("");
 
-const HEART = "M12 20.6s-8.2-4.9-8.2-11a4.6 4.6 0 0 1 8.2-2.9 4.6 4.6 0 0 1 8.2 2.9c0 6.1-8.2 11-8.2 11z";
-const THUMB_UP =
-  "M7.5 10.5v10H4.2a1.2 1.2 0 0 1-1.2-1.2v-7.6a1.2 1.2 0 0 1 1.2-1.2zM9.5 10.2l3.3-7a2.3 2.3 0 0 1 2.3 2.7l-.6 3.6h4.9a2 2 0 0 1 2 2.4l-1.4 7a2.4 2.4 0 0 1-2.4 1.9H9.5z";
+const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** The tapback glyph (or the emoji). Drawn in currentColor so your own reaction can invert. */
+/** The reaction as a real system emoji (tapback keys map to ❤️ 👍 👎 😂 ‼️ ❓). */
 export function Glyph({ r }: { r: string }) {
-  if (r === "heart")
-    return (
-      <svg className="mc-gl" viewBox="0 0 24 24" aria-hidden="true">
-        <path d={HEART} fill="currentColor" />
-      </svg>
-    );
-  if (r === "like" || r === "dislike")
-    return (
-      <svg className="mc-gl" viewBox="0 0 24 24" aria-hidden="true" style={r === "dislike" ? { transform: "rotate(180deg)" } : undefined}>
-        <path d={THUMB_UP} fill="currentColor" />
-      </svg>
-    );
-  if (r === "haha")
-    return (
-      <span className="mc-gl mc-gl--haha" aria-hidden="true">
-        HA
-        <br />
-        HA
-      </span>
-    );
-  if (r === "bang")
-    return (
-      <span className="mc-gl mc-gl--bang" aria-hidden="true">
-        !!
-      </span>
-    );
-  if (r === "question")
-    return (
-      <span className="mc-gl mc-gl--q" aria-hidden="true">
-        ?
-      </span>
-    );
   return (
     <span className="mc-gl mc-gl--emoji" aria-hidden="true">
-      {r}
+      {reactionEmoji(r)}
+    </span>
+  );
+}
+
+/**
+ * Where the emoji you just picked left the pill, so the badge can fly it in from there.
+ * Set on pick, read once by the badge that mounts for it.
+ */
+const flight: { id: string; r: string; x: number; y: number } | { id: ""; r: ""; x: 0; y: 0 } = { id: "", r: "", x: 0, y: 0 };
+function launch(id: string, r: string, el: HTMLElement | null) {
+  if (!el || !consoleMotion.reactionFly || reduced()) return;
+  const b = el.getBoundingClientRect();
+  Object.assign(flight, { id, r, x: b.left + b.width / 2, y: b.top + b.height / 2 });
+}
+
+/** One badge emoji. A fresh one of yours flies in from the pill (spring 0 → 1.2 → 1); others just pop. */
+function BadgeGlyph({ id, q, fresh, leaving }: { id: string; q: Reaction; fresh: boolean; leaving: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !fresh || q.by !== "me" || flight.id !== id || flight.r !== q.r || typeof el.animate !== "function") return;
+    const b = el.getBoundingClientRect();
+    const dx = flight.x - (b.left + b.width / 2);
+    const dy = flight.y - (b.top + b.height / 2);
+    Object.assign(flight, { id: "", r: "", x: 0, y: 0 });
+    el.classList.add("is-flying");
+    const a = el.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) scale(1.5)`, opacity: 1 },
+        { transform: "translate(0, 0) scale(1.2)", opacity: 1, offset: 0.62 },
+        { transform: "translate(0, 0) scale(.94)", offset: 0.82 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" },
+    );
+    a.onfinish = a.oncancel = () => el.classList.remove("is-flying");
+  }, [fresh, id, q.by, q.r]);
+  return (
+    <span ref={ref} className={cx("mc-rxg", q.by === "me" && "is-mine", fresh && "is-fresh", leaving && "is-leaving")}>
+      <Glyph r={q.r} />
     </span>
   );
 }
 
 /** Badges pinned to the message's top corner (opposite the tail). Several stack and overlap. */
-export function Badges({ list, side, onOpen }: { list: Reaction[]; side: "left" | "right"; onOpen?: (el: HTMLElement) => void }) {
+export function Badges({ id, list, side, onOpen }: { id: string; list: Reaction[]; side: "left" | "right"; onOpen?: (el: HTMLElement) => void }) {
   const [now] = useState(() => (typeof window === "undefined" ? 0 : Date.now()));
+  // removed reactions stay a moment so they can shrink out (consoleMotion.reactionExit)
+  const [leaving, setLeaving] = useState<Reaction[]>([]);
+  const prev = useRef(list);
+  useEffect(() => {
+    const gone = leftReactions(prev.current, list);
+    prev.current = list;
+    if (!gone.length || !consoleMotion.reactionExit || reduced()) return;
+    setLeaving((cur) => [...cur.filter((q) => !gone.some((g) => g.by === q.by)), ...gone]);
+    const t = window.setTimeout(() => setLeaving((cur) => cur.filter((q) => !gone.includes(q))), 240);
+    return () => window.clearTimeout(t);
+  }, [list]);
+  const ghosts = leaving.filter((g) => !list.some((q) => q.by === g.by && q.r === g.r));
+  if (!list.length && !ghosts.length) return null;
   // yours sits in front (iMessage); show at most three
-  const ordered = [...list.filter((q) => q.by !== "me"), ...list.filter((q) => q.by === "me")].slice(-3);
+  const ordered = badgeOrder(list);
   const label = `Reactions: ${list.map((q) => `${nameOf(q.by)} ${reactionVerb(q.r).replace(/ (at|to)$/, "")}`).join(", ")}. Show who reacted`;
   return (
     <button
       type="button"
       className={cx("mc-rxb", `mc-rxb--${side}`)}
       aria-label={label}
+      tabIndex={list.length ? 0 : -1}
       onClick={(e) => {
         e.stopPropagation();
-        onOpen?.(e.currentTarget);
+        if (list.length) onOpen?.(e.currentTarget);
       }}
       onDoubleClick={(e) => e.stopPropagation()}
     >
+      {ghosts.map((q) => (
+        <BadgeGlyph key={`out-${q.by}-${q.r}`} id={id} q={q} fresh={false} leaving />
+      ))}
       {ordered.map((q) => (
-        <span
-          key={`${q.by}-${q.r}`}
-          className={cx("mc-rxg", q.by === "me" && "is-mine", !!q.at && now - q.at < 1500 && "is-fresh")}
-        >
-          <Glyph r={q.r} />
-        </span>
+        <BadgeGlyph key={`${q.by}-${q.r}`} id={id} q={q} fresh={!!q.at && now - q.at < 1500} leaving={false} />
       ))}
     </button>
   );
@@ -134,6 +157,7 @@ const INTERACTIVE = "button, a, input, textarea, select, [role='button'], fields
  * or Enter / Shift+F10 / ContextMenu when focused opens the tapback bar.
  */
 export function ReactTarget({
+  id,
   kind,
   side,
   label,
@@ -143,6 +167,7 @@ export function ReactTarget({
   onWho,
   children,
 }: {
+  id: string;
   kind: string;
   side: "left" | "right";
   label: string;
@@ -220,7 +245,7 @@ export function ReactTarget({
       }}
     >
       {children}
-      {!!reactions?.length && <Badges list={reactions} side={side === "left" ? "right" : "left"} onOpen={onWho} />}
+      <Badges id={id} list={reactions ?? []} side={side === "left" ? "right" : "left"} onOpen={onWho} />
     </div>
   );
 }
@@ -236,10 +261,11 @@ export type LayerState = {
   origin: HTMLElement | null;
 };
 
-const BAR_W = 302;
-const BAR_H = 50;
+/* the pill: seven 44px buttons, 2px apart, 5px padding, hairline border */
+const BAR_W = 7 * 44 + 6 * 2 + 10 + 2;
+const BAR_H = 56;
 const PICK_H = 300;
-const MENU_H = 98;
+const MENU_H = 98 + 33;
 const GAP = 8;
 const EDGE = 12;
 
@@ -251,6 +277,8 @@ export function ReactionLayer({
   reactions,
   copyText,
   speaker,
+  at,
+  queued,
   copy,
   onClose,
 }: {
@@ -260,6 +288,10 @@ export function ReactionLayer({
   /** The text Copy puts on the clipboard. */
   copyText: string;
   speaker: string;
+  /** When the message was sent: shown at the top of the actions menu (no per-bubble timestamps). */
+  at?: number;
+  /** Your message is waiting for the current task: the menu offers "Interrupt now". */
+  queued?: boolean;
   /** The lifted copy of the message (rendered inert). */
   copy: ReactNode;
   onClose: () => void;
@@ -312,7 +344,8 @@ export function ReactionLayer({
   const vh = window.innerHeight;
   const r = state.rect;
 
-  const pick = (key: string) => {
+  const pick = (key: string, el?: HTMLElement | null) => {
+    if (mine !== key) launch(state.id, key, el ?? null);
     react(slug, state.id, key);
     onClose();
   };
@@ -378,7 +411,7 @@ export function ReactionLayer({
   const minTop = EDGE + BAR_H + GAP;
   let barAbove = top - BAR_H - GAP >= EDGE + (phone ? 0 : 56);
   /* the Reply / Copy list sits under the message on every screen size */
-  const bottom = top + r.height + GAP + MENU_H + EDGE + (barAbove ? 0 : BAR_H + GAP);
+  const bottom = top + r.height + GAP + MENU_H + (queued ? 48 : 0) + EDGE + (barAbove ? 0 : BAR_H + GAP);
   if (bottom > vh) {
     top = Math.max(minTop, top - (bottom - vh));
     barAbove = true;
@@ -405,6 +438,7 @@ export function ReactionLayer({
       <div className="mc-rxl__dim" {...dimProps} />
       <div
         className={cx("mc-rxl__lift", state.me && "mc-rxl__lift--me")}
+        data-from={state.me ? undefined : speaker}
         style={{ top, left: r.left, width: r.width }}
         inert
         aria-hidden="true"
@@ -413,20 +447,35 @@ export function ReactionLayer({
       </div>
       {!picker ? (
         <div
-          className={cx("mc-rxbar", !barAbove && "is-below", state.me && "is-me")}
+          className={cx(
+            "mc-rxbar",
+            !barAbove && "is-below",
+            state.me && "is-me",
+            consoleMotion.reactionPop && "is-pop",
+            consoleMotion.reactionStagger && "is-stagger",
+          )}
           style={{ top: barTop, left: barLeft }}
           role="toolbar"
           aria-label={speaker === "You" ? "React to your message" : `React to ${speaker}'s message`}
           onKeyDown={onBarKey}
         >
-          {TAPBACKS.map((t) => (
-            <button key={t.key} type="button" className={cx("mc-rxbar__b", mine === t.key && "is-on")} aria-label={t.label} aria-pressed={mine === t.key} onClick={() => pick(t.key)}>
+          {TAPBACKS.map((t, i) => (
+            <button
+              key={t.key}
+              type="button"
+              className={cx("mc-rxbar__b", mine === t.key && "is-on")}
+              style={{ "--i": i } as CSSProperties}
+              aria-label={t.label}
+              aria-pressed={mine === t.key}
+              onClick={(e) => pick(t.key, e.currentTarget)}
+            >
               <Glyph r={t.key} />
             </button>
           ))}
           <button
             type="button"
             className={cx("mc-rxbar__b mc-rxbar__more", mine && !tapbackOf(mine) && "is-on")}
+            style={{ "--i": TAPBACKS.length } as CSSProperties}
             aria-label={mine && !tapbackOf(mine) ? `Reacted ${mine}. Pick another emoji` : "More reactions"}
             aria-haspopup="dialog"
             onClick={() => setPicker(true)}
@@ -448,7 +497,7 @@ export function ReactionLayer({
                 <p className="mc-mono">{sec.title}</p>
                 <div className="mc-rxp__g">
                   {sec.list.map((em) => (
-                    <button key={em} type="button" className={cx(mine === em && "is-on")} aria-label={`React with ${em}`} aria-pressed={mine === em} onClick={() => pick(em)}>
+                    <button key={em} type="button" className={cx(mine === em && "is-on")} aria-label={`React with ${em}`} aria-pressed={mine === em} onClick={(e) => pick(em, e.currentTarget)}>
                       {em}
                     </button>
                   ))}
@@ -460,6 +509,19 @@ export function ReactionLayer({
       )}
       {!picker && (
         <div className="mc-rxm" style={{ top: menuTop, left: menuLeft }} role="menu" aria-label="Message actions">
+          {!!at && at > 0 && <p className="mc-rxm__t mc-mono">{timeLabel(at)}</p>}
+          {queued && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose();
+                interruptQueued(slug, state.id);
+              }}
+            >
+              Interrupt now
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"

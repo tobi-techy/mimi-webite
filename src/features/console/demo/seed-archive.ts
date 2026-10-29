@@ -22,9 +22,33 @@ type Old = {
   askReactions?: Reaction[];
   lines: [from: HelperName | "Mimi", text: string][];
   replies?: Reply[];
+  /** The finish line's proof (done tasks without one read "Check needed"). */
+  proof?: string;
 };
 
 const OLD: Old[] = [
+  /* a multi-helper job: Collector and Credit talk it through, Mimi gives the one answer (collapsed in the feed) */
+  {
+    slug: "joy-credit-check",
+    title: "Can Joy's Store take another order",
+    helper: "Mimi",
+    folder: "General",
+    code: "GEN-4",
+    state: "done",
+    status: "Order allowed",
+    proof: "Ledger checked · 2 of 2 helpers agree",
+    ago: "3d",
+    day: 20,
+    dateLabel: "Tuesday 10:00 AM",
+    ask: "Can Joy's Store take another order on credit?",
+    lines: [
+      ["Collector", "Joy's Store paid ₦80,000 on Friday. ₦40,000 is still open, 6 days late."],
+      ["Credit", "Their limit is ₦150,000, so they have ₦110,000 left."],
+      ["Collector", "They usually clear within 10 days. No missed weeks this quarter."],
+      ["Credit", "Then I'd keep the limit and allow the order."],
+      ["Mimi", "Yes, Joy's Store can take the order. They have ₦110,000 of credit left and usually pay within 10 days."],
+    ],
+  },
   {
     slug: "check-transfer-alerts",
     title: "Check 9 transfer alerts",
@@ -190,6 +214,7 @@ const OLD: Old[] = [
     code: "ONB-2",
     state: "done",
     status: "7 of 8 joined",
+    proof: "Joined · 7 of 8 WhatsApp replies",
     ago: "1w",
     day: 16,
     dateLabel: "Last Friday 3:00 PM",
@@ -204,6 +229,7 @@ const OLD: Old[] = [
     code: "ONB-3",
     state: "done",
     status: "46 signed",
+    proof: "Signed · 46 of 48 forms",
     ago: "1w",
     day: 16,
     dateLabel: "Last Friday 11:00 AM",
@@ -235,6 +261,7 @@ function build(o: Old): Conversation {
     ago: o.ago,
     preview: last.replace(/\*\*|==/g, ""),
     replies: o.replies,
+    proof: o.proof,
     messages,
   };
 }
