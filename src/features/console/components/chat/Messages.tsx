@@ -5,7 +5,8 @@ import { consoleMotion } from "@/config/console-motion";
 import { ReactTarget, ReactionLayer, type LayerState } from "@/features/console/components/chat/Tapbacks";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import type { FaceState } from "@/features/console/demo/roster";
-import { Markdown } from "@/features/console/components/panel/Markdown";
+import { splitUrls, toPlainText } from "@/features/console/lib/plain-text";
+import { safeHref } from "@/features/console/lib/safe-href";
 import { StepLine, ThoughtBlock } from "@/features/console/components/chat/Work";
 import { Answer } from "@/features/console/components/chat/answer/Answer";
 import { FileChip, UploadLine, useApiBlob, useVoicePlayer } from "@/features/console/components/chat/Attachments";
@@ -74,7 +75,28 @@ export function closeOpenMarks(text: string): string {
   return t;
 }
 
-/** Reveals a fresh helper message word by word, rendered as Factory-style markdown (no bubble). */
+/** Plain text with http(s) URLs auto-linked (helper replies, WhatsApp-style). Line breaks come from CSS (pre-wrap). */
+function PlainText({ text }: { text: string }) {
+  return (
+    <>
+      {splitUrls(text).map((p, i) => {
+        const href = p.url ? safeHref(p.url) : undefined;
+        return href ? (
+          <a key={i} href={href} target="_blank" rel="noopener noreferrer">
+            {p.text}
+          </a>
+        ) : (
+          p.text
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Reveals a fresh helper message word by word, as plain text (Tobi, 29 Oct 2026: no markdown in replies).
+ * Split on spaces only so line breaks stay inside the words they follow.
+ */
 function Streamed({ text, fresh }: { text: string; fresh: boolean }) {
   const words = text.split(" ");
   const animate = fresh && consoleMotion.streamText && !prefersReducedMotion();
@@ -84,8 +106,8 @@ function Streamed({ text, fresh }: { text: string; fresh: boolean }) {
     const t = window.setTimeout(() => setN((x) => x + 1), 34);
     return () => window.clearTimeout(t);
   }, [n, words.length]);
-  const shown = n >= words.length ? text : closeOpenMarks(words.slice(0, n).join(" "));
-  return <Markdown text={shown} className="mc-md--msg" />;
+  const shown = toPlainText(n >= words.length ? text : closeOpenMarks(words.slice(0, n).join(" ")));
+  return <PlainText text={shown} />;
 }
 
 const verdictLabel: Record<Verdict, string> = { verified: "Verified", self: "Self-reported", fake: "Fake alert" };
@@ -97,10 +119,19 @@ export function VerdictTag({ v, children }: { v: Verdict; children?: ReactNode }
 
 type Ctx = { slug: string };
 
-/** Your messages: an iMessage-style bubble. Helper messages: markdown text flowing in the column. */
+/**
+ * Your messages and helper replies are the same iMessage-style bubble (Tobi, 29 Oct 2026: "the agent post
+ * too should take shape like the user message"): yours right-aligned with the tail bottom-right, helper
+ * replies left-aligned on a neutral warm grey with the tail mirrored bottom-left, in plain text.
+ */
 function Bubble({ m, tail }: { m: Extract<Message, { kind: "text" }>; tail: boolean }) {
   const fresh = useFresh(m.at);
-  if (m.from !== "me") return <Streamed text={m.text} fresh={fresh} />;
+  if (m.from !== "me")
+    return (
+      <div className={cx("mc-b mc-b--them", tail && "mc-b--tail")}>
+        <Streamed text={m.text} fresh={fresh} />
+      </div>
+    );
   return (
     <div className={cx("mc-b", tail && "mc-b--tail")}>
       <Inline text={m.text} />
@@ -464,7 +495,7 @@ function bodyOf(m: Message, ctx: Ctx, tail: boolean): ReactNode {
 /** What Copy puts on the clipboard, and how a message is named to screen readers. */
 function plainOf(m: ReactableMessage): string {
   const strip = plainInline;
-  if (m.kind === "text") return strip(m.text);
+  if (m.kind === "text") return m.from === "me" ? strip(m.text) : toPlainText(m.text);
   if (m.kind === "proof") return `${m.title} · ${m.meta} · ${naira(m.amount)} · ${m.foot}`;
   if (m.kind === "photos") return m.label;
   if (m.kind === "poll") return `${m.question} ${m.options.join(" / ")}`;

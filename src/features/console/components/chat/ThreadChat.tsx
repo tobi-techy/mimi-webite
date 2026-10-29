@@ -311,12 +311,14 @@ export function ThreadChat({ slug }: { slug: string }) {
         /* helper threads take the helper's colour on your bubbles and the send button (helpers-v6.css) */
         data-helper={conv.helper === "Mimi" ? undefined : conv.helper.toLowerCase()}
       >
-        <header className="mc-hdr mc-hdr--title">
+        {/* iMessage-style header (29 Oct 2026): menu left, the helper's face + name centred, actions right */}
+        <header className="mc-hdr mc-hdr--title mc-hdr--center">
           <div className="mc-hdr__l">
             <button className="mc-gb mc-gb--icon mc-show-phone" type="button" aria-label="Open menu" onClick={toggleSidebar}>
               <Icon name="menu" />
             </button>
-            <div className="mc-more mc-tt">
+          </div>
+          <div className="mc-more mc-tt">
               <button
                 type="button"
                 className="mc-tt__b"
@@ -325,9 +327,11 @@ export function ThreadChat({ slug }: { slug: string }) {
                 title={`${conv.helper} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <HelperFace name={conv.helper} size={28} state={face.state} dot={face.needs > 0} />
-                <span className="mc-tt__t">{conv.helper}</span>
-                <Icon name="chevron-down" className="i mc-tt__c" />
+                <HelperFace name={conv.helper} size={60} state={face.state} dot={face.needs > 0} />
+                <span className="mc-tt__nm">
+                  <span className="mc-tt__t">{conv.helper}</span>
+                  <Icon name="chevron-down" className="i mc-tt__c" />
+                </span>
               </button>
               <p className="mc-tt__s" aria-live="polite">
                 <span className="mc-tt__h mc-tt__job">{job}</span>
@@ -405,7 +409,6 @@ export function ThreadChat({ slug }: { slug: string }) {
               </button>
             </div>
               )}
-            </div>
           </div>
           <div className="mc-hdr__r">
             {compHere && !panelOpen && (
