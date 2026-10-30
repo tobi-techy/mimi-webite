@@ -12,6 +12,7 @@ import { Answer } from "@/features/console/components/chat/answer/Answer";
 import { FileChip, UploadLine, useApiBlob, useVoicePlayer } from "@/features/console/components/chat/Attachments";
 import { Inline, plainInline } from "@/features/console/components/chat/answer/Inline";
 import { Icon } from "@/features/console/components/ui/Icon";
+import { StatusPill } from "@/features/console/components/ui/StatusPill";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo } from "@/features/console/demo/store";
@@ -114,7 +115,12 @@ function Streamed({ text, fresh }: { text: string; fresh: boolean }) {
 
 const verdictLabel: Record<Verdict, string> = { verified: "Verified", self: "Self-reported", fake: "Fake alert" };
 export function VerdictTag({ v, children }: { v: Verdict; children?: ReactNode }) {
-  return <span className={cx("mc-vf", `mc-vf--${v}`)}>{children ?? verdictLabel[v]}</span>;
+  /* v2: verdicts are status pills (icon + tint), not mono tags */
+  return (
+    <StatusPill status={v} className="mc-vf">
+      {children ?? verdictLabel[v]}
+    </StatusPill>
+  );
 }
 
 /* ---------- message kinds ---------- */
@@ -355,91 +361,112 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
   match: "shield-check",
 };
 
-const proofWord: Record<ProofLevel, string> = { verified: "verified", likely: "likely", estimated: "estimated" };
+const proofWord: Record<ProofLevel, string> = { verified: "Verified", likely: "Likely", estimated: "Estimated" };
 
+/**
+ * v2 decision card (Muse's checkout card + Leye's quiet rows): icon tile, plain title and one quiet
+ * line, the exact message that goes out, label/value rows with tabular amounts, a bold total, then
+ * two equal buttons. No mono, no boxed tier tag; once settled, a status pill says what happened.
+ */
 function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx }) {
   const c: DecisionCard = m.card;
   const fresh = useFresh(m.at);
   const plan = c.kind === "plan";
   const live = c.rows.filter((r) => r.tone !== "Skip");
-  const rows = plan ? live.slice(0, 2) : c.rows;
+  const rows = plan ? live.slice(0, 3) : c.rows;
   const more = plan ? live.length - rows.length : 0;
   const icon = cardIcon[c.kind];
   const act = cardActions(c);
   const tier = tierOf(c);
+  const total = c.amount ?? (plan || c.kind === "order" ? live.reduce((s, r) => s + (r.amount ?? 0), 0) : undefined);
   return (
-    <div className={cx("mc-apc", c.status === "needs" && fresh && consoleMotion.approvalAttention && "is-attn")}>
-      <div className="mc-apc__h">
-        <Icon name={icon} />
-        <div className="mc-apc__t">
-          {c.title}
-          <small className="mc-mono">{c.sub}</small>
-        </div>
-        <span className={cx("mc-tier", `mc-tier--${tier.toLowerCase()}`)} title={`Risk tier: ${tier}`}>
-          {tier}
+    <div
+      className={cx("mc-apc v2-dc", c.status === "needs" && fresh && consoleMotion.approvalAttention && "is-attn")}
+      title={`Risk tier: ${tier}`}
+    >
+      <div className="v2-dc__h">
+        <span className="v2-dc__ico" aria-hidden="true">
+          <Icon name={icon} />
         </span>
-        {/* a card waiting on you shows its action buttons and nothing else: no "Needs you" tag */}
-        {c.status === "sending" && <span className="mc-nd mc-nd--run">Sending</span>}
-        {c.status === "sent" && <span className="mc-nd mc-nd--ok">{plan || c.kind === "brand" ? "Sent" : "Done"}</span>}
-        {c.status === "declined" && <span className="mc-nd mc-nd--off">Discarded</span>}
+        <div className="v2-dc__t">
+          <b>{c.title}</b>
+          <small>{c.sub}</small>
+        </div>
+        {c.status === "sending" && <StatusPill status="running">{plan ? "Sending" : "Saving"}</StatusPill>}
+        {c.status === "sent" && <StatusPill status="sent">{plan || c.kind === "brand" ? "Sent" : "Done"}</StatusPill>}
+        {c.status === "declined" && <StatusPill status="skipped">Discarded</StatusPill>}
       </div>
       {c.email && (
-        <div className="mc-apc__mail">
-          <p>
-            <span>To</span>
-            {c.email.to}
+        <div className="v2-dc__quote">
+          <p className="v2-dc__to">
+            To {c.email.to} · {c.email.subject}
           </p>
-          <p>
-            <span>Subject</span>
-            {c.email.subject}
-          </p>
-          <p className="mc-apc__body">{c.email.body}</p>
+          <p>{c.email.body}</p>
         </div>
       )}
-      <div className="mc-apc__rows">
+      {!c.email && c.message && c.status === "needs" && (
+        <div className="v2-dc__quote">
+          <p className="v2-dc__to">
+            To {c.message.to} on WhatsApp{plan && live.length > 1 ? `, and ${live.length - 1} more` : ""}
+          </p>
+          <p>{c.message.text}</p>
+        </div>
+      )}
+      <dl className="v2-dc__rows">
         {rows.map((r) => (
-          <div key={r.label} className="mc-apc__rw">
-            <span>{r.label}</span>
-            <span>
-              {r.amount !== undefined && naira(r.amount)}
-              {r.amount !== undefined && (r.tone || r.note) && " · "}
-              {r.tone ?? r.note}
-              {r.proof && <em className={cx("mc-prf", `mc-prf--${r.proof}`)}>{proofWord[r.proof]}</em>}
-              {r.flag && <em className="mc-or"> · {r.flag}</em>}
-            </span>
+          <div key={r.label}>
+            <dt>
+              {r.label}
+              {r.flag && <StatusPill status="fake">{r.flag}</StatusPill>}
+              {r.proof && <StatusPill status={r.proof === "verified" ? "verified" : "self"}>{proofWord[r.proof]}</StatusPill>}
+            </dt>
+            <dd>
+              {r.amount !== undefined && <span className="v2-num">{naira(r.amount)}</span>}
+              {(r.tone || r.note) && <small>{r.tone ?? r.note}</small>}
+            </dd>
           </div>
         ))}
         {more > 0 && (
-          <div className="mc-apc__rw">
-            <span>+{more} more</span>
-            <span />
+          <div className="v2-dc__more">
+            <dt>
+              <button type="button" className="v2-link" onClick={() => openSheet(ctx.slug, m.id)}>
+                {more} more {more === 1 ? "shop" : "shops"}
+              </button>
+            </dt>
+            <dd />
           </div>
         )}
-      </div>
+        {total !== undefined && total > 0 && !c.sub.includes(naira(total)) && (
+          <div className="v2-dc__total">
+            <dt>Total</dt>
+            <dd className="v2-num">{naira(total)}</dd>
+          </div>
+        )}
+      </dl>
       {c.status === "needs" && (
-        <div className="mc-apc__ft">
+        <div className="v2-dc__f">
           <button
             type="button"
-            className="mc-btn"
+            className="v2-btn"
             onClick={() => (act.secondary === "Review" ? openSheet(ctx.slug, m.id) : declineCard(ctx.slug, m.id))}
           >
             {act.secondary}
           </button>
-          <button type="button" className="mc-btn mc-btn--pri" onClick={() => approveCard(ctx.slug, m.id)}>
+          <button type="button" className="v2-btn v2-btn--pri" onClick={() => approveCard(ctx.slug, m.id)}>
             {act.primary}
           </button>
         </div>
       )}
       {c.status === "sending" && (
-        <div className="mc-apc__done mc-mono">
+        <p className="v2-dc__done">
           <i className="mc-spin" aria-hidden="true" />
           {plan ? "Sending on WhatsApp" : "Saving"}
-        </div>
+        </p>
       )}
       {c.status === "sent" && (
-        <div className="mc-apc__done mc-apc__done--ok mc-mono" role="status">
-          ✓ {c.doneText} · {c.sentAt}
-        </div>
+        <p className="v2-dc__done" role="status">
+          {c.doneText} · {c.sentAt}
+        </p>
       )}
     </div>
   );

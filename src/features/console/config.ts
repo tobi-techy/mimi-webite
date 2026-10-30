@@ -37,4 +37,10 @@ export const DRAWER_BREAKPOINT = 899;
  */
 export const consoleThread = {
   showWork: false,
+  /**
+   * v2 (design/console-components-v2): even with the trail off, an answer keeps one quiet,
+   * collapsed line ("6 steps · 34s") that opens into the activity list (Muse/Grok's second
+   * status layer). Turn off to go back to bubbles only.
+   */
+  showStepsLine: true,
 } as const;

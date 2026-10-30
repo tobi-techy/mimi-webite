@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { LineChart } from "@/features/console/components/charts/LineChart";
-import { RadarChart } from "@/features/console/components/charts/RadarChart";
 import { UsageShopsTable } from "@/features/console/components/usage/UsageShopsTable";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { Picker } from "@/features/console/components/ui/Picker";
 import { Segmented } from "@/features/console/components/ui/Segmented";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import {
-  agentAxes,
   agentFilters,
   agentShare,
   usageRanges,
@@ -18,7 +16,9 @@ import {
   type AgentFilter,
   type UsageRange,
 } from "@/features/console/content/usage";
-import { naira } from "@/features/console/lib/format";
+import { naira, nairaShort } from "@/features/console/lib/format";
+import { ChartCard } from "@/features/console/components/ui/ChartCard";
+import { TickMeter } from "@/features/console/components/ui/TickMeter";
 
 const RUNS_THIS_MONTH = 1284;
 const FILTER_ICON: Record<AgentFilter, IconName> = {
@@ -28,11 +28,8 @@ const FILTER_ICON: Record<AgentFilter, IconName> = {
   Order: "store",
   Credit: "landmark",
 };
-const radarLabel = `Helper breakdown, share of runs by type this month against last month: ${agentAxes
-  .map(([n, c, p]) => `${n} ${c} (last month ${p})`)
-  .join(", ")}`;
 
-/** Settings > Billing > Usage: tiles, agent radar, runs over time and the shops table. */
+/** Settings > Billing > Usage: stat row with plan meters, the money-collected chart card and the shops table. */
 export function UsageDashboard() {
   const [agent, setAgent] = useState<AgentFilter>("All helpers");
   const [range, setRange] = useState<UsageRange>("1m");
@@ -46,8 +43,8 @@ export function UsageDashboard() {
         <div>
           <h1>Usage</h1>
           <p>
-            Track how Mimi works for Coral Lane: runs, messages, money recovered and computer hours across every
-            shop.
+            Track how Mimi works for Coral Lane: runs, messages, money recovered and computer hours across
+            every shop.
           </p>
         </div>
         <div className="x-ctl">
@@ -75,66 +72,75 @@ export function UsageDashboard() {
           </p>
         </div>
       </div>
-      <div className="x-ust">
-        {usageTiles.map((t) => (
-          <div key={t.label} className="x-utile">
-            <span className="x-ulab">{t.label}</span>
-            <span className="x-uval">
-              {"scales" in t
-                ? Math.round(RUNS_THIS_MONTH * agentShare[agent]).toLocaleString("en-US")
-                : t.value}
-              <small>{t.unit}</small>
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="x-uc2">
-        <div className="x-ucard">
-          <div className="x-uch">
-            <span className="x-ulab">Helper breakdown</span>
-          </div>
-          <p className="x-legend">
-            <span>
-              <i className="x-l1"></i>This month
-            </span>
-            <span>
-              <i className="x-l3"></i>Last month
-            </span>
-          </p>
-          <div className="x-ec x-ec--radar">
-            <RadarChart axes={agentAxes} label={radarLabel} />
-          </div>
-        </div>
-        <div className="x-ucard">
-          <div className="x-uch">
-            <span className="x-ulab">Runs over time</span>
+      {/* v2 stat row (Leye's record page): grey label over value, no boxes, no filler tiles */}
+      <dl className="v2-stats">
+        {usageTiles
+          /* plan usage only: "Money recovered" lives in the chart card below, "Last updated" was filler */
+          .filter((t) => t.label === "Runs this month" || t.label === "Computer hours")
+          .map((t) => (
+            <div key={t.label}>
+              <dt>{t.label}</dt>
+              <dd>
+                {"scales" in t
+                  ? Math.round(RUNS_THIS_MONTH * agentShare[agent]).toLocaleString("en-US")
+                  : t.value}
+                <small>{t.unit}</small>
+              </dd>
+              {t.label === "Runs this month" && (
+                <TickMeter
+                  value={Math.round(RUNS_THIS_MONTH * agentShare[agent])}
+                  max={2000}
+                  label="Runs used of the 2,000 in the plan"
+                />
+              )}
+              {t.label === "Computer hours" && (
+                <TickMeter value={Number(t.value)} max={500} label="Computer hours used of 500" />
+              )}
+            </div>
+          ))}
+      </dl>
+      <div className="x-uc2 v2-grid1">
+        <ChartCard
+          title="Money collected"
+          sub="Money back from shops, with the runs it took"
+          stats={[
+            { label: "Collected", value: naira(totalRecovered), note: range },
+          ]}
+          filename={`money-collected-${range}`}
+          legend={[
+            { label: "Collected", tone: "s1" },
+            { label: "Runs", tone: "s2" },
+          ]}
+          control={
             <Segmented
               label="Range"
               value={range}
               onChange={setRange}
               segments={usageRanges.map((r) => ({ value: r, label: r }))}
             />
-          </div>
-          <p className="x-legend">
-            <span>
-              <i className="x-l1"></i>Runs
-            </span>
-            <span>
-              <i className="x-l2"></i>Money recovered
-            </span>
-          </p>
-          <div className="x-ec">
-            <LineChart
-              label={`Runs over ${range}: ${totalRuns.toLocaleString("en-US")} in total, rising across the range, with ${naira(totalRecovered)} recovered`}
-              points={series.map((p) => ({
-                label: p.label,
-                primary: p.runs,
-                secondary: p.recovered,
-                title: `${p.label}: ${p.runs.toLocaleString("en-US")} runs, ${naira(p.recovered)} recovered`,
-              }))}
-            />
-          </div>
-        </div>
+          }
+          table={{
+            columns: ["Period", "Collected (₦)", "Runs"],
+            align: ["left", "right", "right"],
+            rows: series.map((p) => [
+              p.label,
+              p.recovered.toLocaleString("en-US"),
+              p.runs.toLocaleString("en-US"),
+            ]),
+          }}
+        >
+          <LineChart
+            area={false}
+            format={(v) => (v === 0 ? "0" : nairaShort(v))}
+            label={`Money collected over ${range}: ${naira(totalRecovered)} in total, with ${totalRuns.toLocaleString("en-US")} runs`}
+            points={series.map((p) => ({
+              label: p.label,
+              primary: p.recovered,
+              secondary: p.runs,
+              title: `${p.label}: ${naira(p.recovered)} collected, ${p.runs.toLocaleString("en-US")} runs`,
+            }))}
+          />
+        </ChartCard>
       </div>
       <UsageShopsTable agent={agent} />
     </>

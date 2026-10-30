@@ -224,7 +224,11 @@ export type TableCell =
   | { entity: Entity; href?: string }
   | { score: number }
   | { money: number; tone?: StatTone }
-  | { link: string; href?: string; docId?: string };
+  | { link: string; href?: string; docId?: string }
+  /** v2: a status pill (icon + tint), e.g. Overdue · 33 days. */
+  | { status: CellStatus; text?: string };
+/** Status keys a table cell can show (matches ui/StatusPill). */
+export type CellStatus = "paid" | "verified" | "partial" | "overdue" | "failed" | "fake" | "awaiting" | "queued" | "upcoming" | "self" | "sent" | "skipped" | "running";
 export type TableColumn = { label: string; align?: "left" | "right" };
 
 export type DeliverableType = "Sheet" | "Doc" | "PDF";

@@ -32,7 +32,19 @@ const niceMax = (v: number): number => {
  * Two lines over time as plain SVG: the primary series on the left axis with a soft area, the
  * secondary on its own hidden scale. Each point has a hover column with a native tooltip.
  */
-export function LineChart({ points, label }: { points: readonly Point[]; label: string }) {
+export function LineChart({
+  points,
+  label,
+  format = (v: number) => Math.round(v).toLocaleString("en-US"),
+  area = true,
+}: {
+  points: readonly Point[];
+  label: string;
+  /** Y-axis tick text (v2 chart cards pass a short naira format). */
+  format?: (v: number) => string;
+  /** The soft fill under the primary line (v2 cards turn it off: thin lines only). */
+  area?: boolean;
+}) {
   const n = points.length;
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
@@ -57,7 +69,7 @@ export function LineChart({ points, label }: { points: readonly Point[]; label: 
           <g key={i}>
             <line className="x-grid" x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} />
             <text x={PAD.left - 8} y={y + 4} textAnchor="end">
-              {Math.round(v).toLocaleString("en-US")}
+              {format(v)}
             </text>
           </g>
         );
@@ -74,7 +86,7 @@ export function LineChart({ points, label }: { points: readonly Point[]; label: 
           </text>
         ) : null,
       )}
-      <path className="x-area" d={`${line} L${x(n - 1)},${base} L${x(0)},${base} Z`} />
+      {area && <path className="x-area" d={`${line} L${x(n - 1)},${base} L${x(0)},${base} Z`} />}
       <path className="x-s1 x-line" d={line} />
       <path className="x-s2 x-line" d={smoothPath(secondary)} />
       {points.map((p, i) => (
