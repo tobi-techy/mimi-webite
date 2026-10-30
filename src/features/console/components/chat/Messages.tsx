@@ -634,7 +634,7 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
     }
     if (m.kind === "event") {
       items.push(
-        <p key={m.id} className={cx("mc-ev", isFreshAt(m.at) && "mc-in")} role="note">
+        <p key={m.id} className={cx("mc-ev", m.tone === "stop" && "mc-ev--stop", isFreshAt(m.at) && "mc-in")} role={m.tone === "stop" ? "status" : "note"}>
           {m.text}
         </p>,
       );

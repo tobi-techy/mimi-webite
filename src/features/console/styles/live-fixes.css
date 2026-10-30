@@ -1,0 +1,44 @@
+/* =====================================================================================
+ * Live demo fixes (30 Oct 2026, after the distributor test). Inside the locked Factory skin:
+ * hairlines, no shadows, orange only for status and marks. Imported last.
+ * ===================================================================================== */
+
+/* ---------- the demo allowance is used up ---------- */
+/* the note under the refused bubble: a stop, still quiet (hairline box, ink text, orange mark) */
+.mc-tv .mc-ev.mc-ev--stop {
+  justify-self: center; width: fit-content; max-width: min(100%, 420px); margin: 10px auto 14px; padding: 8px 12px;
+  border: 1px solid var(--rf-hair, var(--hair)); border-radius: var(--radius-sm, 3px);
+  color: var(--ink); font-size: 12.5px; line-height: 18px; text-align: center; text-wrap: pretty;
+}
+.mc-ev--stop::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 8px 1px 0; border-radius: 50%;
+  background: var(--color-signal-orange, #ef6f2e); vertical-align: middle;
+}
+/* the shut composer says why, in plain words, above the pill */
+.mc-cmp .mc-steer.mc-cap {
+  max-width: calc(100% - 24px); white-space: normal; text-align: center; text-transform: none; line-height: 15px;
+  font: 400 12px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif; color: var(--soft); padding: 6px 10px;
+}
+.mc-cmp.is-shut .mc-pill { opacity: .55; }
+.mc-cmp.is-shut textarea { cursor: not-allowed; }
+.mc-cmp.is-shut button:disabled { cursor: not-allowed; }
+
+/* ---------- roster ---------- */
+/* new lines since the owner last opened a helper: a neutral count (orange stays for what needs you) */
+.mc-badge.mc-ro__k--new { background: var(--ink); color: var(--bg); }
+/* a neutral skeleton while the live demo loads: never the sample previews */
+.mc-ro--skel { pointer-events: none; }
+.mc-ro--skel .mc-skel--face, .mc-pin--skel .mc-skel--face { flex: none; width: 38px; height: 38px; border-radius: 50%; }
+.mc-pin--skel { display: grid; place-items: center; width: 44px; height: 44px; }
+.mc-pin--skel .mc-skel--face { width: 32px; height: 32px; }
+.mc-ro--skel .mc-ro__tx { gap: 7px; }
+.mc-skel--l1 { width: 46%; height: 11px; }
+.mc-skel--l2 { width: 78%; height: 10px; }
+
+/* ---------- the owner row at the bottom of the sidebar ---------- */
+/* the name and the business fit (they ellipsis only when truly too long; the full text is the tooltip) */
+.mc-side__full > .mc-me { gap: 0; }
+.mc-me .mc-ini { margin-right: 8px; }
+.mc-me__tx { display: flex; flex-direction: column; min-width: 0; line-height: 16px; }
+.mc-me__nm, .mc-me__tx small { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mc-me > .mc-ib { width: 28px; height: 28px; flex: none; }

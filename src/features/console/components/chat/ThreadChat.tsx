@@ -10,7 +10,8 @@ import { MemorySheet, StepsSheet, TaskSheet, taskWord } from "@/features/console
 import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
-import { useLive } from "@/features/console/api/live-store";
+import { markViewed, setFocus, useLive } from "@/features/console/api/live-store";
+import { helperExchange } from "@/features/console/lib/helper-activity";
 import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
 import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -30,7 +31,7 @@ import {
   stopDemo,
   togglePanel,
 } from "@/features/console/demo/engine";
-import { dayLabel, helperSections, rosterRow } from "@/features/console/demo/roster";
+import { dayLabel, helperSections, rosterNames, rosterRow, type RosterName } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
 import type { Conversation, Speaker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
@@ -103,8 +104,11 @@ function TaskSection({
   typing,
   onTask,
   quiet,
+  focus,
 }: {
   c: Conversation;
+  /** Live demo: show only this helper's side of the shared thread (her answers and the asks before them). */
+  focus?: RosterName;
   open: boolean;
   /** Mimi's conversation: a task that waits on you reads "Waiting", no orange mark (the header carries the one count). */
   quiet?: boolean;
@@ -114,7 +118,8 @@ function TaskSection({
   onTask: (slug: string) => void;
 }) {
   const label = labelOf(c);
-  const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
+  const all = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
+  const rest = focus ? helperExchange(all, focus) : all;
   const by = updatedBy(c);
   const st = taskState(c);
   const word = quiet && st === "needs" ? taskStateLabel.waiting : taskWord(c);
@@ -134,7 +139,7 @@ function TaskSection({
       </button>
       {rest.length === 0 && !typing ? (
         open ? (
-          <EmptyThread helper={c.helper} />
+          focus ? <EmptyThread helper={focus}>Nothing from {focus} yet. Ask Mimi below and she hands it over.</EmptyThread> : <EmptyThread helper={c.helper} />
         ) : null
       ) : (
         <MessageFeed slug={c.slug} messages={rest} typing={typing} />
@@ -144,7 +149,7 @@ function TaskSection({
 }
 
 /** A helper's one conversation: iMessage-style feed of her tasks in the Factory skin, docked composer (on the open task), workspace panel. */
-export function ThreadChat({ slug }: { slug: string }) {
+export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: RosterName }) {
   const conv = useDemo((s) => findConversation(s, slug));
   const typing = useDemo((s) => (s.typing?.slug === slug ? s.typing.who : null));
   const typingAny = useDemo((s) => s.typing);
@@ -168,6 +173,19 @@ export function ThreadChat({ slug }: { slug: string }) {
     setActiveThread(slug);
     return () => setActiveThread(undefined);
   }, [slug]);
+
+  /* live demo: one helper's side of the shared thread (her sidebar row was tapped) */
+  const focus = focusIn && conv?.api && conv.helper !== focusIn ? focusIn : undefined;
+  useEffect(() => {
+    setFocus(focus ?? null);
+    return () => setFocus(null);
+  }, [focus]);
+  /* what is on screen counts as read: that helper's side, or the whole shared thread */
+  const msgCount = conv?.messages.length ?? 0;
+  useEffect(() => {
+    if (!conv?.api) return;
+    markViewed(focus ? [focus] : rosterNames);
+  }, [conv?.api, focus, msgCount]);
 
   /* keep the newest message in view, also while a reply streams in or chips appear (unless the owner scrolled up) */
   /* the whole conversation (every task of this helper) */
@@ -314,7 +332,9 @@ export function ThreadChat({ slug }: { slug: string }) {
     );
   }
 
-  const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
+  /* who the header shows: the thread's helper, or the helper whose side is open */
+  const who = focus ?? conv.helper;
+  const job = who === "Mimi" ? "Your whole team" : helperJobs[who];
   /* Grok Bot reading: the header carries what the helper is doing in one line ("Checking Ikeja payments…"),
      taken from the live work line the thread no longer shows */
   const live = consoleThread.showWork ? null : liveWork(conv.messages);
@@ -355,7 +375,7 @@ export function ThreadChat({ slug }: { slug: string }) {
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
       <section
         className="mc-thread"
-        aria-label={`${conv.helper}: conversation`}
+        aria-label={focus ? `${focus}: her answers in your thread with Mimi` : `${conv.helper}: conversation`}
         /* helper threads take the helper's colour on your bubbles and the send button (helpers-v6.css) */
         data-helper={conv.helper === "Mimi" ? undefined : conv.helper.toLowerCase()}
       >
@@ -381,12 +401,12 @@ export function ThreadChat({ slug }: { slug: string }) {
                 className="mc-tt__b"
                 aria-haspopup="menu"
                 aria-expanded={menu}
-                title={`${conv.helper} · ${job}`}
+                title={`${who} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <span className={cx("mc-tt__chip", conv.helper === "Mimi" && "is-mimi", (live || writing || face.state === "working") && "is-working")}>
+                <span className={cx("mc-tt__chip", who === "Mimi" && "is-mimi", (live || writing || face.state === "working") && "is-working")}>
                   <HelperFace
-                    name={conv.helper}
+                    name={who}
                     size={60}
                     state={live || writing ? "working" : tstate === "stuck" ? "blocked" : tstate === "needs" ? "waiting" : isMimi && face.state === "waiting" ? "idle" : face.state}
                     dot={!isMimi && (face.needs > 0 || tstate === "needs")}
@@ -394,8 +414,8 @@ export function ThreadChat({ slug }: { slug: string }) {
                     quiet
                   />
                 </span>
-                <span className={cx("mc-tt__nm", conv.helper === "Mimi" && "is-mimi")}>
-                  <span className="mc-tt__t">{conv.helper}</span>
+                <span className={cx("mc-tt__nm", who === "Mimi" && "is-mimi")}>
+                  <span className="mc-tt__t">{who}</span>
                   <Icon name="chevron-right" className="i mc-tt__c" />
                 </span>
               </button>
@@ -418,9 +438,15 @@ export function ThreadChat({ slug }: { slug: string }) {
             <div className="mc-menu mc-menu--l" role="menu">
               {/* the role moved here from the header status line */}
               <p className="mc-menu__job">{job}</p>
-              <Link role="menuitem" href={helperHref(conv.helper)} onClick={() => setMenu(false)}>
+              {focus && (
+                <Link role="menuitem" href={consoleRoutes.home} onClick={() => setMenu(false)}>
+                  <Icon name="message-square" />
+                  Whole thread with Mimi
+                </Link>
+              )}
+              <Link role="menuitem" href={helperHref(who)} onClick={() => setMenu(false)}>
                 <Icon name="users" />
-                About {conv.helper}
+                About {who}
               </Link>
               <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "steps" }))}>
                 <Icon name="list-checks" />
@@ -547,8 +573,8 @@ export function ThreadChat({ slug }: { slug: string }) {
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
-            {conv.helper === "Mimi" && <GettingStarted />}
-            {conv.helper === "Mimi" && <LiveDemoNote />}
+            {conv.helper === "Mimi" && !focus && <GettingStarted />}
+            {conv.helper === "Mimi" && !focus && <LiveDemoNote />}
             {sections.map((c, i) => (
               <TaskSection
                 key={c.slug}
@@ -558,6 +584,7 @@ export function ThreadChat({ slug }: { slug: string }) {
                 typing={typingAny?.slug === c.slug ? typingAny.who : null}
                 onTask={(t) => setQuiet({ kind: "task", slug: t })}
                 quiet={conv.helper === "Mimi"}
+                focus={focus}
               />
             ))}
             <Replies slug={slug} />

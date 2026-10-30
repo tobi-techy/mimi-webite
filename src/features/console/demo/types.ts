@@ -139,7 +139,7 @@ export type Message =
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }
   /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
-  | { id: string; kind: "event"; text: string; at: number }
+  | { id: string; kind: "event"; text: string; at: number; /** A send the API refused (the demo allowance): reads as a stop, not a quiet aside. */ tone?: "stop" }
   /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
   | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
   /**
@@ -292,7 +292,15 @@ export const reactableKinds = ["text", "proof", "photos", "poll", "voice", "card
 export type ReactableMessage = Extract<Message, { kind: (typeof reactableKinds)[number] }>;
 
 /** A reply chip: tapping it types `text` (or the label) into the composer, sends it and runs `step`. */
-export type Reply = { label: string; text?: string; step: string };
+export type Reply = {
+  label: string;
+  text?: string;
+  step: string;
+  /** Live demo (handoffs contract): the helper a chip's ask goes to (`assign_to`). */
+  assign?: string;
+  /** Live demo: a chip that opens a page instead of asking (`shop:<id>`, `order:<id>`, `approvals`). */
+  open?: string;
+};
 
 export type Conversation = {
   slug: string;
