@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Burger } from "@/features/marketing/components/nav/Burger";
 import { NavFrame } from "@/features/marketing/components/nav/NavFrame";
+import { MenuLink } from "@/features/marketing/components/nav/MenuLink";
 import { NavLink } from "@/features/marketing/components/nav/NavLink";
 import { primaryNav, secondaryNav, pilotHref } from "@/features/marketing/content/nav";
 import { Logo } from "@/components/ui/Logo";
@@ -31,21 +32,17 @@ export function Nav() {
         </div>
       </div>
       <div className="x-mmenu" id="mmenu">
-        <div className="x-wrap">
+        <nav className="x-wrap x-mmenu__in" aria-label="Menu">
           {primaryNav.map((l, i) => (
-            <Link key={l.href} className="x-ml" href={l.href}>
-              {l.label} <span className="x-label">{String(i + 1).padStart(2, "0")}</span>
-            </Link>
+            <MenuLink key={l.href} link={l} index={i} />
           ))}
           {secondaryNav.map((l) => (
-            <Link key={l.href} className="x-ml" href={l.href}>
-              {l.label}
-            </Link>
+            <MenuLink key={l.href} link={l} />
           ))}
           <Link className="x-btn x-btn--o" href={pilotHref}>
             Book a pilot
           </Link>
-        </div>
+        </nav>
       </div>
     </NavFrame>
   );
