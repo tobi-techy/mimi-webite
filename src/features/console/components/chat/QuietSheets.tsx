@@ -35,6 +35,7 @@ function Sheet({
   label,
   title,
   sub,
+  status,
   onClose,
   children,
 }: {

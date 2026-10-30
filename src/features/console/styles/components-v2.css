@@ -261,3 +261,12 @@ button.v2-wf__h:hover { color: var(--v2-t1); }
 .v2-ticks { gap: 3px; height: 14px; max-width: 180px; }
 .v2-drawer .x-dh .x-ib { width: 32px; height: 32px; border: 0; border-radius: var(--v2-r-full); background: var(--v2-fill); color: var(--v2-t2); box-shadow: none; }
 .v2-drawer .x-dh .x-ib:hover { background: var(--v2-fill-2); color: var(--v2-t1); }
+
+/* Shop record actions: v2 secondary buttons (soft fill, no border), primary stays ink */
+.v2-rec__acts .x-btn { height: 36px; padding: 0 14px; border: 0 !important; border-radius: var(--v2-r-xs); background: var(--v2-fill-2); color: var(--v2-t1); box-shadow: none !important; font: 500 14px/1 var(--font-geist-sans), system-ui, sans-serif; }
+.v2-rec__acts .x-btn:hover { background: color-mix(in srgb, var(--v2-t1) 14%, transparent); }
+.v2-rec__acts .x-btn--primary { background: var(--pri-bg); color: var(--pri-fg); }
+.v2-rec__acts .x-btn--sm { height: 36px; min-width: 36px; padding: 0 12px; }
+@media (max-width: 899px) { .v2-rec__acts .x-btn, .v2-rec__acts .x-btn--sm { height: 44px; } }
+/* the close gets focus when the record opens; show that as a fill, not a ring */
+.v2-drawer .x-dh .x-ib:focus-visible { outline: none; box-shadow: none; background: var(--v2-fill-2); color: var(--v2-t1); }
