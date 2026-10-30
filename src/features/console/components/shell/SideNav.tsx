@@ -139,7 +139,7 @@ function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
         <span className="mc-ro__l1">
           <span className="mc-ro__n">{r.name}</span>
           <span className="mc-ro__ago">{r.state === "working" ? "now" : r.ago}</span>
-          <span className="mc-ro__cost">{nairaShort(r.costToday)} today</span>
+          {r.costToday > 0 && <span className="mc-ro__cost">{nairaShort(r.costToday)} today</span>}
         </span>
         <span className="mc-ro__l2">
           <span className="mc-ro__pv">{r.preview}</span>

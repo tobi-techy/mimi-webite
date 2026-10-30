@@ -161,7 +161,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   /* demo build, API thread: photos, voice notes and invoices go to Mimi for real */
   const live = isApiThread(slug);
   /* the demo's allowance is used up (or the demo is paused): the API refuses new turns, so the composer shuts and says why */
-  const capRaw = useLive((s) => s.cap);
+  const capRaw = useLive((s) => (s.status === "ready" ? s.cap : null));
   const cap = live ? capRaw : null;
 
   /* a recording never outlives the composer */
@@ -327,7 +327,8 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
     <div className={cx("mc-cmp", cap && "is-shut")} ref={wrap}>
       {cap && (
         <p className="mc-steer mc-cap" role="status" id={`cap-${slug}`}>
-          {cap.text}
+          {/* the note in the thread says it in full; here only what shut the composer */}
+          {cap.text.replace(/\s*You can still look around\.?$/, "")}
         </p>
       )}
       {live &&
@@ -478,7 +479,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
             disabled={!!cap}
             aria-describedby={cap ? `cap-${slug}` : undefined}
             aria-label={`Message ${helper}`}
-            placeholder={cap ? "Resets at midnight, Lagos time" : `Message ${helper}`}
+            placeholder={cap ? "You can still look around" : `Message ${helper}`}
             aria-autocomplete="list"
             aria-controls={ac ? `ac-${slug}` : undefined}
             onChange={(e) => {
