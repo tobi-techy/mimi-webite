@@ -38,7 +38,7 @@ export function ThreadIndex() {
         {list.map((c, i) => (
           <li key={c.slug}>
             <Link href={conversationHref(c)} className="mc-hl__r">
-              <HelperFace name={c.helper} size={24} state={threadFaceState(c)} quiet stagger={i} />
+              <HelperFace name={c.helper} size={32} state={threadFaceState(c)} quiet stagger={i} />
               <span className="mc-hl__tx">
                 {c.title}
                 <small>
