@@ -13,6 +13,7 @@ import { FileChip, UploadLine, useApiBlob, useVoicePlayer } from "@/features/con
 import { Inline, plainInline } from "@/features/console/components/chat/answer/Inline";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { StatusPill, StatusText } from "@/features/console/components/ui/StatusPill";
+import { WithBank } from "@/features/console/components/ui/BankLogo";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo } from "@/features/console/demo/store";
@@ -151,7 +152,9 @@ function ProofCard({ m }: { m: Extract<Message, { kind: "proof" }> }) {
   return (
     <div className={cx("mc-pv", m.verdict === "fake" && "mc-pv--fake")}>
       <div className="mc-pv__top">
-        <b>{m.title}</b>
+        <b>
+          <WithBank text={m.title} size={20} />
+        </b>
         <span className="mc-mono">{m.meta}</span>
         <div className="mc-pv__amt">{naira(m.amount)}</div>
         <span className="mc-pv__stamp">{m.stamp}</span>
@@ -430,7 +433,9 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
             return (
               <div key={r.label}>
                 <dt>
-                  <span>{r.label}</span>
+                  <span>
+                    <WithBank text={r.label} />
+                  </span>
                   {side}
                 </dt>
                 <dd>

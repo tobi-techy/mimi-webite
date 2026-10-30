@@ -13,7 +13,7 @@ export type ShopAvatarSize = 20 | 28 | 32 | 48;
 const PALETTES = [
   ["#b4c2a6", "#5f8058", "#f2ede3", "#3f5a40"],
   ["#dcbcaa", "#a35a4a", "#f4ece2", "#713f35"],
-  ["#aebcc8", "#4f6a80", "#f1eee8", "#36485c"],
+  ["#c9c2a8", "#78704c", "#f4f0e4", "#514b31"], // was slate blue; olive since round 3 (no blue in the console)
   ["#dcc896", "#94782e", "#f5efe0", "#64521f"],
   ["#c7b2bc", "#79546a", "#f3ede9", "#553c4b"],
   ["#a3c0b9", "#3f7068", "#f1ede6", "#2c504a"],

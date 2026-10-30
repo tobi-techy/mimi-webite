@@ -332,26 +332,16 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 }
 
 /* ---------- 7. bubble colours (Tobi, 29-30 Oct 2026) ----------
- * Mimi's thread: your bubbles and Mimi's reply bubbles share one orange-red fill, --mimi-bubble
- * #d4380d, with white text (4.80:1), the same in light and dark. #ee6018 stays for small marks only
- * (the dot in Mimi's name chip and the "N waiting" dot); it is never a fill.
- * A helper's own thread: your bubbles (and the send / voice-send buttons, section 10) take THAT
- * helper's colour, the hue of her dot and face (purple for Credit), as before 29 Oct. The face
- * tokens (helpers-v6.css) are too light for white text, so the bubble uses a darker shade of the
- * same hue, one per helper for both themes; every one clears 4.5:1 with white:
- *   Order #986b09 4.73 · Collector #136cf3 4.70 · Credit #874ff5 4.70 · Stock #258446 4.70
- *   Brand #e00e6b 4.72 · Proof #108176 4.75
- * The dot and face keep their bright tokens. Helpers' reply bubbles stay the neutral grey.
+ * Your bubbles and Mimi's reply bubbles share one orange-red fill, --mimi-bubble #d4380d, with white
+ * text (4.80:1), the same in light and dark and in EVERY thread: Mimi's, a helper's own thread, and
+ * the task sheet (round 3, 30 Oct: helper threads no longer paint your bubbles in the helper's blue,
+ * purple or green). #ee6018 stays for small marks only (the dot in Mimi's name chip and the
+ * "N waiting" dot); it is never a fill. Helpers keep their colour on their face and dot only, and
+ * their reply bubbles stay the neutral grey.
  * Links, selection, typing dots and reaction badges inside a coloured bubble switch to white. */
 .mc-app { --mimi-bubble: #d4380d; --mimi-ink: #ffffff; --mimi-mark: var(--color-signal-orange); }
 .mc-app, html[data-theme="dark"] .mc-app { --msg-me-bg: var(--mimi-bubble); --msg-me-color: var(--mimi-ink); }
-.mc-app .mc-thread[data-helper="order"] { --helper-bubble: #986b09; }
-.mc-app .mc-thread[data-helper="collector"] { --helper-bubble: #136cf3; }
-.mc-app .mc-thread[data-helper="credit"] { --helper-bubble: #874ff5; }
-.mc-app .mc-thread[data-helper="stock"] { --helper-bubble: #258446; }
-.mc-app .mc-thread[data-helper="brand"] { --helper-bubble: #e00e6b; }
-.mc-app .mc-thread[data-helper="proof"] { --helper-bubble: #108176; }
-.mc-app .mc-thread[data-helper] { --msg-me-bg: var(--helper-bubble, var(--mimi-bubble)); --msg-me-color: var(--mimi-ink); }
+.mc-app .mc-thread[data-helper], .mc-app .mc-qsh { --msg-me-bg: var(--mimi-bubble); --msg-me-color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"], .mc-rxl__lift[data-from="Mimi"] { --msg-them-bg: var(--mimi-bubble); --msg-them-color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"] .mc-b--them, .mc-thread .mc-r--me .mc-b { --msg-color: var(--mimi-ink); }
 /* text inside a coloured bubble (Mimi's, or yours in any thread) */
@@ -466,8 +456,8 @@ html:not([data-theme="dark"]) .mc-app { --mc-float-bg: #ebe9e7; } /* light: a fi
 .mc-pill:focus-within { outline: 1px solid var(--muted); outline-offset: 0; }
 .mc-pill.is-rec { outline: 1px solid var(--color-signal-orange); }
 .mc-mic { border-radius: 50%; }
-/* send and voice-send: the same fill as your bubbles (Mimi orange-red in her thread, the helper's bubble
- * shade in hers, section 7); disabled is a neutral fill, not a faded colour */
+/* send and voice-send: the same fill as your bubbles (Mimi orange-red in every thread, section 7);
+ * disabled is a neutral fill, not a faded colour */
 .mc-snd, .mc-rec__s { border-radius: 50%; background: var(--msg-me-bg); color: var(--msg-me-color); }
 .mc-snd:disabled { opacity: 1; background: var(--tint2); color: var(--muted); }
 

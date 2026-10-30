@@ -221,6 +221,7 @@ export const providus: Connector = {
   description: "Read statements and match shop transfers",
   category: "Payments",
   connected: false,
+  logo: "/console/banks/providus.png",
 };
 
 /** Category order for the Connected tools grid. */

@@ -16,7 +16,8 @@ export type LiveShopExtra = {
   disputes?: string[];
 };
 
-export type ShopPayment = { date: string; amount: number; verified: boolean };
+/** `via` is how it came in ("GTBank transfer", "Moniepoint POS"): where it landed when verified, where the shop says it sent from when self-reported. The API has no bank yet. */
+export type ShopPayment = { date: string; amount: number; verified: boolean; via?: string };
 
 export type Shop = {
   id: string;
@@ -80,7 +81,7 @@ const rows: Row[] = [
     "w",
     1240000,
     9,
-    "Oct 2:150000:v|Sep 22:210000:v|Sep 15:40000:s",
+    "Oct 2:150000:v:GTBank transfer|Sep 22:210000:v:GTBank transfer|Sep 15:40000:s:OPay transfer",
   ],
   [
     "alhaji-musa-and-sons",
@@ -96,7 +97,7 @@ const rows: Row[] = [
     "o",
     1610000,
     16,
-    "Sep 24:180000:v|Sep 9:95000:s|Aug 28:220000:v",
+    "Sep 24:180000:v:GTBank transfer|Sep 9:95000:s:UBA transfer|Aug 28:220000:v:GTBank transfer",
   ],
   [
     "blessing-supermart",
@@ -112,7 +113,7 @@ const rows: Row[] = [
     "w",
     980000,
     11,
-    "Sep 29:120000:v|Sep 17:80000:v|Sep 6:60000:s",
+    "Sep 29:120000:v:Moniepoint POS|Sep 17:80000:v:GTBank transfer|Sep 6:60000:s:OPay transfer",
   ],
   [
     "iya-tunde-stores",
@@ -144,7 +145,7 @@ const rows: Row[] = [
     "o",
     720000,
     18,
-    "Sep 18:90000:s|Sep 1:150000:v|Aug 20:75000:v",
+    "Sep 18:90000:s:OPay transfer|Sep 1:150000:v:GTBank transfer|Aug 20:75000:v:GTBank transfer",
   ],
   [
     "grace-cosmetics",
@@ -176,7 +177,7 @@ const rows: Row[] = [
     "g",
     940000,
     7,
-    "Oct 11:110000:v|Oct 3:95000:v|Sep 24:130000:v",
+    "Oct 11:110000:v:GTBank transfer|Oct 3:95000:v:Moniepoint POS|Sep 24:130000:v:GTBank transfer",
   ],
   [
     "mama-bisi-provisions",
@@ -192,7 +193,7 @@ const rows: Row[] = [
     "g",
     690000,
     8,
-    "Oct 10:70000:v|Oct 1:85000:s|Sep 21:90000:v",
+    "Oct 10:70000:v:Moniepoint POS|Oct 1:85000:s:UBA transfer|Sep 21:90000:v:GTBank transfer",
   ],
   [
     "sule-and-co-wholesale",
@@ -208,7 +209,7 @@ const rows: Row[] = [
     "w",
     2080000,
     12,
-    "Oct 1:300000:v|Sep 18:250000:v|Sep 4:180000:s",
+    "Oct 1:300000:v:GTBank transfer|Sep 18:250000:v:GTBank transfer|Sep 4:180000:s:OPay transfer",
   ],
   [
     "kola-mart",
@@ -224,7 +225,7 @@ const rows: Row[] = [
     "g",
     1380000,
     5,
-    "Oct 12:240000:v|Oct 5:210000:v|Sep 28:190000:v",
+    "Oct 12:240000:v:GTBank transfer|Oct 5:210000:v:Moniepoint POS|Sep 28:190000:v:GTBank transfer",
   ],
   [
     "ifeoma-enterprises",
@@ -240,7 +241,7 @@ const rows: Row[] = [
     "w",
     760000,
     10,
-    "Oct 6:90000:v|Sep 25:60000:s|Sep 14:110000:v",
+    "Oct 6:90000:v:GTBank transfer|Sep 25:60000:s:UBA transfer|Sep 14:110000:v:Moniepoint POS",
   ],
   [
     "joy-provisions",
@@ -256,7 +257,7 @@ const rows: Row[] = [
     "o",
     530000,
     19,
-    "Sep 20:60000:s|Sep 2:85000:v|Aug 19:70000:v",
+    "Sep 20:60000:s:Moniepoint POS|Sep 2:85000:v:GTBank transfer|Aug 19:70000:v:GTBank transfer",
   ],
 ];
 
@@ -291,8 +292,8 @@ export const shops: readonly Shop[] = rows.map(
     salesThisWeek,
     avgDaysToPay,
     payments: pay.split("|").map((p) => {
-      const [date = "", amount = "0", v = "s"] = p.split(":");
-      return { date, amount: Number(amount), verified: v === "v" };
+      const [date = "", amount = "0", v = "s", via] = p.split(":");
+      return { date, amount: Number(amount), verified: v === "v", via };
     }),
   }),
 );

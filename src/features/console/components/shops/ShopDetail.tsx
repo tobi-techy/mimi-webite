@@ -16,6 +16,7 @@ import {
 } from "@/features/console/content/shops";
 import { naira, nairaShort } from "@/features/console/lib/format";
 import { ButtonLink } from "@/features/console/components/ui/Button";
+import { BankLogo } from "@/features/console/components/ui/BankLogo";
 
 const TITLE_ID = "shop-title";
 const STANDING: Record<ShopStatus, Status> = { g: "paid", w: "partial", o: "overdue" };
@@ -23,7 +24,8 @@ const STANDING: Record<ShopStatus, Status> = { g: "paid", w: "partial", o: "over
 /**
  * Shop record, round 2: leads with the one answer (what the shop owes and how it stands), then two
  * supporting figures, two equal actions, payments as two-line rows (date over proof, amount on the
- * right edge, no table header), the top three best sellers, and the details column.
+ * right edge, no table header), the top three best sellers, and the details column. Round 3: each
+ * payment leads with the bank's logo tile and name (where it landed, or where the shop says it sent from).
  */
 export function ShopDetail({ shop }: { shop: Shop }) {
   if (shop.live) return <LiveShopDetail shop={shop} live={shop.live} />;
@@ -84,17 +86,32 @@ export function ShopDetail({ shop }: { shop: Shop }) {
               <span className="v2-num">{naira(paid)}</span>
             </header>
             <ul className="v2-rows">
-              {shop.payments.map((p) => (
-                <li key={p.date + p.amount}>
-                  <span className="v2-rows__l">
-                    <span>{p.date}</span>
-                    <StatusText status={p.verified ? "verified" : "self"}>
-                      {p.verified ? "Bank verified" : "Self-reported"}
-                    </StatusText>
-                  </span>
-                  <span className="v2-rows__r v2-num">{naira(p.amount)}</span>
-                </li>
-              ))}
+              {shop.payments.map((p) => {
+                const proof = (
+                  <StatusText status={p.verified ? "verified" : "self"}>{p.verified ? "Bank verified" : "Self-reported"}</StatusText>
+                );
+                return (
+                  <li key={p.date + p.amount} className={p.via ? "v2-rows--bank" : undefined}>
+                    {p.via && <BankLogo bank={p.via} size={24} />}
+                    <span className="v2-rows__l">
+                      {p.via ? (
+                        <>
+                          <span>{p.via}</span>
+                          <span className="v2-rows__sub">
+                            {p.date} · {proof}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{p.date}</span>
+                          {proof}
+                        </>
+                      )}
+                    </span>
+                    <span className="v2-rows__r v2-num">{naira(p.amount)}</span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
 

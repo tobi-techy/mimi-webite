@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BankLogo } from "@/features/console/components/ui/BankLogo";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { pauseComputer, setPanelFull, takeControl } from "@/features/console/demo/engine";
@@ -246,7 +247,7 @@ export function ComputerTab() {
           <div className="mc-pc__win mc-pc__win--web">
             <div className="mc-pc__tb mc-pc__tb--tabs" aria-hidden="true">
               <span className="mc-pc__tab is-on">
-                <span className="mc-pc__fav">GT</span>
+                <img className="mc-pc__fav mc-pc__fav--img" src="/console/banks/gtbank.svg" alt="" width={14} height={14} />
                 <span className="mc-pc__tabt">GTBank Internet Banking</span>
                 <span className="mc-pc__x">×</span>
               </span>
@@ -284,7 +285,7 @@ export function ComputerTab() {
                     <b>Account statement</b>
                     <span>Coral Lane Trading Ltd · ****4471</span>
                   </div>
-                  <span className="mc-bank__lg">GTBank</span>
+                  <BankLogo bank="GTBank" size={24} className="mc-bank__lg" />
                 </div>
                 <table>
                   <thead>
