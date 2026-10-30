@@ -38,8 +38,10 @@ export const agentAxes = [
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 const RANGE: Record<UsageRange, { points: number; step: "d" | "w" | "m" | "q"; base: number }> = {
   "7d": { points: 7, step: "d", base: 42 },
-  "1m": { points: 30, step: "d", base: 42 },
-  "6m": { points: 26, step: "w", base: 290 },
+  /* round 2: a month is five weekly totals and six months are monthly totals, so a chart never
+     carries more than 12 bars and the daily noise of collections stays out of the picture */
+  "1m": { points: 5, step: "w", base: 290 },
+  "6m": { points: 6, step: "m", base: 1180 },
   "1y": { points: 12, step: "m", base: 1180 },
   All: { points: 8, step: "q", base: 3400 },
 };
@@ -54,9 +56,9 @@ export function usageSeries(range: UsageRange, filter: AgentFilter): UsagePoint[
   return Array.from({ length: n }, (_, i) => {
     const runs = Math.max(
       1,
-      Math.round(base * k * (0.7 + (0.4 * i) / (n - 1) + 0.15 * Math.sin(i * 1.7 + n))),
+      Math.round(base * k * (0.78 + (0.3 * i) / Math.max(1, n - 1) + 0.06 * Math.sin(i * 1.7 + n))),
     );
-    const recovered = Math.round((runs * 3270 * (0.85 + 0.3 * Math.cos(i * 1.3 + n))) / 100) * 100;
+    const recovered = Math.round((runs * 3270 * (0.95 + 0.08 * Math.cos(i * 1.3 + n))) / 100) * 100;
     const back = n - 1 - i;
     let label: string;
     if (step === "d" || step === "w") {

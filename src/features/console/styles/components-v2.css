@@ -104,16 +104,17 @@ html[data-theme="dark"] {
   .v2-tc .v2-seg { display: none; }
 }
 .v2-tc__list li + li { border-top: 1px solid var(--v2-line); }
-.v2-tc__row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: start; gap: 12px; width: 100%; padding: 12px 12px 12px 16px; text-align: left; color: inherit; text-decoration: none; background: transparent; border: 0; font: inherit; cursor: pointer; transition: background-color .12s var(--mech); }
+.v2-tc__row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto 16px; align-items: start; column-gap: 12px; width: 100%; padding: 12px 16px; text-align: left; color: inherit; text-decoration: none; background: transparent; border: 0; font: inherit; cursor: pointer; transition: background-color .12s var(--mech); }
 .v2-tc__row:hover { background: var(--v2-fill); }
-.v2-tc__row > .mc-ent__shop, .v2-tc__row > .c-shop { margin-top: 1px; }
-.v2-tc__main { display: grid; gap: 6px; min-width: 0; }
-.v2-tc__l1 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; line-height: 20px; color: var(--v2-t1); }
-.v2-tc__l1 b { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.v2-tc__l2 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12.5px; color: var(--v2-t2); }
-.v2-tc__l2 > span { display: inline-flex; align-items: center; gap: 6px; }
-.v2-tc__k { color: var(--v2-t3); }
-.v2-tc__chev { width: 15px; height: 15px; color: var(--v2-t3); margin-top: 3px; }
+.v2-tc__row > .mc-ent__shop, .v2-tc__row > .c-shop { margin-top: 0; }
+/* two columns, two lines each, one shared baseline rhythm: 14/20 over 13/18 */
+.v2-tc__l, .v2-tc__r { display: grid; grid-auto-rows: auto; row-gap: 2px; min-width: 0; }
+.v2-tc__r { justify-items: end; text-align: right; }
+.v2-tc__l b { font-weight: 500; font-size: 14px; line-height: 20px; color: var(--v2-t1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tc__l small, .v2-tc__r .v2-stx { font-size: 13px; line-height: 18px; }
+.v2-tc__l small { color: var(--v2-t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-tc__r .mc-at__money { font-size: 14px; line-height: 20px; color: var(--v2-t1); }
+.v2-tc__chev { width: 16px; height: 16px; color: var(--v2-t3); margin-top: 2px; }
 .mc-tv .v2-tc { width: 100%; }
 
 /* ---------- decision card (approvals / proposals) ---------- */
@@ -270,3 +271,118 @@ button.v2-wf__h:hover { color: var(--v2-t1); }
 @media (max-width: 899px) { .v2-rec__acts .x-btn, .v2-rec__acts .x-btn--sm { height: 44px; } }
 /* the close gets focus when the record opens; show that as a fill, not a ring */
 .v2-drawer .x-dh .x-ib:focus-visible { outline: none; box-shadow: none; background: var(--v2-fill-2); color: var(--v2-t1); }
+
+/* ======================================================================================
+ * Round 2 (Tobi: "spacing isn't well done, too much on one component, clean and balanced")
+ *   one spacing scale 4 · 8 · 12 · 16 · 24; every card's inner padding is 16px, so every left
+ *   edge (title, rows, previews, buttons) sits on the same 16px line and every right edge
+ *   (amounts, notes, tools) on the same line 16px in; at most 3 type sizes per card
+ *   (15 title · 14 body · 13 secondary); secondary text is t3; status as tinted text in rows.
+ * ==================================================================================== */
+.v2-stx { font: 400 13px/18px var(--font-geist-sans), system-ui, sans-serif; white-space: nowrap; color: var(--v2-neutral-fg); }
+.v2-stx--green { color: var(--v2-green-fg); }
+.v2-stx--sand { color: var(--v2-sand-fg); }
+.v2-stx--orange { color: var(--v2-orange-fg); }
+.v2-stx--red { color: var(--v2-red-fg); }
+.v2-stx--neutral { color: var(--v2-t3); }
+
+.v2-card__h { padding: 16px 16px 12px; }
+.v2-card__h p { margin-top: 4px; }
+.v2-card__f { padding: 12px 16px; font-size: 13px; }
+.v2-tools { margin: -4px -6px 0 0; }
+
+/* decision card: no icon tile; title + one sentence; one preview; two-line rows on one right edge */
+.v2-dc__h { display: flex; grid-template-columns: none; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 12px; }
+.v2-dc__t { min-width: 0; }
+.v2-dc__t small { margin-top: 4px; }
+.v2-dc__quote { margin: 0 16px 12px; padding: 12px; font-size: 14px; line-height: 20px; }
+.v2-dc__quote p { -webkit-line-clamp: 3; }
+.v2-dc__quote .v2-dc__to { margin-bottom: 4px; font-size: 13px; line-height: 18px; }
+.v2-dc__rows > div { align-items: flex-start; min-height: 0; padding: 12px 0; }
+.v2-dc__rows dt { display: grid; gap: 2px; flex-wrap: nowrap; font-size: 14px; line-height: 20px; }
+.v2-dc__rows dd { display: grid; justify-items: end; gap: 2px; text-align: right; font-size: 14px; line-height: 20px; }
+.v2-dc__rows dd small, .v2-dc__rows .v2-stx { font-size: 13px; line-height: 18px; color: var(--v2-t3); }
+.v2-dc__rows dt .v2-stx--green { color: var(--v2-green-fg); }
+.v2-dc__rows dt .v2-stx--red { color: var(--v2-red-fg); }
+.v2-dc__rows dt .v2-stx--neutral { color: var(--v2-t3); }
+.v2-dc__note { color: var(--v2-t2); }
+.v2-dc__total dt, .v2-dc__total dd { font-weight: 500; font-size: 15px; }
+.v2-dc__f { padding: 4px 16px 16px; }
+.v2-dc__quote + .v2-dc__f { padding-top: 0; }
+.v2-dc__rows:empty { display: none; }
+
+/* shop record: one answer first, then two figures, two actions, light two-line lists */
+.v2-rec__head { gap: 4px 12px; }
+.v2-rec__head p { font-size: 13px; line-height: 18px; }
+.v2-rec__main { gap: 24px; }
+.v2-rec__lead p { margin: 0; }
+.v2-rec__k { font-size: 13px; line-height: 18px; color: var(--v2-t3); }
+.v2-rec__v { margin-top: 4px !important; font: 400 32px/40px var(--font-geist-sans), system-ui, sans-serif; letter-spacing: -0.025em; color: var(--v2-t1); }
+.v2-rec__s { margin-top: 4px !important; font-size: 13px; line-height: 18px; color: var(--v2-t3); }
+.v2-stats--rec { display: flex; gap: 16px 40px; margin: 0; }
+.v2-stats--rec > div { gap: 4px; }
+.v2-stats--rec dt { font-size: 13px; line-height: 18px; }
+.v2-stats--rec dd { font-size: 20px; line-height: 28px; }
+.v2-rec__acts { display: flex; gap: 8px; }
+.v2-sec__h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--v2-line); }
+.v2-sec__h h4 { margin: 0; font: 500 15px/20px var(--font-geist-sans), system-ui, sans-serif; letter-spacing: -0.01em; color: var(--v2-t1); text-transform: none; }
+.v2-sec__h > span { font-size: 14px; color: var(--v2-t3); }
+.v2-rows { list-style: none; margin: 0; padding: 0; }
+.v2-rows li { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--v2-line); }
+.v2-rows li:last-child { border-bottom: 0; }
+.v2-rows__l { display: grid; gap: 2px; min-width: 0; font-size: 14px; line-height: 20px; color: var(--v2-t1); }
+.v2-rows__l > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-rows__r { flex: none; font-size: 14px; line-height: 20px; color: var(--v2-t1); text-align: right; }
+.v2-rows--one .v2-rows__r { color: var(--v2-t2); }
+.v2-rec__side .v2-sec__h { margin-bottom: 4px; }
+.v2-kv > div { grid-template-columns: 112px minmax(0, 1fr); padding: 8px 0; }
+.v2-kv dt, .v2-kv dd { font-size: 14px; line-height: 20px; }
+.v2-kv > .v2-kv__why { margin-top: 8px; padding-top: 12px; }
+.v2-kv__why li { font-size: 13px; line-height: 18px; }
+@media (max-width: 899px) {
+  .v2-rec { gap: 24px; margin-top: 16px; padding-top: 16px; }
+  .v2-stats--rec { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .v2-rec__acts { display: grid; grid-template-columns: 1fr 1fr; }
+  .v2-rec__acts > * { width: 100%; justify-content: center; }
+  .v2-kv > div { display: flex; justify-content: space-between; gap: 12px; }
+  .v2-kv dd { justify-content: flex-end; text-align: right; }
+  .v2-kv > .v2-kv__why { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .v2-kv__why dd { justify-content: flex-start; text-align: left; }
+}
+
+/* chart card: one figure, one control, quiet columns */
+.v2-cc__fig { margin: 0; padding: 0 16px 12px; font: 400 24px/32px var(--font-geist-sans), system-ui, sans-serif; letter-spacing: -0.02em; color: var(--v2-t1); }
+.v2-cc__ctl { padding: 0 16px 16px; }
+.v2-cc__chart { padding: 0 16px 16px; }
+.v2-cc .x-ec { height: 180px; }
+.v2-cc .x-cols { display: block; width: 100%; height: 180px; overflow: visible; }
+.v2-cc .x-chart .x-grid { stroke: var(--v2-line); stroke-dasharray: none; }
+.v2-cc .x-chart .x-bar { fill: color-mix(in srgb, var(--v2-t3) 40%, transparent); stroke: none; transition: fill .12s var(--mech); }
+.v2-cc .x-chart .x-bar.is-now { fill: var(--v2-t1); }
+.v2-cc .x-chart .x-pt:hover .x-bar:not(.is-now) { fill: var(--v2-t3); }
+
+/* steps: plain 16px icons on the first line (no tiles), 14/20 over 13/18, time on the right edge */
+.v2-wf__h { gap: 8px; padding: 4px 0; font-size: 13px; line-height: 20px; }
+.v2-wf__i, .v2-wf__c { width: 16px; height: 16px; }
+.v2-act { margin: 8px 0 4px; }
+.v2-act li { grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; padding: 12px 16px; }
+.v2-act__ico { width: 16px; height: 20px; background: none; border-radius: 0; color: var(--v2-t3); }
+.v2-act__ico .i { width: 16px; height: 16px; }
+.v2-act__ico .c-face + .c-face, .v2-act__ico > * + * { margin-left: -6px; }
+.v2-act__t { padding-top: 0; font-size: 14px; line-height: 20px; }
+.v2-act__t small { font-size: 13px; line-height: 18px; }
+.v2-act time { padding-top: 0; font-size: 13px; line-height: 20px; }
+.v2-act li.is-gate .v2-act__ico { background: none; }
+
+/* task sheet: rules as one quiet line in the header, the header on the 16px grid */
+.mc-qsh .mc-qsh__h { padding: 8px 16px 16px; gap: 12px; }
+.mc-qsh .mc-qsh__h .mc-qsh__x { margin-top: 0; }
+.mc-qsh__h .v2-pill { margin-bottom: 8px; }
+.mc-qsh .mc-qsh__t { font-size: 17px; line-height: 24px; }
+.mc-qsh .mc-qsh__s { margin-top: 4px; line-height: 18px; }
+.mc-qsh .v2-rules-line { color: var(--v2-t3); }
+.mc-qsh .v2-rules-line > span { white-space: nowrap; }
+/* the close floats in the pill row, so the title, sub and rules lines get the sheet's full width */
+.mc-qsh .mc-qsh__h { position: relative; }
+.mc-qsh .mc-qsh__h .mc-qsh__x.v2-x { position: absolute; top: 3px; right: 16px; }
+.mc-qsh .mc-qsh__h .mc-qsh__t { padding-right: 40px; }

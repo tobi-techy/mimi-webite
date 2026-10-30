@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { MessageFeed } from "@/features/console/components/chat/Messages";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { StatusPill, type Status } from "@/features/console/components/ui/StatusPill";
@@ -36,6 +36,7 @@ function Sheet({
   title,
   sub,
   status,
+  rules,
   onClose,
   children,
 }: {
@@ -44,6 +45,8 @@ function Sheet({
   sub?: string;
   /** v2: a status pill shown above the title instead of the mono label line. */
   status?: ReactNode;
+  /** Round 2: the task's standing rules as one quiet line in the header (no chip band). */
+  rules?: readonly string[];
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -72,6 +75,17 @@ function Sheet({
             {status ?? <p className="mc-qsh__l">{label}</p>}
             <p className="mc-qsh__t">{title}</p>
             {sub && <p className="mc-qsh__s">{sub}</p>}
+            {rules && (
+              <p className="mc-qsh__s v2-rules-line" aria-label="Rules this task always follows">
+                Always:{" "}
+                {rules.map((r, i) => (
+                  <Fragment key={r}>
+                    {i > 0 && " "}
+                    <span>{i > 0 ? `· ${r}` : r}</span>
+                  </Fragment>
+                ))}
+              </p>
+            )}
           </div>
           <button ref={close} type="button" className="mc-qsh__x v2-x" aria-label="Close" onClick={onClose}>
             <Icon name="x" />
@@ -171,15 +185,9 @@ export function TaskSheet({ c, onClose }: { c: Conversation; onClose: () => void
       status={<TaskPill c={c} />}
       title={c.title}
       sub={by ? `Updated by ${by} · ${c.ago}` : undefined}
+      rules={rules.length > 0 ? rules : undefined}
       onClose={onClose}
     >
-      {rules.length > 0 && (
-        <ul className="mc-qsh__rules v2-rules" aria-label="Rules this task always follows">
-          {rules.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
-      )}
       <div className="mc-qsh__b mc-qsh__feed">
         <div className="mc-fi mc-qsh__fi">
           <MessageFeed slug={c.slug} messages={rest} typing={typing} />

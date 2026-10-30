@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { EntityChip, EntityMark } from "@/features/console/components/chat/answer/EntityChip";
 import { entityHref } from "@/features/console/components/chat/answer/Inline";
-import { ScoreMeter } from "@/features/console/components/chat/answer/ScoreMeter";
 import { SourceChip } from "@/features/console/components/chat/answer/SourceChip";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { StatusPill } from "@/features/console/components/ui/StatusPill";
+import { StatusPill, StatusText } from "@/features/console/components/ui/StatusPill";
 import { openDoc } from "@/features/console/demo/engine";
 import type { Source, TableCell, TableColumn } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
@@ -16,13 +15,16 @@ const naira = (n: number) => `₦${Math.round(n).toLocaleString("en-US")}`;
 type Obj = Exclude<TableCell, string>;
 const isLink = (c: TableCell): c is Extract<Obj, { link: string }> => typeof c !== "string" && "link" in c;
 const isMoney = (c: TableCell): c is Extract<Obj, { money: number }> => typeof c !== "string" && "money" in c;
+const isStatus = (c: TableCell): c is Extract<Obj, { status: unknown }> =>
+  typeof c !== "string" && "status" in c;
 const isEntity = (c: TableCell): c is Extract<Obj, { entity: unknown }> =>
   typeof c !== "string" && "entity" in c;
 
 function Cell({ c }: { c: TableCell }) {
   if (typeof c === "string") return <>{c}</>;
   if ("entity" in c) return <EntityChip entity={c.entity} href={c.href ?? entityHref(c.entity)} />;
-  if ("score" in c) return <ScoreMeter score={c.score} />;
+  /* round 2: the score as a plain number; the 6-block meter was one signal too many per row */
+  if ("score" in c) return <span className="v2-num">{c.score}</span>;
   if ("status" in c) return <StatusPill status={c.status}>{c.text}</StatusPill>;
   if ("money" in c)
     return <span className={cx("mc-at__money", c.tone === "bad" && "is-bad")}>{naira(c.money)}</span>;
@@ -182,32 +184,35 @@ export function AnswerTable({
         </table>
       </div>
 
+      {/* phone rows (round 2): left column name over one quiet line, right column amount over the
+          status as tinted text, both on one right edge; the chevron sits outside both */}
       <ul className="v2-tc__list">
         {rows.map((r, i) => {
           const e = r[entityCol];
           const m = moneyCol !== undefined ? r[moneyCol] : undefined;
           const rest = cols.filter((c) => c.j !== entityCol && c.j !== moneyCol);
+          const status = rest.map((c) => r[c.j]!).find(isStatus);
+          const quiet = rest.filter((c) => !isStatus(r[c.j]!));
           const t = rowTarget(r);
           const body = (
             <>
               {e && isEntity(e) && <EntityMark entity={e.entity} size={20} />}
-              <span className="v2-tc__main">
-                <span className="v2-tc__l1">
-                  <b>{e && isEntity(e) ? e.entity.label : <Cell c={r[entityCol]!} />}</b>
-                  {m && <Cell c={m} />}
-                </span>
-                <span className="v2-tc__l2">
-                  {rest.map((c) => {
-                    const cell = r[c.j]!;
-                    const pill = typeof cell !== "string" && "status" in cell;
-                    return (
+              <span className="v2-tc__l">
+                <b>{e && isEntity(e) ? e.entity.label : <Cell c={r[entityCol]!} />}</b>
+                {quiet.length > 0 && (
+                  <small>
+                    {quiet.map((c, k) => (
                       <span key={c.j}>
-                        {!pill && <span className="v2-tc__k">{c.label}</span>}
-                        <Cell c={cell} />
+                        {k > 0 && " · "}
+                        {c.label} <Cell c={r[c.j]!} />
                       </span>
-                    );
-                  })}
-                </span>
+                    ))}
+                  </small>
+                )}
+              </span>
+              <span className="v2-tc__r">
+                {m ? <Cell c={m} /> : <span />}
+                {status && <StatusText status={status.status}>{status.text}</StatusText>}
               </span>
               {(t.href || t.docId) && <Icon name="chevron-right" className="i v2-tc__chev" />}
             </>

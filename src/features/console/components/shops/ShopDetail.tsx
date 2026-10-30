@@ -3,8 +3,7 @@
 import { LiveShopDetail } from "@/features/console/components/shops/LiveShopDetail";
 import { ShopDrawer } from "@/features/console/components/shops/ShopDrawer";
 import { Icon } from "@/features/console/components/ui/Icon";
-import type { IconName } from "@/features/console/components/ui/icon-paths";
-import { StatusPill, type Status } from "@/features/console/components/ui/StatusPill";
+import { StatusText, type Status } from "@/features/console/components/ui/StatusPill";
 import { LimitControl } from "@/features/console/components/shops/LimitControl";
 import { threadHref } from "@/features/console/config";
 import {
@@ -22,21 +21,22 @@ const TITLE_ID = "shop-title";
 const STANDING: Record<ShopStatus, Status> = { g: "paid", w: "partial", o: "overdue" };
 
 /**
- * v2 shop record (Leye's record page): big plain title with one quiet meta line, a row of
- * label-over-value stats, small neutral actions on the right, the payments table with hairline
- * rows, best sellers as a ranked list, and a details panel. (No Activity tab: it would only repeat the payments table.)
+ * Shop record, round 2: leads with the one answer (what the shop owes and how it stands), then two
+ * supporting figures, two equal actions, payments as two-line rows (date over proof, amount on the
+ * right edge, no table header), the top three best sellers, and the details column.
  */
 export function ShopDetail({ shop }: { shop: Shop }) {
   if (shop.live) return <LiveShopDetail shop={shop} live={shop.live} />;
   const scale = shop.salesThisWeek / BEST_SELLER_BASE_SALES;
-  const sold = bestSellers.map((b) => ({ ...b, qty: Math.max(1, Math.round(b.qty * scale)) }));
+  const sold = bestSellers
+    .map((b) => ({ ...b, qty: Math.max(1, Math.round(b.qty * scale)) }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 3);
   const st = shopStatus[shop.status];
-  const details: [string, IconName, string][] = [
-    ["Route", "truck", `${shop.route} · ${shop.area}`],
-    ["Owner", "users", shop.owner],
-    ["WhatsApp", "whatsapp", shop.whatsapp || "Not on WhatsApp, calls only"],
-    ["Pays in", "clock", `${shop.avgDaysToPay} days on average`],
-    ["Last payment", "calendar", shop.lastPayment],
+  const paid = shop.payments.reduce((s, p) => s + p.amount, 0);
+  const details: [string, string][] = [
+    ["Route", `${shop.route} route`],
+    ["WhatsApp", shop.whatsapp || "Not on WhatsApp, calls only"],
   ];
 
   return (
@@ -46,116 +46,89 @@ export function ShopDetail({ shop }: { shop: Shop }) {
       head={
         <div className="v2-rec__head">
           <h2 id={TITLE_ID}>{shop.name}</h2>
-          <StatusPill status={STANDING[shop.status]}>{st.label}</StatusPill>
           <p>
             {shop.area} · {shop.owner}
-            {shop.whatsapp ? ` · ${shop.whatsapp}` : " · calls only"}
           </p>
         </div>
       }
     >
       <div className="v2-rec">
         <div className="v2-rec__main">
-          <div className="v2-rec__bar">
-            <dl className="v2-stats v2-stats--rec">
-              <div>
-                <dt>Owed</dt>
-                <dd>{naira(shop.owed)}</dd>
-              </div>
-              <div>
-                <dt>Sales this week</dt>
-                <dd>{nairaShort(shop.salesThisWeek)}</dd>
-              </div>
-              <div>
-                <dt>Sell-through</dt>
-                <dd>{shop.sellThrough}%</dd>
-              </div>
-              <div>
-                <dt>Credit score</dt>
-                <dd>{shop.score}</dd>
-              </div>
-            </dl>
-            <div className="v2-rec__acts">
-              <ButtonLink href={threadHref("chase-over-50k")}>Open thread</ButtonLink>
-              <LimitControl shop={shop.name} owed={shop.owed} />
-            </div>
+          <div className="v2-rec__lead">
+            <p className="v2-rec__k">Owes</p>
+            <p className="v2-rec__v v2-num">{naira(shop.owed)}</p>
+            <p className="v2-rec__s">
+              <StatusText status={STANDING[shop.status]}>{st.label}</StatusText> · last paid {shop.lastPayment}
+            </p>
           </div>
 
-          <section className="v2-card v2-card--flat" aria-label="Payments">
-            <header className="v2-card__h">
-              <div>
-                <h4>Payments</h4>
-                <p>
-                  {shop.payments.length} payments · {naira(shop.payments.reduce((s, p) => s + p.amount, 0))}{" "}
-                  in all
-                </p>
-              </div>
-            </header>
-            <div className="v2-tc__table">
-              <table>
-                <thead>
-                  <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Proof</th>
-                    <th scope="col" className="is-r">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shop.payments.map((p) => (
-                    <tr key={p.date + p.amount}>
-                      <td>{p.date}</td>
-                      <td>
-                        {p.verified ? (
-                          <StatusPill status="verified">Bank verified</StatusPill>
-                        ) : (
-                          <StatusPill status="self" />
-                        )}
-                      </td>
-                      <td className="is-r v2-num">{naira(p.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <dl className="v2-stats v2-stats--rec">
+            <div>
+              <dt>Sales this week</dt>
+              <dd>{nairaShort(shop.salesThisWeek)}</dd>
             </div>
+            <div>
+              <dt>Sell-through</dt>
+              <dd>{shop.sellThrough}%</dd>
+            </div>
+          </dl>
+
+          <div className="v2-rec__acts">
+            <ButtonLink href={threadHref("chase-over-50k")}>Open thread</ButtonLink>
+            <LimitControl shop={shop.name} owed={shop.owed} />
+          </div>
+
+          <section className="v2-sec" aria-label="Payments">
+            <header className="v2-sec__h">
+              <h4>Payments</h4>
+              <span className="v2-num">{naira(paid)}</span>
+            </header>
+            <ul className="v2-rows">
+              {shop.payments.map((p) => (
+                <li key={p.date + p.amount}>
+                  <span className="v2-rows__l">
+                    <span>{p.date}</span>
+                    <StatusText status={p.verified ? "verified" : "self"}>
+                      {p.verified ? "Bank verified" : "Self-reported"}
+                    </StatusText>
+                  </span>
+                  <span className="v2-rows__r v2-num">{naira(p.amount)}</span>
+                </li>
+              ))}
+            </ul>
           </section>
 
-          {/* best sellers as a ranked list: four products read faster as rows than as bars */}
-          <section className="v2-card v2-card--flat" aria-label="Best sellers this week">
-            <header className="v2-card__h">
-              <div>
-                <h4>Best sellers this week</h4>
-                <p>What to keep on the next delivery</p>
-              </div>
+          <section className="v2-sec" aria-label="Best sellers this week">
+            <header className="v2-sec__h">
+              <h4>Best sellers this week</h4>
             </header>
-            <ol className="v2-rank">
+            <ul className="v2-rows v2-rows--one">
               {sold.map((b) => (
                 <li key={b.name}>
-                  <span>{b.name}</span>
-                  <span className="v2-num">
-                    {b.qty} <small>{b.unit}</small>
+                  <span className="v2-rows__l">
+                    <span>{b.name}</span>
+                  </span>
+                  <span className="v2-rows__r v2-num">
+                    {b.qty} {b.unit}
                   </span>
                 </li>
               ))}
-            </ol>
+            </ul>
           </section>
         </div>
-
         <aside className="v2-rec__side" aria-label="Shop details">
-          <h4 className="v2-side__h">Details</h4>
+          <header className="v2-sec__h">
+            <h4>Details</h4>
+          </header>
           <dl className="v2-kv">
-            {details.map(([k, icon, v]) => (
+            {details.map(([k, v]) => (
               <div key={k}>
                 <dt>{k}</dt>
-                <dd>
-                  <Icon name={icon} />
-                  {v}
-                </dd>
+                <dd>{v}</dd>
               </div>
             ))}
             <div className="v2-kv__why">
-              <dt>Score {shop.score}</dt>
+              <dt>Credit score {shop.score}</dt>
               <dd>
                 <ul>
                   {scoreReasons(shop).map(([reason, good]) => (

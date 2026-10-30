@@ -12,7 +12,7 @@ import { Answer } from "@/features/console/components/chat/answer/Answer";
 import { FileChip, UploadLine, useApiBlob, useVoicePlayer } from "@/features/console/components/chat/Attachments";
 import { Inline, plainInline } from "@/features/console/components/chat/answer/Inline";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { StatusPill } from "@/features/console/components/ui/StatusPill";
+import { StatusPill, StatusText } from "@/features/console/components/ui/StatusPill";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo } from "@/features/console/demo/store";
@@ -364,33 +364,41 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
 const proofWord: Record<ProofLevel, string> = { verified: "Verified", likely: "Likely", estimated: "Estimated" };
 
 /**
- * v2 decision card (Muse's checkout card + Leye's quiet rows): icon tile, plain title and one quiet
- * line, the exact message that goes out, label/value rows with tabular amounts, a bold total, then
- * two equal buttons. No mono, no boxed tier tag; once settled, a status pill says what happened.
+ * Decision card, round 2: what will happen in one title and one quiet sentence, at most one
+ * preview of what goes out, then the figures as two-line rows (label over its proof or flag on the
+ * left, amount over its note on the right, one shared right edge) and two equal buttons. Plans show
+ * only their total here; the shop-by-shop list opens on Review. No icon tile, no pills in rows, so
+ * every left edge sits on the card's 16px line.
  */
 function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx }) {
   const c: DecisionCard = m.card;
   const fresh = useFresh(m.at);
   const plan = c.kind === "plan";
   const live = c.rows.filter((r) => r.tone !== "Skip");
-  const rows = plan ? live.slice(0, 3) : c.rows;
-  const more = plan ? live.length - rows.length : 0;
-  const icon = cardIcon[c.kind];
   const act = cardActions(c);
   const tier = tierOf(c);
   const total = c.amount ?? (plan || c.kind === "order" ? live.reduce((s, r) => s + (r.amount ?? 0), 0) : undefined);
+  const needs = c.status === "needs";
+  /* a proof word only earns its line when the rows differ; when every row is verified, say it once */
+  const proofs = new Set(c.rows.map((r) => r.proof).filter(Boolean));
+  const allVerified = !plan && c.rows.length > 1 && c.rows.every((r) => r.proof === "verified");
+  const mixedProof = proofs.size > 1 || c.rows.some((r) => !r.proof);
+  const sub =
+    plan && needs
+      ? "One WhatsApp reminder to each shop. Nothing goes out until you approve."
+      : allVerified
+        ? `${c.sub} · all verified`
+        : c.sub;
+  const showTotal = total !== undefined && total > 0 && !sub.includes(naira(total));
   return (
     <div
-      className={cx("mc-apc v2-dc", c.status === "needs" && fresh && consoleMotion.approvalAttention && "is-attn")}
+      className={cx("mc-apc v2-dc", needs && fresh && consoleMotion.approvalAttention && "is-attn")}
       title={`Risk tier: ${tier}`}
     >
       <div className="v2-dc__h">
-        <span className="v2-dc__ico" aria-hidden="true">
-          <Icon name={icon} />
-        </span>
         <div className="v2-dc__t">
           <b>{c.title}</b>
-          <small>{c.sub}</small>
+          <small>{sub}</small>
         </div>
         {c.status === "sending" && <StatusPill status="running">{plan ? "Sending" : "Saving"}</StatusPill>}
         {c.status === "sent" && <StatusPill status="sent">{plan || c.kind === "brand" ? "Sent" : "Done"}</StatusPill>}
@@ -404,46 +412,52 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           <p>{c.email.body}</p>
         </div>
       )}
-      {!c.email && c.message && c.status === "needs" && (
+      {!c.email && c.message && needs && (
         <div className="v2-dc__quote">
-          <p className="v2-dc__to">
-            To {c.message.to} on WhatsApp{plan && live.length > 1 ? `, and ${live.length - 1} more` : ""}
-          </p>
+          <p className="v2-dc__to">To {c.message.to}</p>
           <p>{c.message.text}</p>
         </div>
       )}
       <dl className="v2-dc__rows">
-        {rows.map((r) => (
-          <div key={r.label}>
+        {!plan &&
+          c.rows.map((r) => {
+            const side = r.flag ? (
+              <StatusText status="fake">{r.flag}</StatusText>
+            ) : r.proof && mixedProof ? (
+              <StatusText status={r.proof === "verified" ? "verified" : "self"}>{proofWord[r.proof]}</StatusText>
+            ) : null;
+            const note = r.tone ?? r.note;
+            return (
+              <div key={r.label}>
+                <dt>
+                  <span>{r.label}</span>
+                  {side}
+                </dt>
+                <dd>
+                  {r.amount !== undefined ? (
+                    <>
+                      <span className="v2-num">{naira(r.amount)}</span>
+                      {note && <small>{note}</small>}
+                    </>
+                  ) : (
+                    note && <span className="v2-dc__note">{note}</span>
+                  )}
+                </dd>
+              </div>
+            );
+          })}
+        {showTotal && (
+          <div className="v2-dc__total">
             <dt>
-              {r.label}
-              {r.flag && <StatusPill status="fake">{r.flag}</StatusPill>}
-              {r.proof && <StatusPill status={r.proof === "verified" ? "verified" : "self"}>{proofWord[r.proof]}</StatusPill>}
+              <span>{plan ? "Total owed" : "Total"}</span>
             </dt>
             <dd>
-              {r.amount !== undefined && <span className="v2-num">{naira(r.amount)}</span>}
-              {(r.tone || r.note) && <small>{r.tone ?? r.note}</small>}
+              <span className="v2-num">{naira(total)}</span>
             </dd>
-          </div>
-        ))}
-        {more > 0 && (
-          <div className="v2-dc__more">
-            <dt>
-              <button type="button" className="v2-link" onClick={() => openSheet(ctx.slug, m.id)}>
-                {more} more {more === 1 ? "shop" : "shops"}
-              </button>
-            </dt>
-            <dd />
-          </div>
-        )}
-        {total !== undefined && total > 0 && !c.sub.includes(naira(total)) && (
-          <div className="v2-dc__total">
-            <dt>Total</dt>
-            <dd className="v2-num">{naira(total)}</dd>
           </div>
         )}
       </dl>
-      {c.status === "needs" && (
+      {needs && (
         <div className="v2-dc__f">
           <button
             type="button"

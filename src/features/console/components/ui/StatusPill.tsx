@@ -60,3 +60,20 @@ export function StatusPill({
     </span>
   );
 }
+
+/**
+ * Round 2: the same status as quiet tinted text (no fill, no icon), for the second line of a
+ * two-line row where a pill would be one shape too many ("33 days late" under the amount).
+ */
+export function StatusText({
+  status,
+  children,
+  className,
+}: {
+  status: Status;
+  children?: ReactNode;
+  className?: string;
+}) {
+  const s = STATUS[status];
+  return <span className={cx("v2-stx", `v2-stx--${s.tone}`, className)}>{children ?? s.label}</span>;
+}

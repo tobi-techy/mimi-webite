@@ -1,23 +1,22 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { cx } from "@/lib/cx";
 
-export type ChartTable = { columns: string[]; rows: (string | number)[][]; align?: ("left" | "right")[] };
-export type Legend = { label: string; tone: "s1" | "s2" | "s3" };
+export type ChartTable = { columns: string[]; rows: (string | number)[][] };
 
 /**
- * v2 chart card (Leye's chart cards): one anatomy everywhere. Heading, one line of subcopy, a tiny
- * toolbar top-right (download CSV, chart/table toggle), an optional control under the heading,
- * dot legends, then the chart, or the same numbers as a table for anyone who would rather read.
+ * Chart card, round 2 (Leye's chart cards, fewer parts): heading and one quiet line, a single
+ * download button top-right (owners hand these numbers to their accountant), the one figure the
+ * chart adds up to, an optional control, then the chart. No legend for a single series and no
+ * chart/table toggle: the CSV is the table.
  */
 export function ChartCard({
   title,
   sub,
-  legend,
+  figure,
   control,
-  stats,
   table,
   filename,
   children,
@@ -25,16 +24,15 @@ export function ChartCard({
 }: {
   title: string;
   sub?: string;
-  legend?: Legend[];
+  /** The total the chart adds up to, shown large under the heading. */
+  figure?: string;
   control?: ReactNode;
-  /** Mebius's two-stat header: label-over-value figures above the chart. */
-  stats?: { label: string; value: string; note?: string }[];
+  /** What the download writes. */
   table: ChartTable;
   filename: string;
   children: ReactNode;
   className?: string;
 }) {
-  const [view, setView] = useState<"chart" | "table">("chart");
   const download = () => {
     const q = (v: string | number) =>
       typeof v === "string" && /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : String(v);
@@ -62,80 +60,11 @@ export function ChartCard({
           >
             <Icon name="download" />
           </button>
-          <div className="v2-seg v2-seg--icons" role="group" aria-label="View">
-            <button
-              type="button"
-              aria-pressed={view === "chart"}
-              aria-label="Chart view"
-              onClick={() => setView("chart")}
-            >
-              <Icon name="bar-chart" />
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "table"}
-              aria-label="Table view"
-              onClick={() => setView("table")}
-            >
-              <Icon name="table" />
-            </button>
-          </div>
         </div>
       </header>
-      {stats?.length ? (
-        <dl className="v2-stats v2-stats--card">
-          {stats.map((s) => (
-            <div key={s.label}>
-              <dt>{s.label}</dt>
-              <dd>
-                {s.value}
-                {s.note && <small>{s.note}</small>}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
+      {figure && <p className="v2-cc__fig v2-num">{figure}</p>}
       {control && <div className="v2-cc__ctl">{control}</div>}
-      {view === "chart" ? (
-        <>
-          <div className="v2-cc__chart">{children}</div>
-          {legend?.length ? (
-            <ul className="v2-legend">
-              {legend.map((l) => (
-                <li key={l.label}>
-                  <i className={`v2-dot v2-dot--${l.tone}`} />
-                  {l.label}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </>
-      ) : (
-        <div className="v2-cc__table" tabIndex={0} role="region" aria-label={`${title} as a table`}>
-          <table>
-            <thead>
-              <tr>
-                {table.columns.map((c, i) => (
-                  <th key={c} className={cx(table.align?.[i] === "right" && "is-r")} scope="col">
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.rows.map((r, i) => (
-                <tr key={i}>
-                  {r.map((v, j) => (
-                    <td key={j} className={cx(table.align?.[j] === "right" && "is-r v2-num")}>
-                      {v}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="v2-cc__chart">{children}</div>
     </section>
   );
 }

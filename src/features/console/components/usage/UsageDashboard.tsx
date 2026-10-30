@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LineChart } from "@/features/console/components/charts/LineChart";
+import { ColumnChart } from "@/features/console/components/charts/ColumnChart";
 import { UsageShopsTable } from "@/features/console/components/usage/UsageShopsTable";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { Picker } from "@/features/console/components/ui/Picker";
@@ -16,11 +16,22 @@ import {
   type AgentFilter,
   type UsageRange,
 } from "@/features/console/content/usage";
-import { naira, nairaShort } from "@/features/console/lib/format";
+import { naira } from "@/features/console/lib/format";
 import { ChartCard } from "@/features/console/components/ui/ChartCard";
 import { TickMeter } from "@/features/console/components/ui/TickMeter";
 
 const RUNS_THIS_MONTH = 1284;
+/** Axis ticks: "₦500k", "₦1m", "₦1.5m" (no trailing zeros on a quiet axis). */
+const axisNaira = (v: number): string =>
+  v === 0 ? "0" : v >= 1e6 ? `₦${+(v / 1e6).toFixed(1)}m` : `₦${Math.round(v / 1e3)}k`;
+/** What each range's bars are, in the card's one quiet line. */
+const RANGE_SUB: Record<UsageRange, string> = {
+  "7d": "By day, last 7 days",
+  "1m": "By week, last month",
+  "6m": "By month, last 6 months",
+  "1y": "By month, last year",
+  All: "By quarter, since you joined",
+};
 const FILTER_ICON: Record<AgentFilter, IconName> = {
   "All helpers": "users",
   Collector: "receipt",
@@ -102,15 +113,9 @@ export function UsageDashboard() {
       <div className="x-uc2 v2-grid1">
         <ChartCard
           title="Money collected"
-          sub="Money back from shops, with the runs it took"
-          stats={[
-            { label: "Collected", value: naira(totalRecovered), note: range },
-          ]}
+          sub={RANGE_SUB[range]}
+          figure={naira(totalRecovered)}
           filename={`money-collected-${range}`}
-          legend={[
-            { label: "Collected", tone: "s1" },
-            { label: "Runs", tone: "s2" },
-          ]}
           control={
             <Segmented
               label="Range"
@@ -121,22 +126,15 @@ export function UsageDashboard() {
           }
           table={{
             columns: ["Period", "Collected (₦)", "Runs"],
-            align: ["left", "right", "right"],
-            rows: series.map((p) => [
-              p.label,
-              p.recovered.toLocaleString("en-US"),
-              p.runs.toLocaleString("en-US"),
-            ]),
+            rows: series.map((p) => [p.label, p.recovered, p.runs]),
           }}
         >
-          <LineChart
-            area={false}
-            format={(v) => (v === 0 ? "0" : nairaShort(v))}
-            label={`Money collected over ${range}: ${naira(totalRecovered)} in total, with ${totalRuns.toLocaleString("en-US")} runs`}
-            points={series.map((p) => ({
+          <ColumnChart
+            format={axisNaira}
+            label={`Money collected, ${RANGE_SUB[range].toLowerCase()}: ${naira(totalRecovered)} in total, with ${totalRuns.toLocaleString("en-US")} runs`}
+            columns={series.map((p) => ({
               label: p.label,
-              primary: p.recovered,
-              secondary: p.runs,
+              value: p.recovered,
               title: `${p.label}: ${naira(p.recovered)} collected, ${p.runs.toLocaleString("en-US")} runs`,
             }))}
           />
