@@ -75,7 +75,7 @@ export const witnesses: NumberedItem[] = [
 export const consoleMock = {
   label:
     "The Mimi console showing three approvals waiting: a payment plan draft, a restock order ready to send, and a flagged transfer alert to check",
-  host: "console.userail.money",
+  host: "demo.userail.money",
   nav: [
     { label: "+ New thread", className: "x-con__new" },
     { label: "Approvals", count: "3", on: true },
