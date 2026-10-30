@@ -331,26 +331,37 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
   .mc-app .mc-qsh { animation: mc-fade .16s ease-out both !important; }
 }
 
-/* ---------- 7. Mimi's orange identity (Tobi, 29 Oct 2026; the one exception to "orange only for status") ----------
- * Your own bubbles and Mimi's reply bubbles share one orange-red fill, --mimi-bubble #d4380d, with
- * white text: 4.80:1 (WCAG AA for 14-16px body text), the same in light and dark, in every thread
- * (helper threads too: your bubble no longer takes the helper's colour). Other helpers' replies
- * keep the neutral grey bubble. #ee6018 stays for small marks only (the dot in Mimi's name chip and
- * the "N waiting" dot); it is never a fill. Links, selection, typing dots and reaction badges inside
- * an orange bubble all switch to white so they read on the fill. */
+/* ---------- 7. bubble colours (Tobi, 29-30 Oct 2026) ----------
+ * Mimi's thread: your bubbles and Mimi's reply bubbles share one orange-red fill, --mimi-bubble
+ * #d4380d, with white text (4.80:1), the same in light and dark. #ee6018 stays for small marks only
+ * (the dot in Mimi's name chip and the "N waiting" dot); it is never a fill.
+ * A helper's own thread: your bubbles (and the send / voice-send buttons, section 10) take THAT
+ * helper's colour, the hue of her dot and face (purple for Credit), as before 29 Oct. The face
+ * tokens (helpers-v6.css) are too light for white text, so the bubble uses a darker shade of the
+ * same hue, one per helper for both themes; every one clears 4.5:1 with white:
+ *   Order #986b09 4.73 · Collector #136cf3 4.70 · Credit #874ff5 4.70 · Stock #258446 4.70
+ *   Brand #e00e6b 4.72 · Proof #108176 4.75
+ * The dot and face keep their bright tokens. Helpers' reply bubbles stay the neutral grey.
+ * Links, selection, typing dots and reaction badges inside a coloured bubble switch to white. */
 .mc-app { --mimi-bubble: #d4380d; --mimi-ink: #ffffff; --mimi-mark: var(--color-signal-orange); }
 .mc-app, html[data-theme="dark"] .mc-app { --msg-me-bg: var(--mimi-bubble); --msg-me-color: var(--mimi-ink); }
-.mc-app .mc-thread[data-helper] { --msg-me-bg: var(--mimi-bubble); --msg-me-color: var(--mimi-ink); }
+.mc-app .mc-thread[data-helper="order"] { --helper-bubble: #986b09; }
+.mc-app .mc-thread[data-helper="collector"] { --helper-bubble: #136cf3; }
+.mc-app .mc-thread[data-helper="credit"] { --helper-bubble: #874ff5; }
+.mc-app .mc-thread[data-helper="stock"] { --helper-bubble: #258446; }
+.mc-app .mc-thread[data-helper="brand"] { --helper-bubble: #e00e6b; }
+.mc-app .mc-thread[data-helper="proof"] { --helper-bubble: #108176; }
+.mc-app .mc-thread[data-helper] { --msg-me-bg: var(--helper-bubble, var(--mimi-bubble)); --msg-me-color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"], .mc-rxl__lift[data-from="Mimi"] { --msg-them-bg: var(--mimi-bubble); --msg-them-color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"] .mc-b--them, .mc-thread .mc-r--me .mc-b { --msg-color: var(--mimi-ink); }
-/* text inside an orange bubble (Mimi's, or yours) */
+/* text inside a coloured bubble (Mimi's, or yours in any thread) */
 .mc-grp[data-from="Mimi"] .mc-b--them a, .mc-rxl__lift[data-from="Mimi"] .mc-b--them a,
 .mc-thread .mc-r--me .mc-b a, .mc-rxl__lift--me .mc-b a { color: var(--mimi-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .mc-grp[data-from="Mimi"] .mc-b--them a:focus-visible,
 .mc-thread .mc-r--me .mc-b a:focus-visible { outline-color: var(--mimi-ink); }
 .mc-grp[data-from="Mimi"] .mc-b--them ::selection, .mc-grp[data-from="Mimi"] .mc-b--them::selection,
 .mc-thread .mc-r--me .mc-b ::selection, .mc-thread .mc-r--me .mc-b::selection { background: rgba(255, 255, 255, .32); color: var(--mimi-ink); }
-/* orange-marked words and inline code would vanish on the orange fill: white, underlined / tinted instead */
+/* orange-marked words and inline code would vanish on a coloured fill: white, underlined / tinted instead */
 .mc-grp[data-from="Mimi"] .mc-b--them .mc-or, .mc-rxl__lift[data-from="Mimi"] .mc-b--them .mc-or,
 .mc-thread .mc-r--me .mc-b .mc-or { color: var(--mimi-ink); font-weight: 500; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .mc-grp[data-from="Mimi"] .mc-b--them code, .mc-thread .mc-r--me .mc-b code { background: rgba(255, 255, 255, .18); color: var(--mimi-ink); }
@@ -390,14 +401,19 @@ html[data-theme="dark"] { --msg-them-bg: var(--color-ash-stroke); } /* #3d3a39: 
 @media (max-width: 899px) { .mc-side__team .mc-ro { min-height: 60px; } }
 
 /* ---------- 9. quieter threads (Tobi, 29 Oct 2026: "the threads are too crowded with text") ----------
- * In a helper's own 1:1 thread the header already says who it is: no name + face above her bubble
- * groups. Mimi's thread keeps them, since several speakers appear there. */
-.mc-thread[data-helper="order"] .mc-grp[data-from="Order"] > .mc-mh,
-.mc-thread[data-helper="collector"] .mc-grp[data-from="Collector"] > .mc-mh,
-.mc-thread[data-helper="credit"] .mc-grp[data-from="Credit"] > .mc-mh,
-.mc-thread[data-helper="stock"] .mc-grp[data-from="Stock"] > .mc-mh,
-.mc-thread[data-helper="brand"] .mc-grp[data-from="Brand"] > .mc-mh,
-.mc-thread[data-helper="proof"] .mc-grp[data-from="Proof"] > .mc-mh { display: none; }
+ * In a helper's own 1:1 thread the header already says who it is, so her name is not repeated above
+ * her bubble groups. Her mascot still heads each group, the same 32px face as in Mimi's thread
+ * (Tobi, 30 Oct 2026: "the other helpers' threads don't display their mascot"; hiding the whole
+ * label row had taken the face with it). Mimi's thread keeps face + name, since several speakers
+ * appear there. */
+.mc-thread[data-helper="order"] .mc-grp[data-from="Order"] > .mc-mh .mc-mh__n,
+.mc-thread[data-helper="collector"] .mc-grp[data-from="Collector"] > .mc-mh .mc-mh__n,
+.mc-thread[data-helper="credit"] .mc-grp[data-from="Credit"] > .mc-mh .mc-mh__n,
+.mc-thread[data-helper="stock"] .mc-grp[data-from="Stock"] > .mc-mh .mc-mh__n,
+.mc-thread[data-helper="brand"] .mc-grp[data-from="Brand"] > .mc-mh .mc-mh__n,
+.mc-thread[data-helper="proof"] .mc-grp[data-from="Proof"] > .mc-mh .mc-mh__n {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 /* the role, moved out of the header status line, heads the name menu */
 .mc-menu__job {
   margin: 0; padding: 10px 16px 8px; max-width: 280px; font-size: 12.5px; line-height: 16px; color: var(--muted);
@@ -450,8 +466,9 @@ html:not([data-theme="dark"]) .mc-app { --mc-float-bg: #ebe9e7; } /* light: a fi
 .mc-pill:focus-within { outline: 1px solid var(--muted); outline-offset: 0; }
 .mc-pill.is-rec { outline: 1px solid var(--color-signal-orange); }
 .mc-mic { border-radius: 50%; }
-/* send: the same orange-red as your bubbles, in every thread; disabled is a neutral fill, not a faded colour */
-.mc-snd, .mc-rec__s { border-radius: 50%; background: var(--mimi-bubble); color: var(--mimi-ink); }
+/* send and voice-send: the same fill as your bubbles (Mimi orange-red in her thread, the helper's bubble
+ * shade in hers, section 7); disabled is a neutral fill, not a faded colour */
+.mc-snd, .mc-rec__s { border-radius: 50%; background: var(--msg-me-bg); color: var(--msg-me-color); }
 .mc-snd:disabled { opacity: 1; background: var(--tint2); color: var(--muted); }
 
 /* Reactions: the badge sat 10px into the bubble and covered the first letter. It now hangs off the
@@ -471,4 +488,43 @@ html:not([data-theme="dark"]) .mc-app { --mc-float-bg: #ebe9e7; } /* light: a fi
 
 @media (prefers-reduced-motion: reduce) {
   .mc-app .mc-pl, .mc-app .mc-fb, .mc-app .mc-jump { transition: none; }
+}
+
+/* ---------- 11. premium pass (Tobi, 30 Oct 2026: "look at your design and see if it looks premium") ----------
+ * Fixes from rendering the console at 390px, dark and light. */
+
+/* Faces in the header chip, above bubble groups and in the thread list are always full strength:
+ * the idle fade (v3.css) made Mimi's header mark and idle helpers look washed out next to the
+ * vivid ones. The words beside them already carry the state; "blocked" keeps its grey slash. */
+.mc-tt__chip .mc-face--is-idle > svg,
+.mc-mh .mc-face--is-idle > svg,
+.mc-ti .mc-face--is-idle > svg { opacity: 1; }
+
+/* Header status line: Geist, sentence case, like every other quiet line in the thread (it was the
+ * last mono label in the header, so "Needs you" and "7 WAITING" read as two different systems). */
+.mc-hdr--center .mc-tt__s, .mc-hdr--center .mc-tt__s .mc-tt__st, .mc-hdr--center .mc-tt__wt {
+  font: 400 12.5px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif; text-transform: none; letter-spacing: 0;
+}
+
+/* Thread list: the list kept the browser's 40px list indent, so every row sat 40px in from the
+ * card edge with a 24px face floating in the gap. Now: no indent, a 32px face on the title line,
+ * one hairline between rows, inset to the text like iMessage. */
+.mc-hl__card.mc-ti { margin: 0; padding: 0; list-style: none; }
+.mc-ti .mc-hl__r { gap: 14px; padding: 14px 16px; align-items: flex-start; }
+.mc-ti .mc-hl__r > .mc-face { margin-top: -4px; }
+.mc-ti .mc-face, .mc-ti .mc-face > svg, .mc-ti .mc-face .mimi-helper { width: 32px; height: 32px; }
+.mc-ti > li + li { position: relative; }
+.mc-ti > li + li::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; border-top: 1px solid var(--hair); }
+/* filter tabs: flush with the page title, and the picked one is a solid neutral fill (Factory
+ * buttons) instead of a border plus an outline, which read as a double ring */
+.mc-ti__tabs.mc-dfl { padding: 0; margin: 16px 0 20px; border-bottom: 0; }
+.mc-ti__tabs .mc-chip.is-on { outline: 0; border-color: transparent; background: var(--ink); color: var(--bg); }
+.mc-ti__tabs .mc-chip.is-on .mc-mono { color: inherit; opacity: .6; }
+
+/* Task sheet: Close sits on the label's line, and the pinned rules read as a sentence (a 2-line
+ * run of mono capitals was the most crowded thing in the sheet); only the "Rules" tag stays mono. */
+.mc-qsh__h .mc-qsh__x { margin-top: -8px; }
+.mc-qsh__rules { font: 400 13px/18px var(--font-geist-sans), "Geist", system-ui, sans-serif; text-transform: none; letter-spacing: 0; color: var(--soft); }
+.mc-qsh__rules span {
+  font: 400 11px/18px var(--font-geist-mono), ui-monospace, monospace; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
 }
