@@ -10,7 +10,7 @@ domain `demo.userail.money`.
 | File | What |
 |---|---|
 | `wrangler.jsonc` | Worker `mimi-console-demo`: assets from `out-console/`, clean URLs, the console's own 404, custom domain `demo.userail.money`, no `workers.dev` or preview URLs |
-| `env.example` | `MIMI_DEMO_API_URL`, the demo API's public address. **Placeholder** |
+| `env.example` | `MIMI_DEMO_API_URL`, the demo API's public address. Optional: defaults to the stable host `https://mimi-agent-tobi-omotade-2cd167ac.atlasflow.dev` |
 | `../../scripts/build-console-demo-cf.mjs` | `npm run build:console-demo-cf`: checks the address, runs `build:console` with `NEXT_PUBLIC_MIMI_MODE=demo` and `NEXT_PUBLIC_MIMI_API_URL`, then writes `out-console/_headers` (security headers and a CSP that allows only this site and the API) |
 
 ## Steps, when the API is live

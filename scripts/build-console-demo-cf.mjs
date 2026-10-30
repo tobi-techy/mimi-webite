@@ -2,8 +2,9 @@
  * `npm run build:console-demo-cf`: the demo console for Cloudflare (deploy/demo-console).
  * PREPARED, NOT DEPLOYED: this only builds; deploying is a separate, manual `wrangler deploy`.
  *
- * Reads MIMI_DEMO_API_URL (the demo API's public HTTPS address; a placeholder until it exists),
- * builds the console with NEXT_PUBLIC_MIMI_MODE=demo and NEXT_PUBLIC_MIMI_API_URL set to it, then
+ * Reads MIMI_DEMO_API_URL (the demo API's public HTTPS address). When unset it defaults to the
+ * stable Atlasflow host (DEFAULT_DEMO_API below), which survives API redeploys; never point this at a
+ * per-deploy host like mimi-agent-<hash>-…, which 404s after the next redeploy. It then builds the console with NEXT_PUBLIC_MIMI_MODE=demo and NEXT_PUBLIC_MIMI_API_URL set to it, then
  * writes out-console/_headers: security headers and a Content-Security-Policy that lets the page
  * talk only to itself and that API (audio and attachments play from blob: URLs).
  */
@@ -13,11 +14,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const api = (process.env.MIMI_DEMO_API_URL ?? "").trim().replace(/\/+$/, "");
+/* the stable host; per-deploy hosts (mimi-agent-<hash>-tobi-omotade-…) die on the next API redeploy */
+const DEFAULT_DEMO_API = "https://mimi-agent-tobi-omotade-2cd167ac.atlasflow.dev";
+const api = (process.env.MIMI_DEMO_API_URL || DEFAULT_DEMO_API).trim().replace(/\/+$/, "");
 
 if (!api || api.includes("REPLACE-ME")) {
   console.error("build:console-demo-cf: set MIMI_DEMO_API_URL to the demo API's public https address (see deploy/demo-console/env.example)");
   process.exit(2);
+}
+if (/^https:\/\/mimi-agent-[0-9a-f]{6,}-/.test(api)) {
+  console.warn(`build:console-demo-cf: ${api} looks like a per-deploy host that 404s after the next API redeploy; prefer ${DEFAULT_DEMO_API}`);
 }
 let origin;
 try {
