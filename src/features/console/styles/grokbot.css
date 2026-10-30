@@ -187,11 +187,13 @@
   .mc-ws__h { align-items: flex-start; padding: 3px 0; }
   .mc-ws__i, .mc-ws__ok, .mc-ws__spin { margin-top: 3px; }
 }
-/* phones and short screens: roster, links and threads scroll together */
-@media (max-width: 899px), (max-height: 700px) {
-  .mc-side__full { overflow-y: auto; }
-  .mc-side__full > .mc-side__scroll { flex: none; overflow: visible; min-height: auto; }
-}
+/* One scroller at every size (30 Oct 2026, sidebar jump fix): the list between the links and the
+   owner row is the only thing that scrolls; the top, search, links and owner row stay pinned. The
+   whole column used to become the scroller on phones and windows under 700px tall, so the header
+   and footer slid with the list, the footer sat below the fold, and crossing 700px swapped the
+   scroll container mid-gesture. `contain` keeps a fling at either end from chaining into the page
+   (on iOS that rubber-banded the document and resized the drawer under the finger). */
+.mc-side__scroll { overscroll-behavior: contain; }
 
 /* =====================================================================================
  * One conversation per helper (26 Oct 2026, Tobi): the sidebar is the roster plus a quiet
@@ -211,7 +213,6 @@
 html:not([data-theme="dark"]) .mc-side__full > .mc-me { border-top: 1px solid var(--rf-hair, var(--hair)); }
 .mc-rail .mc-pin.is-on { background: var(--rf-sel, var(--tint2)); border-radius: 8px; }
 @media (max-width: 899px), (max-height: 700px) {
-  .mc-side__full > .mc-side__team { flex: none; overflow: visible; }
   .mc-navs--quiet .mc-nav { height: 44px; }
 }
 
