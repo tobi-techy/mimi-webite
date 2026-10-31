@@ -8,7 +8,7 @@ import { newSession, sessionToken, writeSession } from "@/features/console/api/s
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
-import type { Conversation, Message } from "@/features/console/demo/types";
+import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
  * Reads the API into the console and keeps it fresh.
@@ -46,6 +46,12 @@ export const localMedia = new Map<string, Message>();
 export const held = new Map<string, Message[]>();
 /** Handoffs contract: the card and chips of each finished turn this tab followed, by turn id. */
 const turnExtras = new Map<string, TurnExtras>();
+/**
+ * The chat each owner message was typed in (Collector's, Credit's…), by its console message id:
+ * the API files every owner message in the one thread with Mimi, so this keeps it in that
+ * helper's chat while its turn is still being routed (and after, when the owner picked her).
+ */
+export const sentFrom = new Map<string, Worker>();
 /** Turns sent from this console that have not finished: turn id to thread id. */
 export const openTurns = new Map<string, string>();
 /** Message ids already on screen, and when each new one arrived (drives the reveal). */
@@ -77,6 +83,7 @@ export function resetCaches() {
   held.clear();
   turnExtras.clear();
   openTurns.clear();
+  sentFrom.clear();
   seen.clear();
   arrived.clear();
   firstPaint = true;
@@ -150,6 +157,15 @@ function publish() {
   const convs = threads.map((t) => {
     const d = details.get(t.thread_id)?.detail;
     let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id), localMedia, turnExtras) : mapThreadSummary(t, now);
+    if (sentFrom.size)
+      c = {
+        ...c,
+        messages: c.messages.map((m) => {
+          if (m.kind !== "text" || m.from !== "me" || m.to) return m;
+          const to = sentFrom.get(m.id.replace(/^api-m:in:/, ""));
+          return to ? { ...m, to } : m;
+        }),
+      };
     const kept = held.get(t.thread_id);
     if (kept?.length) c = { ...c, messages: [...c.messages, ...kept] };
     if (running(t, d)) {

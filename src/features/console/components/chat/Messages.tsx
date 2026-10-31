@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { consoleMotion } from "@/config/console-motion";
 import { ReactTarget, ReactionLayer, type LayerState } from "@/features/console/components/chat/Tapbacks";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
+import { AskBubble, chatHref } from "@/features/console/components/chat/Ask";
+import { decideCard } from "@/features/console/components/credit/limit-entry";
+import { useLive } from "@/features/console/api/live-store";
+import Link from "next/link";
 import type { FaceState } from "@/features/console/demo/roster";
 import { splitUrls, toPlainText } from "@/features/console/lib/plain-text";
 import { safeHref } from "@/features/console/lib/safe-href";
@@ -145,6 +149,33 @@ function Bubble({ m, tail }: { m: Extract<Message, { kind: "text" }>; tail: bool
     <div className={cx("mc-b", tail && "mc-b--tail")}>
       <Inline text={m.text} />
     </div>
+  );
+}
+
+/**
+ * A handoff: one small line with the other helper's mark that opens her chat. In the chat that
+ * handed it over it reads "Handed to Order: …" with a one-line result under it once she answers;
+ * in her chat it reads "From Mimi: …" and points back.
+ */
+function HandoffLine({ m }: { m: Extract<Message, { kind: "step" }> }) {
+  const conversations = useDemo((s) => s.conversations);
+  const live = useLive((s) => s.status === "ready");
+  const other = m.peer ?? m.to!;
+  const href = chatHref(conversations, other, live && conversations.some((c) => c.api?.kind === "owner"));
+  const text = m.text.replace(/\*\*/g, "");
+  return (
+    <p id={m.id} className={cx("mf-handoff", m.peer && "is-in")}>
+      <Link className="mf-handoff__l" href={href} aria-label={`${text}. Open ${other}'s chat`}>
+        <HelperFace name={other} size={16} quiet still />
+        <span className="mf-handoff__t">{text}</span>
+        <Icon name="chevron-right" />
+      </Link>
+      {m.result && (
+        <Link className="mf-handoff__r" href={href}>
+          {m.result}
+        </Link>
+      )}
+    </p>
   );
 }
 
@@ -471,7 +502,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           >
             {act.secondary}
           </button>
-          <button type="button" className="v2-btn v2-btn--pri" onClick={() => approveCard(ctx.slug, m.id)}>
+          <button type="button" className="v2-btn v2-btn--pri" onClick={() => decideCard(ctx.slug, m)}>
             {act.primary}
           </button>
         </div>
@@ -537,6 +568,7 @@ function bodyOf(m: Message, ctx: Ctx, tail: boolean): ReactNode {
   if (m.kind === "doc") return <DocChip m={m} />;
   if (m.kind === "computer") return <ComputerChip m={m} />;
   if (m.kind === "answer") return <Answer m={m} />;
+  if (m.kind === "ask") return <AskBubble m={m} slug={ctx.slug} />;
   return null;
 }
 
@@ -655,14 +687,7 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
     }
     /* the trail is off: a finished handoff reads as one small line with the new helper's mark */
     if (!showWork && m.kind === "step" && m.variant === "handoff" && m.to) {
-      items.push(
-        <p key={m.id} id={m.id} className="mf-handoff">
-          <HelperFace name={m.to} size={16} quiet still />
-          <span>
-            <RichText text={m.text} />
-          </span>
-        </p>,
-      );
+      items.push(<HandoffLine key={m.id} m={m} />);
       return;
     }
     if (m.kind === "thought" || m.kind === "step") {

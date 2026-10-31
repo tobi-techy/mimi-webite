@@ -378,7 +378,19 @@ const liveConversations = (): Conversation[] => [
         ["Collector", "Their main number was off. Trying the backup number on file now."],
       ],
       T(8, 49),
-    ),
+    ).concat([
+      {
+        id: "ask-joy",
+        kind: "ask",
+        from: "Collector",
+        at: T(8, 53),
+        question: "The backup number is off too. Should I send Joy a WhatsApp message instead, or wait for her to call back?",
+        options: [
+          { label: "Send a WhatsApp message", text: "Send her a WhatsApp message" },
+          { label: "Wait for her call", text: "Wait for her to call back" },
+        ],
+      },
+    ]),
   },
   {
     slug: "chuks-friday",
@@ -534,6 +546,17 @@ const liveConversations = (): Conversation[] => [
           status: "needs",
           doneText: "Limit raised to ₦150,000",
         },
+      },
+      {
+        id: "ask-femi",
+        kind: "ask",
+        from: "Credit",
+        at: T(8, 43),
+        question: "Iya Femi also asked to pay every two weeks instead of every week. Is that okay with you?",
+        options: [
+          { label: "Yes, every two weeks", text: "Yes, she can pay every two weeks" },
+          { label: "No, keep it weekly", text: "No, keep her on weekly payments" },
+        ],
       },
     ],
   },

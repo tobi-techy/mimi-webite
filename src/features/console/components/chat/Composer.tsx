@@ -127,7 +127,7 @@ function squish(el: HTMLElement | null) {
 }
 
 /** The docked pill composer: + menu, text, mic (voice note) and send. */
-export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
+export function Composer({ slug, helper, assign, to }: { slug: string; helper: Worker; /** Live demo: the helper this chat sends to (`assign_to`). */ assign?: string; /** Live demo: the chat the bubble shows in until the API files it. */ to?: Worker }) {
   const [text, setText] = useState("");
   const [menu, setMenu] = useState(false);
   const [rec, setRec] = useState(0);
@@ -285,8 +285,9 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   function send() {
     if (!value.trim() || playing || cap) return;
     squish(sendBtn.current);
-    if (running) steerMessage(slug, value);
-    else sendMessage(slug, value);
+    const route = { assign, to };
+    if (running) steerMessage(slug, value, route);
+    else sendMessage(slug, value, route);
     setSteering(null);
     setText("");
     input.current?.focus();

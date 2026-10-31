@@ -19,9 +19,10 @@ import { useToast } from "@/features/console/hooks/use-toast";
 import { naira } from "@/features/console/lib/format";
 import { Table } from "@/features/console/components/ui/Table";
 import { Button } from "@/features/console/components/ui/Button";
+import { openLimitFor } from "@/features/console/components/credit/limit-entry";
+import { useLimits } from "@/features/console/lib/credit-limits";
 
 type Tab = "all" | "late" | "rec";
-const LIMIT_TOAST = "Only Coral Lane can set limits. Draft saved.";
 const suggestsChange = (l: CreditLine): boolean => /^(Raise|Lower)/.test(l.recommendation);
 
 /** Recommended limit changes and the credit lines they apply to. Accepting updates the line. */
@@ -41,9 +42,14 @@ export function CreditBoard() {
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
 
+  /* limits the owner set from the console (Set credit limit) */
+  const set = useLimits((s) => s.set);
+
   function decide(rec: CreditRecommendation, accept: boolean) {
     const line = lines.find((l) => l.shop.id === rec.shopId);
     if (!line) return;
+    /* accepting a suggestion is the owner setting a limit: the same sheet, prefilled with Credit's figure */
+    if (accept) return openLimitFor(line.shop, { line, rec, prefill: rec.to });
     if (book.live && rec.approvalId) {
       /* a credit request from the API: not optimistic, the row goes only once the API agrees
          (the demo refuses raises to a credit limit and says so) */
@@ -85,7 +91,7 @@ export function CreditBoard() {
     <>
       <div className="x-card x-recs">
         <p className="x-rh">
-          Recommended changes <span className="x-num">· {recs.length}</span>
+          Recommended changes <span className="x-num">· {recs.filter((r) => set[r.shopId]?.limit !== r.to).length}</span>
         </p>
         {book.loading && <SkeletonRows count={2} />}
         {!book.loading && recs.length === 0 && (
@@ -95,7 +101,7 @@ export function CreditBoard() {
             </div>
           </div>
         )}
-        {recs.map((r) => {
+        {recs.filter((r) => set[r.shopId]?.limit !== r.to).map((r) => {
           const name = lines.find((l) => l.shop.id === r.shopId)?.shop.name ?? r.shopId;
           return (
             <div key={r.shopId} className="x-ri">
@@ -107,7 +113,7 @@ export function CreditBoard() {
                 <small>{r.why}</small>
               </div>
               <Button size="sm" onClick={() => decide(r, true)}>
-                Accept
+                Review
               </Button>
               <button
                 className="x-ib"
@@ -173,9 +179,9 @@ export function CreditBoard() {
                       <Identity name={l.shop.name} sub={l.shop.area} />
                     </Link>
                   </td>
-                  <td className="r x-ink">{naira(l.limit)}</td>
+                  <td className="r x-ink">{naira(set[l.shop.id]?.limit ?? l.limit)}</td>
                   <td>
-                    <MiniBar percent={l.limit > 0 ? (l.shop.owed / l.limit) * 100 : 0} />
+                    <MiniBar percent={(set[l.shop.id]?.limit ?? l.limit) > 0 ? (l.shop.owed / (set[l.shop.id]?.limit ?? l.limit)) * 100 : 0} />
                     <span className="x-num">{naira(l.shop.owed)}</span>
                   </td>
                   <td className={l.late ? "x-late" : undefined}>
@@ -192,13 +198,13 @@ export function CreditBoard() {
                       </>
                     )}
                   </td>
-                  <td className="x-mu">{l.recommendation}</td>
+                  <td className="x-mu">{set[l.shop.id] ? `Set to ${naira(set[l.shop.id]!.limit)} by you` : l.recommendation}</td>
                   <td className="r">
                     <ActionGroup
                       row
                       label={`More for ${l.shop.name}`}
-                      actions={["Review", "Set credit limit"]}
-                      onAction={(a) => (a === "Review" ? router.push(shopHref(l.shop.id)) : say(LIMIT_TOAST))}
+                      actions={["Set limit"]}
+                      onAction={() => openLimitFor(l.shop, { line: l })}
                     />
                   </td>
                 </tr>

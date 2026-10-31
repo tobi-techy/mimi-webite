@@ -106,6 +106,10 @@ export type Message =
       read?: boolean;
       /** Sent while the helper was mid-task: waits for the current task ("Queued, after current task"). */
       queued?: boolean;
+      /** Live demo: the API turn this message belongs to (routes it to the right helper's chat). */
+      turn?: string;
+      /** The chat it was typed in, while the API has not filed it under a turn yet. */
+      to?: Worker;
     } & Reactable)
   | ({
       id: string;
@@ -135,7 +139,22 @@ export type Message =
   | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string; transcript?: string; audio?: VoiceAudio } & Sent & Reactable)
   /** A document the owner attached (an invoice PDF). `local` is a blob: URL while the tab keeps it. */
   | ({ id: string; kind: "file"; from: Speaker; at: number; name: string; mime: string; size: number; local?: string } & Sent)
-  | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
+  | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard; turn?: string } & Reactable)
+  /**
+   * A helper needs the owner's answer (a question, or a paused job asking to go on). It shows in
+   * the helper's own chat and, as "Needs you", in Mimi's. Answered in either place, both show it.
+   */
+  | {
+      id: string;
+      kind: "ask";
+      from: HelperName;
+      at: number;
+      question: string;
+      /** Buttons; each sends its `text`. Without options the owner types an answer. */
+      options?: { label: string; text: string }[];
+      answered?: AskAnswer;
+      turn?: string;
+    }
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }
   /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
@@ -171,6 +190,13 @@ export type Message =
       to?: HelperName;
       /** Gates: the decision card message this waits on. */
       link?: string;
+      /** Live demo: the API turn, and how the helper was picked ("assign" = the owner wrote in her chat). */
+      turn?: string;
+      via?: string;
+      /** Handoffs, in the helper's chat: who handed it over (the line points back there). */
+      peer?: Worker;
+      /** Handoffs, in the chat that handed it over: one line on how it went. */
+      result?: string;
     }
   /**
    * A structured helper answer (Claude/Factory style): "Worked for 34s" that folds the work lines,
@@ -181,11 +207,15 @@ export type Message =
       kind: "answer";
       from: Worker;
       at: number;
+      turn?: string;
       worked?: { secs: number; work?: WorkLine[] };
       blocks: AnswerBlock[];
       /** What each numbered citation badge ([^n] in the copy) points at. */
       cites?: Record<number, Source>;
     };
+
+/** How an ask was answered: in Mimi's chat (she passed it on) or in the helper's own. */
+export type AskAnswer = { text: string; at: number; via: "mimi" | "helper" };
 
 /** A work line folded under "Worked for Ns": the same reasoning and step lines the feed shows. */
 export type WorkLine = Extract<Message, { kind: "thought" | "step" }>;

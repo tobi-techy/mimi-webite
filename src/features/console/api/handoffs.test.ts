@@ -107,9 +107,11 @@ test("without the contract (today's live API) the thread is the plain reply, no 
 
 test("with the contract: one quiet handoff line, the card joins the reply, chips under it", () => {
   const c = mapThread(detail(true), [], NOW, [], undefined, new Map([["turn_a", { card: shopRow, chips }]]));
-  assert.deepEqual(c.messages.map((m) => m.kind), ["date", "text", "event", "answer"]);
-  const ev = c.messages[2]!;
-  assert.ok(ev.kind === "event" && ev.text === "Asking Collector");
+  assert.deepEqual(c.messages.map((m) => m.kind), ["date", "text", "step", "answer"]);
+  /* round 4: the handoff is a step line naming the helper and the task in the owner's words */
+  const ho = c.messages[2]!;
+  assert.ok(ho.kind === "step" && ho.variant === "handoff" && ho.to === "Collector" && ho.turn === "turn_a");
+  assert.equal(ho.kind === "step" && ho.text, "Handed to Collector: who owes me the most");
   const ans = c.messages[3]!;
   assert.ok(ans.kind === "answer" && ans.from === "Collector");
   assert.equal(ans.blocks[0]?.type, "text");
@@ -122,8 +124,8 @@ test("with the contract: one quiet handoff line, the card joins the reply, chips
     { label: "Open Mama Sola Provisions", step: "api", open: "shop:shop-001" },
     { label: "Who else owes?", text: "Who else owes me money?", step: "api", assign: "collector" },
   ]);
-  /* handoff_result and card_read never show; neither do work steps for them */
-  assert.equal(c.messages.filter((m) => m.kind === "thought" || m.kind === "step").length, 0);
+  /* handoff_result and card_read never show; neither do work steps for them (the handoff line is the one step) */
+  assert.equal(c.messages.filter((m) => m.kind === "thought" || (m.kind === "step" && m.variant !== "handoff")).length, 0);
 });
 
 test("a handoff to Mimi herself shows no line", () => {

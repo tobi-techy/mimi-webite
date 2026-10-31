@@ -4,7 +4,9 @@ import { LiveShopDetail } from "@/features/console/components/shops/LiveShopDeta
 import { ShopDrawer } from "@/features/console/components/shops/ShopDrawer";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { StatusText, type Status } from "@/features/console/components/ui/StatusPill";
-import { LimitControl } from "@/features/console/components/shops/LimitControl";
+import { Button } from "@/features/console/components/ui/Button";
+import { limitTarget, openLimitFor } from "@/features/console/components/credit/limit-entry";
+import { useLimits } from "@/features/console/lib/credit-limits";
 import { threadHref } from "@/features/console/config";
 import {
   BEST_SELLER_BASE_SALES,
@@ -27,6 +29,13 @@ const STANDING: Record<ShopStatus, Status> = { g: "paid", w: "partial", o: "over
  * right edge, no table header), the top three best sellers, and the details column. Round 3: each
  * payment leads with the bank's logo tile and name (where it landed, or where the shop says it sent from).
  */
+/** "Credit limit ₦300,000": opens Set credit limit for this shop. */
+function LimitButton({ shop }: { shop: Shop }) {
+  const set = useLimits((s) => s.set[shop.id]?.limit);
+  const now = set ?? limitTarget(shop).current;
+  return <Button onClick={() => openLimitFor(shop)}>Credit limit {naira(now)}</Button>;
+}
+
 export function ShopDetail({ shop }: { shop: Shop }) {
   if (shop.live) return <LiveShopDetail shop={shop} live={shop.live} />;
   const scale = shop.salesThisWeek / BEST_SELLER_BASE_SALES;
@@ -77,7 +86,7 @@ export function ShopDetail({ shop }: { shop: Shop }) {
 
           <div className="v2-rec__acts">
             <ButtonLink href={threadHref("chase-over-50k")}>Open thread</ButtonLink>
-            <LimitControl shop={shop.name} owed={shop.owed} />
+            <LimitButton shop={shop} />
           </div>
 
           <section className="v2-sec" aria-label="Payments">

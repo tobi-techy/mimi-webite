@@ -6,6 +6,7 @@ import type { ErrorKind } from "@/features/console/api/mappers";
 import type { CreditLine, CreditRecommendation } from "@/features/console/content/credit";
 import type { Shop } from "@/features/console/content/shops";
 import { isApiBacked } from "@/features/console/demo/store";
+import type { AskAnswer } from "@/features/console/demo/types";
 
 /**
  * State of the live layer (demo build, NEXT_PUBLIC_MIMI_MODE=demo), read by screens through
@@ -38,6 +39,8 @@ export type LiveState = {
   since: number;
   viewed: Readonly<Record<string, number>>;
   focus: string | null;
+  /** Answers the owner gave in this tab to a helper's ask, by its message id (both chats read these). */
+  answers: Readonly<Record<string, AskAnswer>>;
 };
 
 const INITIAL: LiveState = {
@@ -51,6 +54,7 @@ const INITIAL: LiveState = {
   since: 0,
   viewed: {},
   focus: null,
+  answers: {},
 };
 let live: LiveState = INITIAL;
 const listeners = new Set<() => void>();

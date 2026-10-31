@@ -44,6 +44,8 @@ export function previewOf(m: Message): string | null {
       return flat(m.question) || null;
     case "proof":
       return flat(m.title) || null;
+    case "ask":
+      return flat(m.question) || null;
     default:
       return null;
   }

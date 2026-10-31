@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Icon } from "@/features/console/components/ui/Icon";
 import { ToastContext } from "@/features/console/hooks/use-toast";
 import { cx } from "@/lib/cx";
 
@@ -26,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext value={say}>
       {children}
       <div className={cx("x-toast", on && "is-on")} role="status" aria-live="polite">
-        <Icon name="check" />
+        {/* no tick: a toast is as often a notice ("come back tomorrow") as a confirmation */}
         <span>{message}</span>
       </div>
     </ToastContext>

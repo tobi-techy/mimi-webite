@@ -321,7 +321,14 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
   }
   /* a drafted reply that waits in approvals shows as its card, not as a sent bubble */
   if (m.status === "pending_approval" || m.status === "draft") return null;
-  return { id, kind: "text", from, text: nairaSign(m.text), at };
+  const text = nairaSign(m.text);
+  /* a helper asking the owner: shown in her chat and, as "Needs you", in Mimi's. A paused job's
+     note reads as model and tool numbers, so it is asked again in plain words (Keep going / Stop) */
+  const pause = plainPause(text);
+  if (from !== "Mimi" && (pause || m.kind === "question"))
+    return { id, kind: "ask", from, at, question: pause?.question ?? text, ...(pause ? { options: pause.options } : {}) };
+  if (pause) return { id, kind: "text", from, text: pause.question, at };
+  return { id, kind: "text", from, text, at };
 }
 
 /** A reply that also went as a voice note: the note itself, played through the API on tap. */
@@ -343,6 +350,47 @@ function stillShown(m: Message, stored: { ids: ReadonlySet<string>; texts: Reado
   if (m.kind === "text") return !stored.texts.has(m.text);
   if (m.kind === "photos" || m.kind === "voice" || m.kind === "file") return !(m.apiId && stored.ids.has(m.apiId));
   return false;
+}
+
+const clipText = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
+/** "Handed to Order: any new orders today" from the owner's ask (the task in her own words). */
+export function handoffText(to: string, ask?: string): string {
+  const t = (ask ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[?.!\s]+$/, "");
+  if (!t) return `Handed to ${to}`;
+  return `Handed to ${to}: ${clipText(t.charAt(0).toLowerCase() + t.slice(1), 64)}`;
+}
+
+
+/**
+ * The paused-job notes the API writes in code ("I paused collector: this job has used ₦32.56 of
+ * its ₦50.00 model budget… Keep going?") read as model and tool numbers to a distributor. This
+ * gives the same question in plain words with two buttons, or null for any other text. The
+ * buttons send the words the API already understands ("keep going", "stop"); nothing about the
+ * budget itself changes.
+ */
+export function plainPause(text: string): { question: string; options: { label: string; text: string }[] } | null {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (/^I paused \w+(?::| after)/i.test(t) && /Keep going\?$/i.test(t))
+    return {
+      question: "I stopped to check with you before doing more on this job. Nothing was lost, and nothing more goes out until you say so. Should I keep going?",
+      options: [
+        { label: "Keep going", text: "keep going" },
+        { label: "Stop", text: "stop" },
+      ],
+    };
+  if (/^I stopped \w+ on this job because/i.test(t) && /keep going/i.test(t))
+    return {
+      question: "I stopped because I kept trying the same step. Nothing more was sent. Should I try again?",
+      options: [
+        { label: "Try again", text: "keep going" },
+        { label: "Stop", text: "stop" },
+      ],
+    };
+  return null;
 }
 
 /* ---------- handoffs contract (handoffs-2026-10-30.1) ---------- */
@@ -433,13 +481,31 @@ export function mapThread(
   const helperByTurn = new Map(d.turns.map((t) => [t.turn_id, helperOf(t.helper)]));
   const runningTurns = new Set(d.turns.filter((t) => t.state === "running" || t.state === "queued").map((t) => t.turn_id));
   const stepsByTurn = new Map<string, ApiStep[]>();
-  /* handoffs contract: "Asking Collector" before the helper's answer; its other events never show */
+  /* handoffs contract: one "Handed to Collector: …" line before the helper's answer (her chat
+     then holds the work); its other events never show */
+  const askByTurn = new Map<string, string>();
+  for (const m of d.messages) if (m.direction === "in" && m.sender === "owner" && m.turn_id && m.text && !askByTurn.has(m.turn_id)) askByTurn.set(m.turn_id, m.text);
+  const viaByTurn = new Map<string, string>();
+  for (const h of d.handoffs ?? []) viaByTurn.set(h.handoff_id.replace(/^ho_/, ""), h.via);
   const handoffByTurn = new Map<string, Message>();
   for (const s of d.steps) {
     const k = s.turn_id ?? "";
     if (HANDOFF_STEPS.has(s.type)) {
       const line = handoffLine(s);
-      if (line && k && !handoffByTurn.has(k)) handoffByTurn.set(k, { id: `api-ho:${s.event_id}`, kind: "event", text: line, at: parseApiTime(s.at) ?? 0 });
+      const to = k ? helperByTurn.get(k) : undefined;
+      if (line && k && to && to !== "Mimi" && !handoffByTurn.has(k))
+        handoffByTurn.set(k, {
+          id: `api-ho:${s.event_id}`,
+          kind: "step",
+          from: "Mimi",
+          at: parseApiTime(s.at) ?? 0,
+          variant: "handoff",
+          to,
+          state: "done",
+          text: handoffText(to, askByTurn.get(k)),
+          turn: k,
+          via: viaByTurn.get(k),
+        });
       continue;
     }
     stepsByTurn.set(k, [...(stepsByTurn.get(k) ?? []), s]);
@@ -467,7 +533,9 @@ export function mapThread(
   d.messages.forEach((m, i) => {
     const turn = m.turn_id ?? "";
     if (m.direction === "out" && turn) emitSteps(turn);
-    const mapped = mapMessage(m, fromOf(m.turn_id), shopName, local);
+    const raw = mapMessage(m, fromOf(m.turn_id), shopName, local);
+    /* each line keeps its turn: the console files it in the chat of the helper who took the turn */
+    const mapped = raw && turn && (raw.kind === "text" || raw.kind === "ask") ? { ...raw, turn } : raw;
     if (mapped) out.push(mapped);
     if (mapped?.kind === "text" && m.direction === "out" && turn) lastReply.set(turn, out.length - 1);
     const spoken = replyVoice(m, fromOf(m.turn_id));
@@ -483,7 +551,7 @@ export function mapThread(
     const blocks = cardBlocks(extras?.get(turn)?.card);
     const m = out[i];
     if (!blocks.length || m?.kind !== "text" || m.from === "me") continue;
-    out[i] = { id: m.id, kind: "answer", from: m.from, at: m.at, blocks: [{ type: "text", text: m.text, lead: true }, ...blocks] };
+    out[i] = { id: m.id, kind: "answer", from: m.from, at: m.at, turn, blocks: [{ type: "text", text: m.text, lead: true }, ...blocks] };
   }
   /* chips from the newest turn only, once it has answered */
   const newest = d.turns.at(-1);
@@ -493,7 +561,7 @@ export function mapThread(
     if (a.thread_id !== d.thread.thread_id) continue;
     const card = mapApprovalCard(a, shopName);
     if (!card) continue;
-    out.push({ id: `apr:${a.approval_id}`, kind: "card", from: helperOf(a.helper), at: parseApiTime(a.created_at) ?? 0, card });
+    out.push({ id: `apr:${a.approval_id}`, kind: "card", from: helperOf(a.helper), at: parseApiTime(a.created_at) ?? 0, card, ...(a.turn_id ? { turn: a.turn_id } : {}) });
   }
 
   const stored = { ids: new Set(d.messages.map((m) => m.message_id)), texts: new Set(d.messages.map((m) => m.text)) };

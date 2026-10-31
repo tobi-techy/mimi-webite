@@ -1,5 +1,6 @@
 "use client";
 
+import { decideCard } from "@/features/console/components/credit/limit-entry";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -71,7 +72,15 @@ function Row({ it }: { it: NeedItem }) {
             <Link className="mc-btn mc-nr__open" href={cardHref(it)} aria-label={`Open the ${it.helper} thread`}>
               Open
             </Link>
-            <button type="button" className="mc-btn mc-btn--pri mc-nr__ok" onClick={() => approveCard(it.slug, it.messageId)}>
+            <button
+              type="button"
+              className="mc-btn mc-btn--pri mc-nr__ok"
+              onClick={() => {
+                const m = it.conv.messages.find((x) => x.id === it.messageId);
+                if (m?.kind === "card") decideCard(it.slug, m);
+                else approveCard(it.slug, it.messageId);
+              }}
+            >
               {it.primary}
             </button>
           </>

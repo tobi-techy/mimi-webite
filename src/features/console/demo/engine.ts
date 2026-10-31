@@ -370,10 +370,10 @@ export async function tapChip(slug: string, reply: Reply): Promise<void> {
 /* ---------- public actions ---------- */
 
 /** The owner types and sends a message in a thread; the right helper answers. */
-export function sendMessage(slug: string, text: string) {
+export function sendMessage(slug: string, text: string, opts: { assign?: string; to?: Worker } = {}) {
   if (isApiThread(slug)) {
     sfx("console", "tap");
-    return void liveSend(slug, text);
+    return void liveSend(slug, text, opts);
   }
   const clean = text.trim();
   if (!clean) return;
@@ -389,10 +389,10 @@ export function sendMessage(slug: string, text: string) {
  * task", and the helper picks it up as soon as the current step ends (RAI-283). "Interrupt now" in the
  * bubble's menu (interruptQueued) lets her take it straight away.
  */
-export function steerMessage(slug: string, text: string) {
+export function steerMessage(slug: string, text: string, opts: { assign?: string; to?: Worker } = {}) {
   if (isApiThread(slug)) {
     sfx("console", "tap");
-    return void liveSend(slug, text);
+    return void liveSend(slug, text, opts);
   }
   const clean = text.trim();
   if (!clean) return;
@@ -1309,6 +1309,27 @@ async function afterApprove(slug: string, card: DecisionCard, ep: number) {
       await say(slug, "Proof", `Marked paid in the book: ${shop}, ${naira(card.amount ?? 0)}. No money moved, I only recorded it.`, ep, 900);
       return;
   }
+}
+
+/**
+ * The owner answers a helper's ask, in Mimi's chat (`via` "mimi": she passes it on) or in the
+ * helper's own chat. The ask is one message, so it reads answered in both places at once; the
+ * answer lands in the helper's chat and she carries on there.
+ */
+export function answerAsk(slug: string, messageId: string, text: string, via: "mimi" | "helper") {
+  const clean = text.trim();
+  const c = findConversation(getDemo(), slug);
+  const m = c?.messages.find((x) => x.id === messageId);
+  if (!clean || !m || m.kind !== "ask" || m.answered) return;
+  const ep = epoch;
+  sfx("console", "tap");
+  patchMessage(slug, messageId, (x) => (x.kind === "ask" ? { ...x, answered: { text: clean, at: Date.now(), via } } : x));
+  if (via === "mimi") event(slug, `Mimi passed your answer to ${m.from}`);
+  push(slug, { kind: "text", from: "me", text: clean, at: Date.now() });
+  const follow = m.options?.find((o) => o.text === clean || o.label === clean);
+  const reply = follow ? `Okay, ${follow.label.charAt(0).toLowerCase()}${follow.label.slice(1)}. I'll carry on from here.` : "Got it, thanks. I'll carry on from here.";
+  status(slug, "carrying on", true, "run");
+  void say(slug, m.from, reply, ep, 900).then((ok) => ok && status(slug, "waiting for your next message", false, "idle"));
 }
 
 /** Approve a card (from its thread, the plan sheet or the Needs you pile: one shared store). */
