@@ -1,0 +1,414 @@
+/*
+ * Factory rebuild (31 Oct 2026, approved mockup in mimi/mockup-rooms). Loaded last, so it wins.
+ * Factory palette only: #101010 canvas, #141312 panels, #1d1a18 lift, #2a2725 raised, #3d3a39
+ * hairlines, #eeeeee text, #8a8380 muted, #a0ca92 green, #ee6018 for status only (dot = working,
+ * ring = waiting on you). Geist 400 everywhere; 14px body, 13px meta, mono labels 11px uppercase.
+ * Radii 3 (buttons, chips, pills, inputs), 10 (cards), 20 (big panels). Hairlines, no shadows.
+ * Helpers have no ground: the body holds the family colour, eyes and cuts take the surface.
+ */
+
+/* ---------- 1. tokens ---------- */
+html[data-theme="dark"] .mc-app, .mc-app {
+  --f-canvas: #101010; --f-panel: #141312; --f-lift: #1d1a18; --f-raised: #2a2725; --f-hair: #3d3a39;
+  --f-line: #1d1a18; --f-text: #eeeeee; --f-muted: #8a8380; --f-dim: #65605d; --f-green: #a0ca92;
+  --f-orange: #ee6018; --f-pri-bg: #fafafa; --f-pri-fg: #101010; --f-me: #d4380d;
+}
+html:not([data-theme="dark"]) .mc-app {
+  --f-canvas: #fafafa; --f-panel: #ffffff; --f-lift: #eeeeee; --f-raised: #e2e0de; --f-hair: #d9d6d4;
+  --f-line: #e8e6e4; --f-text: #101010; --f-muted: #5e5956; --f-dim: #8a8380; --f-green: #4c7a3f;
+  --f-orange: #ee6018; --f-pri-bg: #101010; --f-pri-fg: #fafafa;
+}
+/* the family colours, the same on both themes (the body carries them on a neutral surface) */
+.mc-app, html[data-theme="dark"] .mc-app {
+  --helper-mimi: #ff6414; --helper-collector: #1e7bff; --helper-order: #ff9e1b; --helper-proof: #14b8a6;
+  --helper-credit: #9b5cff; --helper-stock: #99653a; --helper-brand: #ff3d9a;
+}
+.mc-app { --mc-side: var(--f-canvas); --mc-float-bg: var(--f-lift); --mc-float-line: 0; background: var(--f-canvas); }
+
+/* ---------- 2. type: 14/400 body, 13/400 meta, a few 400 headings ---------- */
+.mc-app { font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif; font-size: 14px; font-weight: 400; color: var(--f-text); }
+.mc-app :where(b, strong, h1, h2, h3, h4, h5, th, button, .x-btn, .mc-btn, .c-avatar, .mc-ro__n, .x-title) { font-weight: 400; }
+.mc-app *:not(svg):not(svg *) { font-weight: 400 !important; }
+.mc-app .mf-k, .mc-app .mf-sec {
+  font: 400 11px/1 var(--font-geist-mono), "Geist Mono", ui-monospace, monospace; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--f-muted); margin: 0;
+}
+
+/* ---------- 3. helper marks ---------- */
+.mc-app .mimi-helper .rig-status, .mc-app .mimi-helper .rig-dot, .mc-app .mimi-helper .rig-ring, .mc-app .mimi-helper .rig-halo { display: none; }
+.mc-app .mimi-helper:not([data-helper="mimi"]) { --h-eye: var(--h-cut); }
+.mc-app .mimi-helper[data-helper="order"] { --h-fg: var(--helper-order); }
+.mc-app .mimi-helper[data-helper="collector"] { --h-fg: var(--helper-collector); }
+.mc-app .mimi-helper[data-helper="credit"] { --h-fg: var(--helper-credit); }
+.mc-app .mimi-helper[data-helper="stock"] { --h-fg: var(--helper-stock); }
+.mc-app .mimi-helper[data-helper="brand"] { --h-fg: var(--helper-brand); }
+.mc-app .mimi-helper[data-helper="proof"] { --h-fg: var(--helper-proof); }
+/* Mimi's own mark: tangerine body, eyes and bow cut in the surface colour */
+.mc-app .mc-mimi__body, .mc-app .mc-mimi__bow { fill: var(--helper-mimi); }
+.mc-app .mc-mimi__bow { stroke: var(--h-surface, var(--f-canvas)); }
+.mc-app .mc-mimi__eye { fill: var(--h-surface, var(--f-canvas)); }
+.mc-app .mc-face--is-idle > svg, .mc-app .mc-face--is-idle > .mimi-helper { opacity: 1; }
+.mc-app .mc-face--is-blocked > svg { opacity: .8; filter: grayscale(.35); }
+.mc-app .mc-face--is-working > svg { animation: none; }
+html:not([data-theme="dark"]) .mc-app .mc-face--Proof svg { filter: none; }
+/* surfaces tell the rig which colour its cuts are */
+.mc-app .mc-side, .mc-app .mc-rail { --h-surface: var(--f-canvas); }
+.mc-app .mc-main, .mc-app .mf-brief, .mc-app .mc-thread { --h-surface: var(--f-panel); }
+.mc-app .mf-card { --h-surface: var(--f-panel); }
+/* status marks: orange dot = working, orange ring = waiting on you, green = done */
+.mc-app .mc-face__st, .mc-app .mc-face__dot {
+  position: absolute; top: auto; right: -3px; bottom: -1px; width: 12px; height: 12px; box-sizing: border-box;
+  border-radius: 50%; border: 2.5px solid var(--h-surface, var(--f-canvas)); background: var(--f-orange);
+}
+.mc-app .mc-face__st::after { display: none; }
+.mc-app .mc-face__st--working { background: var(--f-orange); }
+.mc-app .mc-face__dot { background: var(--h-surface, var(--f-canvas)); box-shadow: inset 0 0 0 2.5px var(--f-orange); border-width: 1.5px; width: 13px; height: 13px; }
+.mc-app .mc-face__st--done { background: var(--f-green); }
+.mc-app .mc-face__st--done svg { display: none; }
+.mc-app .mc-face__st--blocked { background: var(--f-hair); }
+/* a face that waits on you shows the ring only, never the dot as well */
+.mc-app .mc-face:has(.mc-face__dot) .mc-face__st--working { display: none; }
+
+/* ---------- 4. frame: two (or three) rounded panels on the canvas, desktop ---------- */
+@media (min-width: 900px) {
+  .mc-app { padding: 10px; gap: 10px; height: 100dvh; box-sizing: border-box; }
+  .mc-app .mc-side {
+    width: 292px; border: 1px solid var(--f-line); border-radius: 20px; background: var(--f-canvas);
+    padding: 14px 10px 10px; box-sizing: border-box; min-height: 0;
+  }
+  .mc-app .mc-main { background: var(--f-panel); border: 1px solid var(--f-line); border-radius: 20px; }
+  .mc-app.is-collapsed .mc-side { width: 64px; padding: 12px 8px; }
+  .mc-app .x-view, .mc-app .mc-tv { background: transparent; }
+}
+html:not([data-theme="dark"]) .mc-app .mc-side { border-right-color: var(--f-line); }
+
+/* ---------- 5. sidebar ---------- */
+.mc-app .mc-side__top { padding: 2px 4px 12px 6px; }
+.mc-app .mc-ws { background: transparent; border: 0; height: 32px; padding: 0 6px; gap: 9px; }
+.mc-app .mc-ws__nm { font-size: 16px; letter-spacing: -.01em; color: var(--f-text); }
+.mc-app .mc-ws__mk { background: transparent; border: 0; }
+.mc-app .mc-qs {
+  height: 36px; margin: 0 2px 8px; padding: 0 12px; border-radius: 3px; background: transparent;
+  border: 1px solid var(--f-hair); color: var(--f-dim); font-size: 14px; box-shadow: none;
+}
+.mc-app .mc-qs kbd { font: 400 11px/1 var(--font-geist-mono), monospace; color: var(--f-muted); background: none; border: 0; }
+.mc-app .mc-qs .i { display: none; }
+/* Shops, Credit, Automations: plain rows in the spot the Needs you card used to sit */
+.mc-app .mc-navs { border-bottom: 0; padding: 2px 0 6px; margin: 0; gap: 0; }
+.mc-app .mc-nav {
+  height: 34px; min-height: 34px; padding: 0 10px; gap: 10px; border-radius: 3px; font-size: 14px; color: var(--f-muted);
+}
+.mc-app .mc-nav .i { width: 16px; height: 16px; color: var(--f-muted); }
+.mc-app .mc-nav__label { color: var(--f-text); }
+.mc-app .mc-nav__k { font: 400 12px/1 var(--font-geist-mono), monospace; color: var(--f-dim); }
+.mc-app .mc-nav:hover { background: var(--f-lift); }
+.mc-app .mc-nav[aria-current="page"] { background: var(--f-lift); }
+.mc-app .mf-sec { padding: 14px 10px 6px; display: block; }
+.mc-app .mc-side__team { padding-top: 0; border-top: 0; }
+/* Grok Bot roster: mark, name, time, one live line, status mark */
+.mc-app .mc-side__team .mc-ro { min-height: 54px; padding: 7px 8px; gap: 10px; border-radius: 3px; align-items: center; }
+.mc-app .mc-ro .mc-face, .mc-app .mc-ro .mc-face > svg, .mc-app .mc-ro .mc-face .mimi-helper { width: 36px; height: 36px; }
+.mc-app .mc-ro.is-on, .mc-app .mc-ro[aria-current="page"] { background: var(--f-lift); }
+.mc-app .mc-ro:hover { background: var(--f-lift); }
+.mc-app .mc-ro__n { font-size: 14px; line-height: 19px; color: var(--f-text); letter-spacing: -.005em; }
+.mc-app .mc-ro__ago { font-size: 12px; color: var(--f-dim); font-variant-numeric: tabular-nums; }
+.mc-app .mc-ro__pv, .mc-app .mc-ro__step { font-size: 13px; line-height: 18px; color: var(--f-muted); }
+.mc-app .mc-ro__cost { display: none; }
+.mc-app .mc-ro__k--new { background: var(--f-raised); color: var(--f-text); border-radius: 3px; font: 400 11px/18px var(--font-geist-mono), monospace; }
+.mc-app .mc-me { border-top: 1px solid var(--f-line); padding-top: 8px; }
+.mc-app .mc-me .mc-ini, .mc-app .mc-rail .mc-ini { background: var(--f-lift); color: var(--f-text); font-size: 12px; }
+.mc-app .mc-me__nm { font-size: 14px; }
+.mc-app .mc-me small { font-size: 12px; color: var(--f-muted); }
+/* phone-only home pieces */
+.mc-app .mf-ptitle, .mc-app .mf-seg { display: none; }
+/* shop list rows in the sidebar: a dashed round count */
+.mf-lb {
+  width: var(--s, 36px); height: var(--s, 36px); flex: none; box-sizing: border-box; border-radius: 50%;
+  border: 1px dashed var(--f-hair); display: inline-grid; place-items: center; color: var(--f-muted);
+  font: 400 11px/1 var(--font-geist-mono), "Geist Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 6. avatars: people and shops are round initials ---------- */
+.mf-av {
+  width: var(--s, 36px); height: var(--s, 36px); flex: none; border-radius: 50%; display: inline-grid; place-items: center;
+  background: color-mix(in srgb, var(--av) 72%, #fff); color: #1b1410;
+  font: 400 calc(var(--s, 36px) * .36)/1 var(--font-geist-sans), "Geist", sans-serif; letter-spacing: .01em;
+}
+.mc-app .c-shop.mf-av { border-radius: 50%; }
+.mc-app .c-avatar:not(.c-avatar--neutral) { border-radius: 50%; }
+
+/* ---------- 7. buttons, pills, chips (3px, neutral, one primary) ---------- */
+.mf-btn {
+  height: 34px; padding: 0 14px; border-radius: 3px; border: 0; background: var(--f-lift); color: var(--f-text);
+  font: 400 14px/1 var(--font-geist-sans), "Geist", sans-serif; cursor: pointer; white-space: nowrap;
+  transition: background-color .12s var(--mech, ease);
+}
+.mf-btn:hover { background: var(--f-raised); }
+.mf-btn--pri { background: var(--f-pri-bg); color: var(--f-pri-fg); }
+.mf-btn--pri:hover { background: var(--f-pri-bg); opacity: .88; }
+.mf-btn:disabled { opacity: .45; cursor: default; }
+.mf-btn:focus-visible { outline: 2px solid var(--f-text); outline-offset: 2px; }
+.mf-pill {
+  height: 24px; padding: 0 9px; border-radius: 3px; display: inline-flex; align-items: center; white-space: nowrap;
+  background: var(--f-raised); color: var(--f-text); font-size: 13px;
+}
+.mf-pill.is-ok { background: color-mix(in srgb, var(--f-green) 14%, transparent); color: var(--f-green); }
+.mf-pill.is-ask { background: color-mix(in srgb, var(--f-orange) 16%, transparent); color: #ff8a4c; }
+html:not([data-theme="dark"]) .mf-pill.is-ask { color: #b8460c; }
+.mf-pill.is-dim { background: var(--f-lift); color: var(--f-muted); }
+.mc-app .x-btn, .mc-app .mc-btn { border-radius: 3px; font-size: 14px; box-shadow: none; }
+
+/* ---------- 8. thread: centred header, quiet feed, helper-coloured bubbles ---------- */
+/* the header sits in the flow (no overlay), the feed fills the rest and starts at its bottom */
+.mc-app .mc-tv .mc-hdr.mc-hdr--center {
+  position: relative; inset: auto; z-index: 2; background: transparent; border-bottom: 0;
+  grid-template-columns: minmax(44px, 1fr) minmax(0, auto) minmax(44px, 1fr); padding: 14px 18px 10px; align-items: start;
+}
+.mc-app .mc-tv .mc-hdr.mc-hdr--center::before { display: none; }
+.mc-app .mc-tv .mc-hdr--center ~ .mc-feed .mc-fi { padding-top: 24px; }
+/* the feed fades in under the header instead of cutting a card in half */
+.mc-app .mc-tv .mc-hdr--center ~ .mc-feed { -webkit-mask-image: linear-gradient(transparent, #000 32px); mask-image: linear-gradient(transparent, #000 32px); }
+.mc-app .mc-hdr--center .mc-hdr__l, .mc-app .mc-hdr--center .mc-hdr__r { padding-top: 0; align-self: start; }
+.mc-app .mc-hdr--center .mc-tt { gap: 4px; padding-top: 18px; }
+.mc-app .mc-tt__chip, .mc-app .mc-tt__chip.is-working { background: transparent; width: 72px; height: 64px; animation: none; }
+.mc-app .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face,
+.mc-app .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face .mimi-helper,
+.mc-app .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face > svg { width: 64px; height: 64px; }
+.mc-app .mc-hdr--center .mc-tt__nm, .mc-app .mc-hdr--center .mc-tt__nm.is-mimi { background: transparent; height: auto; padding: 0; margin-top: 6px; }
+.mc-app .mc-hdr--center .mc-tt__nm.is-mimi::before { display: none; }
+.mc-app .mc-hdr--center .mc-tt__t { font-size: 24px; line-height: 30px; letter-spacing: -.03em; color: var(--f-text); }
+.mc-app .mc-hdr--center .mc-tt__c { display: none; }
+.mc-app .mf-job { margin: 2px 0 0; font-size: 13px; line-height: 18px; color: var(--f-muted); text-align: center; }
+/* the state is one hairline chip ("Working", "Waiting on you"), with its status mark */
+.mc-app .mc-hdr--center .mc-tt__s { height: auto; margin-top: 8px; font-size: 13px; color: var(--f-muted); }
+.mc-app .mc-tt__s:empty { display: none; }
+.mc-app .mc-tt__sb, .mc-app .mc-tt__wt {
+  height: 26px; padding: 0 10px; gap: 7px; border: 1px solid var(--f-hair); border-radius: 3px; background: transparent;
+  display: inline-flex; align-items: center; color: var(--f-muted); font-size: 13px; margin: 0;
+}
+.mc-app .mc-tt__sb::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--f-orange); flex: none; }
+.mc-app .mc-tt__s.is-needs .mc-tt__sb::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--f-orange); width: 8px; height: 8px; }
+.mc-app .mc-tt__st { color: var(--f-muted); }
+.mc-app .mc-tt__sb:hover, .mc-app .mc-tt__wt:hover { border-color: var(--f-muted); color: var(--f-text); }
+/* round floating buttons become quiet 3px squares on the lift */
+.mc-app .mc-fb { height: 36px; min-width: 36px; background: var(--f-lift); border: 0; border-radius: 3px; font-size: 13px; }
+.mc-app .mc-fb--round, .mc-app .mc-fb--back:not(:has(.mc-fb__n)) { width: 36px; }
+.mc-app .mc-fb .i { width: 17px; height: 17px; }
+.mc-app .mc-fb__n { background: var(--f-raised); color: var(--f-text); }
+.mc-app .mc-fb.is-on { background: var(--f-pri-bg); color: var(--f-pri-fg); }
+.mc-app .mc-cdot { border-radius: 3px; border: 1px solid var(--f-hair); font-size: 13px; }
+
+/* bubbles: 14px everywhere; yours take the helper's family colour in her thread, #d4380d in Mimi's */
+.mc-app .mc-tv .mc-b, .mc-app .mc-r--me .mc-b, .mc-app .mc-r--them .mc-b--them { font-size: 14px; line-height: 1.45; }
+.mc-app { --msg-them-bg: var(--f-lift); }
+.mc-app .mc-thread[data-helper="collector"] { --msg-me-bg: var(--helper-collector); }
+.mc-app .mc-thread[data-helper="order"] { --msg-me-bg: var(--helper-order); }
+.mc-app .mc-thread[data-helper="credit"] { --msg-me-bg: var(--helper-credit); }
+.mc-app .mc-thread[data-helper="stock"] { --msg-me-bg: var(--helper-stock); }
+.mc-app .mc-thread[data-helper="brand"] { --msg-me-bg: var(--helper-brand); }
+.mc-app .mc-thread[data-helper="proof"] { --msg-me-bg: var(--helper-proof); }
+.mc-app .mc-thread[data-helper] { --msg-me-color: #ffffff; --thread-accent: var(--msg-me-bg); --thread-accent-ink: #ffffff; }
+/* names over a group stay quiet */
+.mc-app .mc-tv .mc-mh { font: 400 13px/1 var(--font-geist-sans), "Geist", sans-serif; letter-spacing: 0; }
+.mc-app .mc-tv .mc-mh .mc-face, .mc-app .mc-tv .mc-mh .mc-face svg, .mc-app .mc-tv .mc-mh .mc-face .mimi-helper { width: 28px; height: 28px; }
+.mc-app .mc-dl, .mc-app .mc-date { font: 400 11px/1 var(--font-geist-mono), monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--f-muted); }
+/* a handoff between helpers: one small line with the new helper's mark */
+.mf-handoff {
+  display: flex; align-items: center; gap: 8px; margin: 10px 0 10px 4px; font-size: 13px; line-height: 18px; color: var(--f-muted);
+}
+.mf-handoff b { color: var(--f-text); }
+.mf-handoff .mc-face, .mf-handoff .mc-face svg, .mf-handoff .mc-face .mimi-helper { width: 16px; height: 16px; }
+/* cards in the thread: 10px corners, lift fill, no outline */
+.mc-app .mc-tv .mc-card, .mc-app .mc-tv .mc-poll, .mc-app .mc-tv .mc-cd { border-radius: 10px; }
+/* suggestion chips under the feed: hairline 3px chips at 13px */
+.mc-app .mc-rp, .mc-app .mc-reply, .mc-app .mc-replies button { border-radius: 3px; font-size: 13px; }
+/* composer: a + square and a hairline input */
+.mc-app .mc-cmp { gap: 8px; }
+.mc-app .mc-cmp textarea { font-size: 14px; }
+
+/* ---------- 9. helper brief (right panel in a helper's own thread) ---------- */
+.mf-brief { display: none; }
+@media (min-width: 1280px) {
+  .mc-app .mc-tv:has(.mf-brief) { gap: 10px; }
+  .mf-brief {
+    display: flex; flex-direction: column; gap: 12px; width: 340px; flex: none; box-sizing: border-box; overflow-y: auto;
+    padding: 16px; border-left: 1px solid var(--f-line); background: var(--f-panel);
+  }
+}
+.mf-brief__h { display: flex; align-items: center; gap: 10px; padding: 2px 2px 4px; }
+.mf-brief__who { display: grid; gap: 3px; min-width: 0; }
+.mf-brief__who a { color: var(--f-text); text-decoration: none; font-size: 15px; }
+.mf-brief__who a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mf-brief__st { font: 400 11px/1 var(--font-geist-mono), monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--f-muted); }
+.mf-brief__st.is-working, .mf-brief__st.is-waiting { color: var(--f-orange); }
+.mf-brief__st.is-done { color: var(--f-green); }
+.mf-card { border: 1px solid var(--f-line); border-radius: 10px; padding: 14px; background: var(--f-canvas); }
+html:not([data-theme="dark"]) .mf-card { background: var(--f-panel); border-color: var(--f-hair); }
+.mf-steps { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 2px; }
+.mf-step { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; font-size: 14px; line-height: 19px; color: var(--f-text); }
+.mf-step i { width: 15px; height: 15px; margin-top: 2px; flex: none; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--f-hair); }
+.mf-step.is-done i { background: var(--f-green); border-color: var(--f-green); }
+.mf-step.is-now i { border-color: var(--f-orange); border-top-color: transparent; }
+.mf-step.is-todo { color: var(--f-dim); }
+.mf-big { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -.03em; color: var(--f-text); }
+.mf-big span { color: var(--f-dim); }
+.mf-bar { display: flex; gap: 3px; height: 30px; margin: 14px 0 12px; }
+.mf-bar i { flex: var(--w) 1 0; min-width: 6px; border-radius: 3px; }
+.mf-bar .is-verified, .mf-legend .is-verified { background: var(--f-text); }
+.mf-bar .is-likely, .mf-legend .is-likely { background: var(--f-green); }
+.mf-bar .is-promised, .mf-legend .is-promised { background: #4d4947; }
+.mf-bar .is-late, .mf-legend .is-late { background: var(--f-orange); }
+.mf-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13px; }
+.mf-legend li { display: flex; align-items: center; gap: 8px; color: var(--f-text); }
+.mf-legend i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.mf-legend__n { margin-left: auto; font-variant-numeric: tabular-nums; }
+.mf-rules { padding: 6px 2px 0; }
+.mf-rules ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.mf-rules li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--f-line); font-size: 14px; color: var(--f-text); }
+html:not([data-theme="dark"]) .mf-rules li { border-top-color: var(--f-hair); }
+
+/* ---------- 10. shop list view ---------- */
+.mc-app .x-view--list { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.mf-list { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.mf-top { display: flex; align-items: center; gap: 8px; padding: 14px 18px 4px 28px; }
+.mf-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 28px 28px; }
+.mf-head { text-align: center; padding: 18px 0 18px; display: grid; justify-items: center; gap: 4px; }
+.mf-head h1 { margin: 10px 0 0; font-size: 24px; line-height: 30px; letter-spacing: -.03em; color: var(--f-text); }
+.mf-head p { margin: 0; font-size: 13px; color: var(--f-muted); }
+.mf-head .mf-lb { font-size: 13px; }
+.mf-sent { display: grid; justify-items: end; gap: 10px; margin: 0 0 18px; }
+.mf-sent__b {
+  margin: 0; max-width: min(620px, 78%); padding: 10px 14px; border-radius: 18px; background: var(--f-me); color: #fff;
+  font-size: 14px; line-height: 1.45;
+}
+.mf-hand { margin: 0; display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--f-muted); text-align: right; flex-wrap: wrap; justify-content: flex-end; }
+.mf-hand b { color: var(--f-text); }
+.mf-hand .mc-face, .mf-hand .mc-face svg, .mf-hand .mc-face .mimi-helper { width: 16px; height: 16px; }
+.mf-stats { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.mf-stats li { border: 1px solid var(--f-hair); border-radius: 10px; padding: 12px 14px 14px; min-width: 0; }
+.mf-stats__l { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--f-muted); }
+.mf-stats__l .mc-face, .mf-stats__l .mc-face svg, .mf-stats__l .mc-face .mimi-helper { width: 18px; height: 18px; }
+.mf-stats__n { display: block; margin-top: 10px; font-size: 32px; line-height: 36px; letter-spacing: -.02em; color: var(--f-text); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-rows { list-style: none; margin: 0; padding: 0; }
+.mf-lr {
+  display: grid; grid-template-columns: 36px minmax(120px, 1fr) minmax(0, 1.6fr) auto 16px; gap: 14px; align-items: center;
+  padding: 11px 4px; border-bottom: 1px solid var(--f-hair);
+}
+.mf-lr__n { font-size: 14px; color: var(--f-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-lr__t { font-size: 14px; color: var(--f-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-lr__t.is-receipt { color: var(--f-dim); }
+.mf-lr__lock { display: grid; place-items: center; color: var(--f-dim); }
+.mf-lock { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.3; }
+.mf-compose { margin: 0 0 18px; padding: 14px; border: 1px solid var(--f-hair); border-radius: 10px; display: grid; gap: 10px; }
+.mf-compose textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 72px; padding: 10px 12px; border-radius: 3px;
+  border: 1px solid var(--f-hair); background: transparent; color: var(--f-text); font: 400 14px/1.45 var(--font-geist-sans), "Geist", sans-serif;
+}
+.mf-compose textarea:focus { outline: none; border-color: var(--f-muted); }
+.mf-compose__a { display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 1100px) {
+  .mf-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mf-lr { grid-template-columns: 36px minmax(0, 1fr) auto 16px; }
+  .mf-lr__t { grid-column: 2 / 4; grid-row: 2; margin-top: -8px; }
+  .mf-lr__n { grid-column: 2; }
+}
+
+/* ---------- 11. pages (shops, credit, automations, settings) on the Factory system ---------- */
+.mc-app .x-title { font-size: 24px; letter-spacing: -.03em; }
+.mc-app .x-sub, .mc-app .x-lhd + p { font-size: 13px; color: var(--f-muted); }
+.mc-app .c-table, .mc-app .x-table { font-size: 14px; }
+.mc-app .c-table th, .mc-app .x-table th { font: 400 11px/1 var(--font-geist-mono), monospace; letter-spacing: .06em; }
+.mc-app .c-table td small, .mc-app .x-table td small { font-size: 13px; }
+
+/* ---------- 12. phones: the sidebar is the home list ---------- */
+@media (max-width: 899px) {
+  .mc-app .mc-side { width: 100vw; max-width: 100vw; background: var(--f-canvas); border-right: 0; padding: calc(10px + env(safe-area-inset-top)) 0 8px; }
+  .mc-app .mc-side__top { padding: 4px 16px 4px; }
+  .mc-app .mc-side__top .mc-ws__nm { display: none; }
+  .mc-app .mf-ptitle { display: block; margin: 6px 18px 12px; font-size: 30px; line-height: 36px; letter-spacing: -.02em; color: var(--f-text); }
+  .mc-app .mf-seg { display: flex; gap: 6px; padding: 0 16px 10px; overflow-x: auto; scrollbar-width: none; }
+  .mf-seg__b {
+    height: 32px; padding: 0 14px; border-radius: 3px; border: 1px solid var(--f-hair); background: transparent; color: var(--f-muted);
+    font: 400 14px/1 var(--font-geist-sans), "Geist", sans-serif; white-space: nowrap; cursor: pointer;
+  }
+  .mf-seg__b.is-on { background: var(--f-pri-bg); color: var(--f-pri-fg); border-color: var(--f-pri-bg); }
+  .mc-app .mc-qs { margin: 0 16px 10px; width: auto; max-width: none; box-sizing: border-box; align-self: stretch; }
+  .mc-app .mc-side__full { min-width: 0; width: 100%; }
+  .mc-app .mc-navs { padding: 0 8px 4px; }
+  .mc-app .mf-sec { padding: 12px 18px 4px; }
+  .mc-app .mc-side__team { padding: 0; }
+  .mc-app .mc-side__team .mc-ro { border-radius: 0; padding: 9px 16px; min-height: 64px; gap: 12px; }
+  .mc-app .mc-side__team .mc-ro .mc-ro__tx { border-bottom: 1px solid var(--f-line); padding-bottom: 10px; margin-bottom: -10px; align-self: stretch; display: grid; align-content: center; }
+  .mc-app .mc-ro .mc-face, .mc-app .mc-ro .mc-face > svg, .mc-app .mc-ro .mc-face .mimi-helper { width: 42px; height: 42px; }
+  .mc-app .mc-side__team .mc-ro .mf-lb { --s: 42px !important; width: 42px; height: 42px; }
+  .mc-app .mc-ro__n { font-size: 15px; }
+  .mc-app .mc-ro__pv { font-size: 14px; }
+  .mc-app .mc-ro.is-on { background: transparent; }
+  .mc-app .mc-me { padding: 8px 16px 0; }
+  /* the thread on a phone: back left, centred mark, helper-coloured bubbles */
+  .mc-app .mc-tv .mc-hdr.mc-hdr--center { padding: calc(8px + env(safe-area-inset-top)) 12px 6px; }
+  .mc-app .mc-hdr--center .mc-tt { padding-top: 6px; }
+  .mc-app .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face,
+  .mc-app .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face .mimi-helper,
+  .mc-app .mc-hdr--center .mc-tt__b .mc-tt__chip .mc-face > svg { width: 52px; height: 52px; }
+  .mc-app .mc-tt__chip { height: 52px; }
+  .mc-app .mc-hdr--center .mc-tt__t { font-size: 18px; line-height: 24px; }
+  .mc-app .mf-job { display: none; }
+  .mc-app .mc-tv .mc-b, .mc-app .mc-r--me .mc-b, .mc-app .mc-r--them .mc-b--them { font-size: 15px; }
+  .mf-top { padding: 10px 12px 4px 16px; }
+  .mf-scroll { padding: 4px 14px 24px; }
+  .mf-sent__b { max-width: 90%; }
+  .mf-lr { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; }
+  .mf-lr__lock { display: none; }
+  .mf-lr__t { grid-column: 2 / 4; }
+  .mf-stats__n { font-size: 26px; }
+}
+
+/* ---------- 13. light theme ---------- */
+html:not([data-theme="dark"]) .mc-app .mc-main { border-color: var(--f-hair); }
+html:not([data-theme="dark"]) .mc-app .mc-side { border-color: var(--f-hair); }
+html:not([data-theme="dark"]) .mf-av { color: #1b1410; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mf-btn { transition: none; }
+}
+
+/* ---------- 14. round 2 polish ---------- */
+/* Avatar keeps its own box sizes (.c-avatar--xs/md/lg); .mf-av only paints it */
+.mc-app .mf-av--c { width: auto; height: auto; font-size: 11px; }
+.mc-app .c-avatar.mf-av--c { width: 28px; height: 28px; }
+.mc-app .c-avatar--xs.mf-av--c { width: 22px; height: 22px; font-size: 9px; }
+.mc-app .c-avatar--md.mf-av--c { width: 32px; height: 32px; font-size: 11.5px; }
+.mc-app .c-avatar--lg.mf-av--c { width: 44px; height: 44px; font-size: 15px; }
+/* composer: a 3px + square on the lift and a hairline input */
+.mc-app .mc-pl { width: 44px; height: 44px; border-radius: 3px; background: var(--f-lift); border: 0; }
+.mc-app .mc-pill { min-height: 44px; border-radius: 10px; background: transparent; border: 1px solid var(--f-hair); outline: 0; }
+.mc-app .mc-pill:focus-within { outline: 0; border-color: var(--f-muted); }
+.mc-app .mc-pill textarea { font-size: 14px; color: var(--f-text); }
+.mc-app .mc-pill textarea::placeholder { color: var(--f-dim); }
+.mc-app .mc-snd { border-radius: 3px; width: 32px; height: 32px; }
+.mc-app .mc-snd:disabled { background: var(--f-raised); color: var(--f-muted); opacity: 1; }
+@media (max-width: 899px) {
+  .mc-app .mc-side__full { display: flex; flex-direction: column; }
+  .mc-app .mc-side__top { order: -2; }
+  .mc-app .mf-ptitle, .mc-app .mf-seg { order: -1; }
+}
+/* automations: the orange buttons become the one neutral primary (orange is for status only) */
+.mc-app .x-abtn--or, .mc-app .x-ahero .x-abtn--or, .mc-app .x-abtn--or:disabled { background: var(--f-pri-bg); border-color: var(--f-pri-bg); color: var(--f-pri-fg); box-shadow: none; }
+.mc-app .x-abtn--or:hover { background: var(--f-pri-bg); opacity: .88; }
+.mc-app .x-astep li.is-on .x-astep__n { background: var(--f-pri-bg); border-color: var(--f-pri-bg); color: var(--f-pri-fg); }
+/* the shop list handoff line reads as one sentence on every width */
+.mf-hand { display: block; text-align: right; }
+.mf-hand .mc-face { display: inline-grid; vertical-align: -3px; margin-right: 6px; }
+@media (max-width: 899px) {
+  .mc-app .mc-side__team .mc-ro { padding-right: 20px; }
+  .mf-hand { text-align: left; }
+  .mf-sent { justify-items: stretch; }
+  .mf-sent__b { justify-self: end; }
+}
+.mf-lr, .mf-rows, .mf-stats { text-align: left; }
+/* every reply row shares one set of columns, so names, replies and pills line up */
+.mf-lr { grid-template-columns: 36px minmax(150px, 240px) minmax(0, 1fr) 132px 16px; }
+.mf-lr .mf-pill { justify-self: end; }
+@media (max-width: 1100px) { .mf-lr { grid-template-columns: 36px minmax(0, 1fr) 132px 16px; } }
+@media (max-width: 899px) { .mf-lr { grid-template-columns: 36px minmax(0, 1fr) auto; } }

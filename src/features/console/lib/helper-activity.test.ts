@@ -86,7 +86,7 @@ test("a refused send keeps its bubble and note at the end of her side", () => {
 });
 
 test("needs line is plural only when it should be", () => {
-  assert.equal(needsLine(1), "1 thing needs you");
-  assert.equal(needsLine(3), "3 things need you");
-  assert.equal(needsLine(0), "0 things need you");
+  assert.equal(needsLine(1), "1 waiting on you");
+  assert.equal(needsLine(3), "3 waiting on you");
+  assert.equal(needsLine(0), "0 waiting on you");
 });

@@ -8,6 +8,7 @@ import { EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/conso
 import { PlanSheet } from "@/features/console/components/chat/PlanSheet";
 import { MemorySheet, StepsSheet, TaskSheet, taskWord } from "@/features/console/components/chat/QuietSheets";
 import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
+import { HelperBrief } from "@/features/console/components/helpers/HelperBrief";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
 import { markViewed, setFocus, useLive } from "@/features/console/api/live-store";
@@ -33,7 +34,7 @@ import {
 } from "@/features/console/demo/engine";
 import { dayLabel, helperSections, rosterNames, rosterRow, type RosterName } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
-import type { Conversation, Speaker } from "@/features/console/demo/types";
+import type { Conversation, HelperName, Speaker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useToast } from "@/features/console/hooks/use-toast";
@@ -419,7 +420,8 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                   <Icon name="chevron-right" className="i mc-tt__c" />
                 </span>
               </button>
-              <p className={cx("mc-tt__s", (live || writing) && "is-busy")} aria-live="polite">
+              <p className="mf-job">{who === "Mimi" ? "Runs your team for Coral Lane · reports to you" : `${job} for Coral Lane · reports to you`}</p>
+              <p className={cx("mc-tt__s", (live || writing) && "is-busy", tstate === "needs" && "is-needs")} aria-live="polite">
                 {waitingAll > 0 ? null : statusText ? (
                   <button type="button" className="mc-tt__sb" aria-haspopup="dialog" aria-label={`${statusText}. Show steps`} onClick={() => setQuiet({ kind: "steps" })}>
                     <span key={statusText} className="mc-tt__st">
@@ -619,6 +621,9 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
           return t ? <TaskSheet c={t} onClose={() => setQuiet(null)} /> : null;
         })()}
       </section>
+      {!isMimi && !focus && !panelOpen && (
+        <HelperBrief name={conv.helper as HelperName} state={live || writing ? "working" : face.state} step={statusText || face.step} />
+      )}
       <WorkspacePanel slug={slug} host={host} />
     </div>
   );

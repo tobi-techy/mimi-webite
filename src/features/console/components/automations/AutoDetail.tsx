@@ -15,7 +15,7 @@ import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
 import { consoleRoutes } from "@/features/console/config";
 
-const statusWord = { done: "Done", needs: "Needs you", failed: "Failed", run: "Running" } as const;
+const statusWord = { done: "Done", needs: "Waiting on you", failed: "Failed", run: "Running" } as const;
 
 /** One automation: what it does, its settings, its instructions and every run (each links to its thread). */
 export function AutoDetail({ id }: { id: string }) {

@@ -33,7 +33,7 @@ const STATUS: Record<Status, { icon: IconName; tone: Tone; label: string }> = {
   overdue: { icon: "clock", tone: "orange", label: "Overdue" },
   failed: { icon: "circle-x", tone: "red", label: "Failed" },
   fake: { icon: "triangle-alert", tone: "red", label: "Fake alert" },
-  awaiting: { icon: "hand", tone: "neutral", label: "Needs you" },
+  awaiting: { icon: "hand", tone: "neutral", label: "Waiting on you" },
   queued: { icon: "circle-pause", tone: "neutral", label: "Queued" },
   upcoming: { icon: "calendar", tone: "neutral", label: "Upcoming" },
   self: { icon: "circle-dashed", tone: "neutral", label: "Self-reported" },

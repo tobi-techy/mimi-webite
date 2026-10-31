@@ -141,7 +141,7 @@ export function AutomationsList() {
                     <i className={cx("x-ast", `x-ast--${last.status}`)} aria-hidden="true" />
                     <span>
                       {last.at}
-                      <small>{last.status === "needs" ? "Needs you" : last.status === "failed" ? "Failed, retried" : last.status === "run" ? "Running" : "Done"}</small>
+                      <small>{last.status === "needs" ? "Waiting on you" : last.status === "failed" ? "Failed, retried" : last.status === "run" ? "Running" : "Done"}</small>
                     </span>
                   </>
                 ) : (

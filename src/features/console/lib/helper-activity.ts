@@ -9,8 +9,8 @@ import type { Conversation, HelperName, Message } from "../demo/types";
 
 type Speaking = HelperName | "Mimi";
 
-/** "1 thing needs you", "3 things need you". */
-export const needsLine = (n: number): string => `${n} ${n === 1 ? "thing needs" : "things need"} you`;
+/** "1 waiting on you", "3 waiting on you" (plain words, Factory rebuild 31 Oct 2026). */
+export const needsLine = (n: number): string => `${n} waiting on you`;
 
 /** One line for a sidebar preview, or null for lines that are not a message (dates, events, steps). */
 export function previewOf(m: Message): string | null {

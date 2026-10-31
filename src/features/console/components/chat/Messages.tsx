@@ -653,6 +653,18 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
       );
       return;
     }
+    /* the trail is off: a finished handoff reads as one small line with the new helper's mark */
+    if (!showWork && m.kind === "step" && m.variant === "handoff" && m.to) {
+      items.push(
+        <p key={m.id} id={m.id} className="mf-handoff">
+          <HelperFace name={m.to} size={16} quiet still />
+          <span>
+            <RichText text={m.text} />
+          </span>
+        </p>,
+      );
+      return;
+    }
     if (m.kind === "thought" || m.kind === "step") {
       items.push(
         <Row

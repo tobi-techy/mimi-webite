@@ -32,6 +32,14 @@ test("the work trail hides unless showWork is on; cards and bubbles stay", () =>
   assert.equal(visibleMessages(feed, true).length, feed.length);
 });
 
+test("a finished handoff stays as one small line with the work trail off", () => {
+  const f = [...feed, { kind: "step", from: "Collector", state: "done", variant: "handoff", text: "Collector asked **Credit**" }];
+  assert.deepEqual(
+    visibleMessages(f, false).map((m) => m.kind),
+    ["text", "card", "step"],
+  );
+});
+
 test("live work drives the dots and the header status line", () => {
   assert.deepEqual(liveWork(feed), { who: "Collector", doing: "Checking Ikeja payments" });
   assert.equal(statusLine(liveWork(feed), "Idle"), "Checking Ikeja payments…");

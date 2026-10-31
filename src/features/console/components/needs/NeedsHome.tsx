@@ -168,7 +168,7 @@ export function NeedsHome() {
                   : `All clear, ${owner.first}.${busy.length ? ` ${busy.join(" and ")} ${busy.length > 1 ? "are" : "is"} working.` : ""}`}
               </h1>
               {items.length > 0 && (
-                <section aria-label="Needs you">
+                <section aria-label="Waiting on you">
                   <ul className="mc-nl">
                     {shown.map((it) => (
                       <Row key={it.key} it={it} />

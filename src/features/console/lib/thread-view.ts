@@ -2,10 +2,13 @@
  * How a thread reads (Tobi, 29 Oct 2026: "keep ui clean, maybe remove the thinking state"). Pure
  * helpers shared by the feed and the header, kept dependency-free so node --test can run them.
  */
-type Line = { kind: string; from?: string; live?: boolean; state?: string; text?: string };
+type Line = { kind: string; from?: string; live?: boolean; state?: string; text?: string; variant?: string };
 
-/** Reasoning and tool steps: the work trail that hides unless consoleThread.showWork is on. */
-export const isWorkLine = (m: Line): boolean => m.kind === "thought" || m.kind === "step";
+/** A finished handoff between helpers: kept as one small line even when the work trail is off. */
+export const isHandoffLine = (m: Line): boolean => m.kind === "step" && m.variant === "handoff" && m.state === "done";
+
+/** Reasoning and tool steps: the work trail that hides unless consoleThread.showWork is on (handoffs stay). */
+export const isWorkLine = (m: Line): boolean => m.kind === "thought" || (m.kind === "step" && !isHandoffLine(m));
 
 /** The messages a thread shows: everything, or everything but the work trail. */
 export function visibleMessages<T extends Line>(list: T[], showWork: boolean): T[] {
@@ -163,7 +166,7 @@ export type TaskState = "working" | "waiting" | "needs" | "stuck" | "done" | "id
 export const taskStateLabel: Record<TaskState, string> = {
   working: "Working",
   waiting: "Waiting",
-  needs: "Needs you",
+  needs: "Waiting on you",
   stuck: "Stuck",
   done: "Done",
   idle: "Idle",

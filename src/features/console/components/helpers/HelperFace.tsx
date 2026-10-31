@@ -32,9 +32,6 @@ function MimiMark({ size }: { size: number }) {
   );
 }
 
-/** Below this size the rig holds still (inline labels, chips); at and above it the rig's own orange marks show. */
-const STILL_BELOW = 16;
-const MARKS_FROM = 40;
 
 /** Console face state -> rig state. Pending approval wins (waiting on owner); blocked keeps its slash mark, idle pose. */
 export function rigStateOf(state: FaceState | undefined, dot?: boolean, busy?: boolean): HelperState {
@@ -84,18 +81,19 @@ export function HelperFace({
   className?: string;
 }) {
   const rig = rigStateOf(state, dot, busy);
-  const big = size >= MARKS_FROM;
   const face =
     name === "Mimi" ? (
       <MimiMark size={size} />
     ) : (
+      /* Factory rebuild (31 Oct 2026): the rig holds its idle pose and the console's own marks carry
+         the state (orange dot = working, ring = waiting, green = done). Quick mechanical motion only. */
       <Helper
         name={name}
         size={size}
-        state={rig}
+        state={rig === "done" ? "done" : "idle"}
         expression={expression}
-        still={still || size < STILL_BELOW}
-        marks={big && !quiet}
+        still={still ?? true}
+        marks={false}
         stagger={stagger}
       />
     );
@@ -112,7 +110,7 @@ export function HelperFace({
       aria-hidden="true"
     >
       {face}
-      {!quiet && (!big || name === "Mimi") && (
+      {!quiet && (
         <>
           {(dot || state === "waiting") && <i className="mc-face__dot" />}
           {busy && !state && <i className="mc-face__busy" />}

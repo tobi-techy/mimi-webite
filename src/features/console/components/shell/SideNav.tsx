@@ -9,7 +9,9 @@ import { WorkspaceMenu } from "@/features/console/components/shell/WorkspaceMenu
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
-import { consoleRoutes, helperHref } from "@/features/console/config";
+import { ListBadge } from "@/features/console/components/lists/ShopListView";
+import { consoleRoutes, helperHref, listHref } from "@/features/console/config";
+import { shopLists } from "@/features/console/content/shop-lists";
 import { conversationHref } from "@/features/console/demo/engine";
 import { faceStateLabel, rosterNames, rosterRow, type RosterRow } from "@/features/console/demo/roster";
 import { owner } from "@/features/console/demo/seed";
@@ -58,12 +60,8 @@ const rosterHref = (r: RosterRow) => {
 
 /** The row's count: what waits on the owner (orange), else new lines since she was last opened (neutral). */
 function RowCount({ r }: { r: RosterRow }) {
-  if (r.needs > 0)
-    return (
-      <b className="mc-badge mc-ro__k" aria-hidden="true">
-        {r.needs}
-      </b>
-    );
+  /* waiting on the owner reads as the orange ring on her face (Factory rebuild, 31 Oct 2026): no count */
+  if (r.needs > 0) return null;
   if (r.unread && r.unread > 0)
     return (
       <b className="mc-badge mc-ro__k mc-ro__k--new" aria-hidden="true">
@@ -151,6 +149,33 @@ function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
   );
 }
 
+/** One shop list row: dashed count badge, name, time, the outcome line. */
+function ListItem({ id, on }: { id: string; on: boolean }) {
+  const l = shopLists.find((x) => x.id === id)!;
+  const { closeDrawer } = useShell();
+  return (
+    <Link href={listHref(l.id)} role="listitem" className={cx("mc-ro mf-ro--list", on && "is-on")} aria-current={on ? "page" : undefined} onClick={closeDrawer}>
+      <ListBadge count={l.count} size={36} />
+      <span className="mc-ro__tx">
+        <span className="mc-ro__l1">
+          <span className="mc-ro__n">{l.name}</span>
+          <span className="mc-ro__ago">{l.ago}</span>
+        </span>
+        <span className="mc-ro__l2">
+          <span className="mc-ro__pv">{l.preview}</span>
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+type SideFilter = "all" | "helpers" | "lists";
+const FILTERS: { key: SideFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "helpers", label: "Helpers" },
+  { key: "lists", label: "Lists" },
+];
+
 /**
  * Sidebar: workspace switcher, search, Shops, Automations, then the roster (Mimi and six helpers,
  * one conversation each), the owner. Nothing waiting on the owner needs a row of its own: each
@@ -176,6 +201,8 @@ export function SideNav({ settings }: { settings: ReactNode }) {
     [conversations, typing, computer, live],
   );
   const inSettings = pathname.startsWith(consoleRoutes.settings);
+  /* phones: the sidebar is the home list, with All / Helpers / Lists pills */
+  const [filter, setFilter] = useState<SideFilter>("all");
   /* the console home is Mimi's conversation */
   const inThread = pathname === consoleRoutes.home || pathname.startsWith(consoleRoutes.threads);
   /* the open conversation belongs to one helper; that roster row is the selected one */
@@ -193,6 +220,9 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         </button>
         <Link href={consoleRoutes.shops} className="mc-ib" aria-label="Shops" title="Shops">
           <Icon name="store" />
+        </Link>
+        <Link href={consoleRoutes.credit} className="mc-ib" aria-label="Credit" title="Credit">
+          <Icon name="landmark" />
         </Link>
         <Link href={consoleRoutes.automations} className="mc-ib" aria-label="Automations" title="Automations">
           <Icon name="refresh-cw" />
@@ -247,14 +277,31 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           </div>
         ) : (
           <>
+            <h1 className="mf-ptitle">Coral Lane</h1>
+            <div className="mf-seg" role="tablist" aria-label="Show">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === f.key}
+                  className={cx("mf-seg__b", filter === f.key && "is-on")}
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {filter === "all" && (
             <nav className="mc-navs mc-navs--quiet" aria-label="Main">
               <NavRow
                 href={consoleRoutes.shops}
                 icon="store"
                 label="Shops"
                 count={shopCount}
-                on={pathname.startsWith(consoleRoutes.shops) || pathname.startsWith(consoleRoutes.credit)}
+                on={pathname.startsWith(consoleRoutes.shops)}
               />
+              <NavRow href={consoleRoutes.credit} icon="landmark" label="Credit" on={pathname.startsWith(consoleRoutes.credit)} />
               <NavRow
                 href={consoleRoutes.automations}
                 icon="refresh-cw"
@@ -263,10 +310,26 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                 on={pathname.startsWith(consoleRoutes.automations)}
               />
             </nav>
-            <div className="mc-side__scroll mc-side__team">
-              <div className="mc-roster" role="list" aria-label="Your team" aria-busy={waiting || undefined}>
-                {waiting ? <RosterSkeleton /> : roster.map((r) => <RosterItem key={r.name} r={r} on={activeHelper === r.name} />)}
-              </div>
+            )}
+            <div className="mc-side__scroll mc-side__team" data-filter={filter}>
+              {filter !== "lists" && (
+                <>
+                  <p className="mf-sec">Helpers</p>
+                  <div className="mc-roster" role="list" aria-label="Your team" aria-busy={waiting || undefined}>
+                    {waiting ? <RosterSkeleton /> : roster.map((r) => <RosterItem key={r.name} r={r} on={activeHelper === r.name} />)}
+                  </div>
+                </>
+              )}
+              {filter !== "helpers" && (
+                <>
+                  <p className="mf-sec">Shop lists</p>
+                  <div className="mc-roster" role="list" aria-label="Shop lists">
+                    {shopLists.map((l) => (
+                      <ListItem key={l.id} id={l.id} on={pathname.startsWith(listHref(l.id))} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
