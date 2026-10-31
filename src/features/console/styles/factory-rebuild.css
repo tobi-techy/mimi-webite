@@ -28,7 +28,100 @@ html:not([data-theme="dark"]) .mc-app {
 /* ---------- 2. type: 14/400 body, 13/400 meta, a few 400 headings ---------- */
 .mc-app { font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif; font-size: 14px; font-weight: 400; color: var(--f-text); }
 .mc-app :where(b, strong, h1, h2, h3, h4, h5, th, button, .x-btn, .mc-btn, .c-avatar, .mc-ro__n, .x-title) { font-weight: 400; }
-.mc-app *:not(svg):not(svg *) { font-weight: 400 !important; }
+/* Weight is 400 by default on the console root and every component (no blanket !important).
+ * The rules below bring each older stylesheet's 500-700 back to 400 at its own selector, one class
+ * stronger. Real emphasis stays at 500, nothing heavier: names in rows and money totals. */
+.mc-app .mc-ans__p b,
+.mc-app .mc-ans__h,
+.mc-app .mc-ent__tile--mono,
+.mc-app .mc-hl__l b,
+.mc-app .x-awm__p b,
+.mc-app b,
+.mc-app strong,
+.mc-app .v2-card__h h4,
+.mc-app .v2-tc__l b,
+.mc-app .v2-dc__t b,
+.mc-app .v2-btn,
+.mc-app .v2-act li.is-gate .v2-act__t,
+.mc-app .v2-side__h,
+.mc-app .mc-qsh .mc-qsh__t,
+.mc-app .v2-rec__acts .x-btn,
+.mc-app .v2-sec__h h4,
+.mc-app .c-bank--none,
+.mc-app .mc-pc__fav,
+.mc-app .x-pill,
+.mc-app .mc-hv__who h1,
+.mc-app .mc-hdr--center .mc-tt__t,
+.mc-app .mc-fb,
+.mc-app .mc-grp[data-from="Mimi"] .mc-b--them .mc-or,
+.mc-app .mc-rxl__lift[data-from="Mimi"] .mc-b--them .mc-or,
+.mc-app .mc-thread .mc-r--me .mc-b .mc-or,
+.mc-app .mc-mh,
+.mc-app .x-gh h2,
+.mc-app .x-tbody > p,
+.mc-app .x-tbr.is-hit,
+.mc-app .x-tcr b,
+.mc-app .x-tsheet .is-act,
+.mc-app .x-zz span,
+.mc-app .x-cname,
+.mc-app .x-dt .x-n,
+.mc-app .x-dt .x-ink,
+.mc-app .x-kpi b,
+.mc-app .x-rh,
+.mc-app .x-ri b,
+.mc-app .x-dh h2,
+.mc-app .x-dstats b,
+.mc-app .x-drawer h3,
+.mc-app .mc-md--msg strong,
+.mc-app .mc-md--msg h1,
+.mc-app .mc-md--msg h2,
+.mc-app .mc-md--msg h3,
+.mc-app .mc-r--me .mc-b b,
+.mc-app .x-seg button,
+.mc-app .x-ckt button,
+.mc-app .mc-wsm__hd .mc-wsm__tx,
+.mc-app .mc-wsm__it .mc-ws__mk b,
+.mc-app .mc-ws,
+.mc-app .x-app b,
+.mc-app .x-set h1.x-title,
+.mc-app .x-sh h2,
+.mc-app .x-lgt,
+.mc-app .x-ckt button.is-on,
+.mc-app .x-sr summary > span:not([class]),
+.mc-app .x-sr summary > b,
+.mc-app .x-card h3,
+.mc-app .x-plan b,
+.mc-app .x-ph h3,
+.mc-app .x-stmt p,
+.mc-app .x-stmt tr.is-hit td,
+.mc-app .x-btn,
+.mc-app .c-avatar,
+.mc-app .c-identity__name,
+.mc-app .c-nav__item[aria-current="page"],
+.mc-app .c-nav__item.is-unread,
+.mc-app .x-uh h1,
+.mc-app .x-warn b,
+.mc-app .x-lv text,
+.mc-app .x-pg button.is-on,
+.mc-app .x-intro h3,
+.mc-app .x-link,
+.mc-app .x-cc b,
+.mc-app .x-fc b,
+.mc-app .x-modal h3,
+.mc-app .mc-b b,
+.mc-app .mc-pv__top b,
+.mc-app .mc-pv__stamp,
+.mc-app .mc-bank__h b,
+.mc-app .mc-bank__lg,
+.mc-app .mc-paper__r b,
+.mc-app .mc-nr__what b,
+.mc-app .mc-badge,
+.mc-app .mc-md h3,
+.mc-app .mc-md strong,
+.mc-app .mc-gl--haha,
+.mc-app .mc-gl--bang,
+.mc-app .mc-gl--q { font-weight: 400; }
+.mc-app .mc-ro__n, .mc-app .mf-lr__n, .mc-app .v2-dc__total dt, .mc-app .v2-dc__total dd, .mc-app .mc-paper__tot { font-weight: 500; }
 .mc-app .mf-k, .mc-app .mf-sec {
   font: 400 11px/1 var(--font-geist-mono), "Geist Mono", ui-monospace, monospace; letter-spacing: .06em;
   text-transform: uppercase; color: var(--f-muted); margin: 0;
@@ -201,12 +294,17 @@ html:not([data-theme="dark"]) .mf-pill.is-ask { color: #b8460c; }
 /* bubbles: 14px everywhere; yours take the helper's family colour in her thread, #d4380d in Mimi's */
 .mc-app .mc-tv .mc-b, .mc-app .mc-r--me .mc-b, .mc-app .mc-r--them .mc-b--them { font-size: 14px; line-height: 1.45; }
 .mc-app { --msg-them-bg: var(--f-lift); }
-.mc-app .mc-thread[data-helper="collector"] { --msg-me-bg: var(--helper-collector); }
-.mc-app .mc-thread[data-helper="order"] { --msg-me-bg: var(--helper-order); }
-.mc-app .mc-thread[data-helper="credit"] { --msg-me-bg: var(--helper-credit); }
-.mc-app .mc-thread[data-helper="stock"] { --msg-me-bg: var(--helper-stock); }
-.mc-app .mc-thread[data-helper="brand"] { --msg-me-bg: var(--helper-brand); }
-.mc-app .mc-thread[data-helper="proof"] { --msg-me-bg: var(--helper-proof); }
+/* bubble fills only: deeper shades of each family hue so white text passes 4.5:1 (bodies keep the bright family colour) */
+.mc-app, html[data-theme="dark"] .mc-app {
+  --bubble-collector: #0065f4; --bubble-order: #a65f00; --bubble-proof: #0b7a6e;
+  --bubble-credit: #883dff; --bubble-stock: #99653a; --bubble-brand: #d90068;
+}
+.mc-app .mc-thread[data-helper="collector"] { --msg-me-bg: var(--bubble-collector); }
+.mc-app .mc-thread[data-helper="order"] { --msg-me-bg: var(--bubble-order); }
+.mc-app .mc-thread[data-helper="credit"] { --msg-me-bg: var(--bubble-credit); }
+.mc-app .mc-thread[data-helper="stock"] { --msg-me-bg: var(--bubble-stock); }
+.mc-app .mc-thread[data-helper="brand"] { --msg-me-bg: var(--bubble-brand); }
+.mc-app .mc-thread[data-helper="proof"] { --msg-me-bg: var(--bubble-proof); }
 .mc-app .mc-thread[data-helper] { --msg-me-color: #ffffff; --thread-accent: var(--msg-me-bg); --thread-accent-ink: #ffffff; }
 /* names over a group stay quiet */
 .mc-app .mc-tv .mc-mh { font: 400 13px/1 var(--font-geist-sans), "Geist", sans-serif; letter-spacing: 0; }
