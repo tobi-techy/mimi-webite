@@ -497,6 +497,8 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                   </Link>
                 )}
               </p>
+              {/* the demo / setup pill sits under the header, out of the feed's top fade (it read washed out there) */}
+              {isMimi && !focus && <GettingStarted />}
               {menu && (
             <div className="mc-menu mc-menu--l" role="menu">
               {/* the role moved here from the header status line */}
@@ -636,7 +638,6 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
-            {conv.helper === "Mimi" && !focus && <GettingStarted />}
             {conv.helper === "Mimi" && !focus && <LiveDemoNote />}
             {sections.map(({ c, lines, from }, i) => (
               <TaskSection

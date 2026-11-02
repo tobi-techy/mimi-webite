@@ -45,6 +45,9 @@ const REVIEW = [
 const reviewDate = (days: number) =>
   days ? new Date(Date.now() + days * 86400000).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : undefined;
 
+/* the moment a limit is set (outside render: called from the Set button only) */
+const stamp = () => Date.now();
+
 const firstName = (shop: string) => shop.split(/\s+/).slice(0, 2).join(" ");
 
 function shopMessage(t: LimitTarget, limit: number, review?: string): string {
@@ -69,7 +72,9 @@ function Sheet({ t }: { t: LimitTarget }) {
   const owed = t.owed ?? 0;
   const below = t.owed !== undefined && amount > 0 && amount < owed;
   const delta = amount - t.current;
-  const picks = useMemo(() => quickPicks(t.current, t.suggestion?.to), [t.current, t.suggestion?.to]);
+  const current = t.current;
+  const suggested = t.suggestion?.to;
+  const picks = useMemo(() => quickPicks(current, suggested), [current, suggested]);
   const when = reviewDate(review);
 
   useEffect(() => {
@@ -116,7 +121,7 @@ function Sheet({ t }: { t: LimitTarget }) {
   }, [step, left]);
 
   function set() {
-    const now = Date.now();
+    const now = stamp();
     saveLimit(t.shopId, { limit: amount, prev: t.current, at: now, by: owner.name, review: when, told: tell });
     setAt(now);
     setLeft(UNDO_S);

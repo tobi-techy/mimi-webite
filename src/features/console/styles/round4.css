@@ -206,5 +206,5 @@ html:not([data-theme="dark"]) .mc-app .mf-ls__scrim { background: color-mix(in s
 }
 
 /* the top pill ("Explore the demo" / "Getting started") sat inside the feed's 32px top fade and read washed out */
-.mc-app .mc-tv .mc-feed .mc-gs--feed { margin-top: 32px; color: var(--f-text, var(--ink)); }
-.mc-app .mc-tv .mc-feed .mc-gs--feed .mc-gs__k { color: var(--f-muted, var(--muted)); }
+.mc-app .mc-tv .mc-gs--feed { margin: 12px auto 0; color: var(--f-text, var(--ink)); }
+.mc-app .mc-tv .mc-gs--feed .mc-gs__k { color: var(--f-muted, var(--muted)); }

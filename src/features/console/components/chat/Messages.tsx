@@ -22,7 +22,6 @@ import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo } from "@/features/console/demo/store";
 import {
-  approveCard,
   declineCard,
   openDoc,
   openPanel,
