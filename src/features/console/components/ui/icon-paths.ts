@@ -383,6 +383,30 @@ export const iconPaths = {
     ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4M8 13h8M8 17h5M8 9h2" }],
   ],
   wrench: [["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z" }]],
+  /* v2 component language: record actions, status pills, chart toolbar */
+  pin: [["path", { d: "M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" }]],
+  "ellipsis-vertical": [
+    ["circle", { cx: "12", cy: "5", r: "1" }],
+    ["circle", { cx: "12", cy: "12", r: "1" }],
+    ["circle", { cx: "12", cy: "19", r: "1" }],
+  ],
+  "circle-half": [
+    ["circle", { cx: "12", cy: "12", r: "10" }],
+    ["path", { d: "M12 2a10 10 0 0 1 0 20z" }],
+  ],
+  "circle-pause": [
+    ["circle", { cx: "12", cy: "12", r: "10" }],
+    ["path", { d: "M10 15V9M14 15V9" }],
+  ],
+  table: [
+    ["rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }],
+    ["path", { d: "M3 9h18M3 15h18M9 3v18" }],
+  ],
+  "chart-line": [["path", { d: "M3 3v16a2 2 0 0 0 2 2h16M7 15l4-4 3 3 5-6" }]],
+  "calendar": [
+    ["rect", { x: "3", y: "4", width: "18", height: "18", rx: "2" }],
+    ["path", { d: "M16 2v4M8 2v4M3 10h18" }],
+  ],
 } as const satisfies Record<string, readonly IconShape[]>;
 
 export type IconName = keyof typeof iconPaths;

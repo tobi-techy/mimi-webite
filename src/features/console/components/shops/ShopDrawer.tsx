@@ -9,9 +9,9 @@ import { consoleRoutes } from "@/features/console/config";
  * The shop detail drawer (`.x-drawer`) over the shops list. It is its own route
  * (/console/shops/[id]) so it can be linked; Escape, the scrim and the close button go back.
  */
-type ShopDrawerProps = { titleId: string; head: ReactNode; children: ReactNode };
+type ShopDrawerProps = { titleId: string; head: ReactNode; children: ReactNode; /** v2 record layout: a wider sheet with a details column. */ wide?: boolean };
 
-export function ShopDrawer({ titleId, head, children }: ShopDrawerProps) {
+export function ShopDrawer({ titleId, head, children, wide }: ShopDrawerProps) {
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -29,7 +29,7 @@ export function ShopDrawer({ titleId, head, children }: ShopDrawerProps) {
   return (
     <>
       <div className="x-dscrim is-on" aria-hidden="true" onClick={close} />
-      <aside className="x-drawer is-on" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <aside className={wide ? "x-drawer is-on v2-drawer" : "x-drawer is-on"} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="x-dh">
           {head}
           <button ref={closeRef} className="x-ib" type="button" aria-label="Close" onClick={close}>

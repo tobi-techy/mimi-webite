@@ -2,12 +2,13 @@
 
 import { attachLabel, checkAttachment, uploadRefusal, type AttachPurpose } from "@/features/console/api/attachments";
 import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
-import { apiActive, notify } from "@/features/console/api/live-store";
-import { friendlyMessage } from "@/features/console/api/mappers";
+import { apiActive, getLive, notify, setLive } from "@/features/console/api/live-store";
+import { capText, friendlyMessage } from "@/features/console/api/mappers";
 import { newSession, readSession, writeSession } from "@/features/console/api/session";
-import { authed, localMedia, openTurns, pending, refresh, report, resetCaches } from "@/features/console/api/sync";
+import { authed, held, localMedia, openTurns, pending, refresh, report, resetCaches, sentFrom } from "@/features/console/api/sync";
 import { findConversation, getDemo, nextId, patchConversation, patchMessage } from "@/features/console/demo/store";
-import type { Conversation, Message, Upload, VoiceAudio } from "@/features/console/demo/types";
+import type { AskAnswer, Conversation, HelperName, Message, Upload, VoiceAudio, Worker } from "@/features/console/demo/types";
+import { assignFor } from "@/features/console/lib/chat-view";
 
 /**
  * What the owner does on API threads. The demo engine hands over to these when a thread or card
@@ -39,17 +40,19 @@ function dropPending(thread: string, id: string) {
  * The owner sends a message. The API files every owner message in the owner's own thread with
  * Mimi, so a message typed in a shop thread is answered there (the shop thread says so).
  */
-export async function liveSend(slug: string, text: string): Promise<void> {
+export async function liveSend(slug: string, text: string, opts: { assign?: string; to?: Worker } = {}): Promise<void> {
   const clean = text.trim();
   if (!clean) return;
   const target = ownerThread()?.slug ?? slug;
-  const bubble: Message = { id: nextId("api-me"), kind: "text", from: "me", text: clean, at: Date.now() };
+  /* typed in a helper's chat: it shows there (and only there) until the API files it under her turn */
+  const bubble: Message = { id: nextId("api-me"), kind: "text", from: "me", text: clean, at: Date.now(), ...(opts.to ? { to: opts.to } : {}) };
   pending.set(target, [...(pending.get(target) ?? []), bubble]);
   patchConversation(target, (c) => ({ ...c, ago: "now", state: "run", working: true, status: "reading your message", messages: [...c.messages, bubble] }));
   if (target !== slug) addEvent(slug, "Sent to Mimi. Her answer comes in your thread with her.");
   try {
     /* one message id for every attempt: the API dedupes on it, so a quiet retry never doubles a turn */
-    const body = { message_id: newMessageId(), source: "owner_message" as const, text: clean };
+    const body = { message_id: newMessageId(), source: "owner_message" as const, text: clean, ...(opts.assign ? { assign_to: opts.assign } : {}) };
+    if (opts.to) sentFrom.set(body.message_id, opts.to);
     const turn = await authed((t) => mimiApi.postTurn(t, body));
     const thread = turn.thread_id || target;
     if (thread !== target) {
@@ -59,7 +62,25 @@ export async function liveSend(slug: string, text: string): Promise<void> {
     openTurns.set(turn.turn_id, thread);
   } catch (e) {
     dropPending(target, bubble.id);
-    const err = report(e);
+    const err = e instanceof MimiApiError ? e : new MimiApiError(-1, "");
+    if (err.kind === "capped" || err.kind === "paused") {
+      /* the demo's allowance is used up: the bubble stays, a note under it says why, the composer shuts */
+      const kind = err.kind;
+      const text = capText(kind, err.detail);
+      const note: Message = { id: nextId("api-cap"), kind: "event", text: `Not sent. ${text}`, at: Date.now(), tone: "stop" };
+      held.set(target, [...(held.get(target) ?? []), { ...bubble, read: false }, note]);
+      setLive({ cap: { kind, text } });
+      patchConversation(target, (c) => ({
+        ...c,
+        state: "idle",
+        working: false,
+        status: "waiting for your next message",
+        messages: [...c.messages, note],
+      }));
+      void refresh();
+      return;
+    }
+    report(err);
     patchConversation(target, (c) => ({
       ...c,
       state: "idle",
@@ -67,9 +88,24 @@ export async function liveSend(slug: string, text: string): Promise<void> {
       status: "waiting for your next message",
       messages: c.messages.filter((m) => m.id !== bubble.id),
     }));
-    addEvent(target, `Not sent: “${clean.length > 60 ? `${clean.slice(0, 59)}…` : clean}”. ${friendlyMessage(err.kind, err.detail)}`);
+    /* kept with the held messages so the next poll does not wipe it */
+    const note: Message = { id: nextId("api-ev"), kind: "event", text: `Not sent: “${clean.length > 60 ? `${clean.slice(0, 59)}…` : clean}”. ${friendlyMessage(err.kind, err.detail)}`, at: Date.now() };
+    held.set(target, [...(held.get(target) ?? []), note]);
+    patchConversation(target, (c) => ({ ...c, messages: [...c.messages, note] }));
   }
   void refresh();
+}
+
+/**
+ * The owner answers a helper's question, in Mimi's chat ("mimi": she passes it on) or in the
+ * helper's own. Either way the answer goes to that helper (assign_to) and shows in her chat; the
+ * ask reads as answered in both places at once.
+ */
+export function liveAnswer(slug: string, askId: string, helper: HelperName, text: string, via: AskAnswer["via"]): void {
+  const clean = text.trim();
+  if (!clean) return;
+  setLive({ answers: { ...getLive().answers, [askId]: { text: clean, at: Date.now(), via } } });
+  void liveSend(slug, clean, { assign: assignFor(helper), to: helper });
 }
 
 /** Home composer: a new ask goes to Mimi's thread. Returns that thread's slug. */

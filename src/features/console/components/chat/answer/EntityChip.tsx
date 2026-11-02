@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
+import { BankLogo } from "@/features/console/components/ui/BankLogo";
 import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { ShopAvatar } from "@/features/console/components/ui/ShopAvatar";
 import { helperNames, type Entity, type EntityKind, type HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
-const tileIcon: Partial<Record<EntityKind, IconName>> = { route: "truck", bank: "landmark", file: "file-code" };
+const tileIcon: Partial<Record<EntityKind, IconName>> = { route: "truck", file: "file-code" };
 
-/** The small mark in front of an entity: a shop-front sticker, a helper face, a monogram or an icon tile. */
+/** The small mark in front of an entity: a shop-front sticker, a helper face, a bank's logo, a monogram or an icon tile. */
 export function EntityMark({ entity, size = 16 }: { entity: Entity; size?: 16 | 20 }) {
   if (entity.kind === "shop") return <ShopAvatar name={entity.label} size={20} className={cx("mc-ent__shop", size === 16 && "is-16")} />;
   if (entity.kind === "helper" && (helperNames as readonly string[]).includes(entity.label))
     return <HelperFace name={entity.label as HelperName} size={size} className="mc-ent__face" />;
+  if (entity.kind === "bank") return <BankLogo bank={entity.label} size={16} className="mc-ent__bank" />;
   if (entity.kind === "brand")
     return (
       <span className="mc-ent__tile mc-ent__tile--mono" aria-hidden="true">

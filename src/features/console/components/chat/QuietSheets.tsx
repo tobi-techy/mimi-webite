@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { MessageFeed } from "@/features/console/components/chat/Messages";
+import { Icon } from "@/features/console/components/ui/Icon";
+import { StatusPill, type Status } from "@/features/console/components/ui/StatusPill";
 import { memoryFor, rulesFor, type MemoryNote } from "@/features/console/content/memory";
 import { pauseRun } from "@/features/console/demo/engine";
 import { runningIn } from "@/features/console/demo/roster";
@@ -33,12 +35,18 @@ function Sheet({
   label,
   title,
   sub,
+  status,
+  rules,
   onClose,
   children,
 }: {
   label: string;
   title: string;
   sub?: string;
+  /** v2: a status pill shown above the title instead of the mono label line. */
+  status?: ReactNode;
+  /** Round 2: the task's standing rules as one quiet line in the header (no chip band). */
+  rules?: readonly string[];
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -64,12 +72,23 @@ function Sheet({
         <span className="mc-sheet__grab" aria-hidden="true" />
         <div className="mc-qsh__h">
           <div>
-            <p className="mc-qsh__l">{label}</p>
+            {status ?? <p className="mc-qsh__l">{label}</p>}
             <p className="mc-qsh__t">{title}</p>
             {sub && <p className="mc-qsh__s">{sub}</p>}
+            {rules && (
+              <p className="mc-qsh__s v2-rules-line" aria-label="Rules this task always follows">
+                Always:{" "}
+                {rules.map((r, i) => (
+                  <Fragment key={r}>
+                    {i > 0 && " "}
+                    <span>{i > 0 ? `· ${r}` : r}</span>
+                  </Fragment>
+                ))}
+              </p>
+            )}
           </div>
-          <button ref={close} type="button" className="mc-qsh__x" onClick={onClose}>
-            Close
+          <button ref={close} type="button" className="mc-qsh__x v2-x" aria-label="Close" onClick={onClose}>
+            <Icon name="x" />
           </button>
         </div>
         {children}
@@ -163,15 +182,12 @@ export function TaskSheet({ c, onClose }: { c: Conversation; onClose: () => void
   return (
     <Sheet
       label={`Task · ${taskWord(c)}`}
+      status={<TaskPill c={c} />}
       title={c.title}
       sub={by ? `Updated by ${by} · ${c.ago}` : undefined}
+      rules={rules.length > 0 ? rules : undefined}
       onClose={onClose}
     >
-      {rules.length > 0 && (
-        <p className="mc-qsh__rules">
-          <span>Rules</span> {rules.join(" · ")}
-        </p>
-      )}
       <div className="mc-qsh__b mc-qsh__feed">
         <div className="mc-fi mc-qsh__fi">
           <MessageFeed slug={c.slug} messages={rest} typing={typing} />
@@ -179,6 +195,23 @@ export function TaskSheet({ c, onClose }: { c: Conversation; onClose: () => void
       </div>
     </Sheet>
   );
+}
+
+const TASK_PILL: Record<ReturnType<typeof taskState>, Status> = {
+  working: "running",
+  waiting: "queued",
+  needs: "awaiting",
+  stuck: "failed",
+  done: "sent",
+  idle: "queued",
+};
+
+/** v2: the task's state as one status pill ("Done · Check needed" reads as Partial). */
+function TaskPill({ c }: { c: Conversation }) {
+  const st = taskState(c);
+  const fin = finishLine(st, c.proof);
+  if (st === "done" && !c.proof?.trim()) return <StatusPill status="partial">Done · {fin}</StatusPill>;
+  return <StatusPill status={TASK_PILL[st]}>{fin ? `${taskStateLabel[st]} · ${fin}` : taskStateLabel[st]}</StatusPill>;
 }
 
 /** "running", "needs you", "stuck", or "done · <proof>" ("done · check needed" without proof). */

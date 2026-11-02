@@ -11,10 +11,10 @@ import { EmptyState } from "@/features/console/components/ui/EmptyState";
 import type { Conversation } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 
-const TABS = ["All", "Needs you", "Running", "Done"] as const;
+const TABS = ["All", "Waiting on you", "Running", "Done"] as const;
 type Tab = (typeof TABS)[number];
 const inTab = (c: Conversation, t: Tab) =>
-  t === "All" || (t === "Needs you" ? c.state === "needs" : t === "Running" ? c.state === "run" : c.state === "done" || c.state === "idle");
+  t === "All" || (t === "Waiting on you" ? c.state === "needs" : t === "Running" ? c.state === "run" : c.state === "done" || c.state === "idle");
 
 /** Every thread, newest first, filtered by state. */
 export function ThreadIndex() {
@@ -42,7 +42,7 @@ export function ThreadIndex() {
               <span className="mc-hl__tx">
                 {c.title}
                 <small>
-                  {c.state === "needs" && <span className="mc-or">Needs you · </span>}
+                  {c.state === "needs" && <span className="mc-or">Waiting on you · </span>}
                   {c.state === "run" && <span className="mc-ink">Running · </span>}
                   {c.preview}
                 </small>

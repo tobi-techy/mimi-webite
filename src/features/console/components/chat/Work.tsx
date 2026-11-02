@@ -4,6 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Markdown } from "@/features/console/components/panel/Markdown";
 import { Icon } from "@/features/console/components/ui/Icon";
+import { BankLogo } from "@/features/console/components/ui/BankLogo";
+import { bankOf } from "@/features/console/lib/banks";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo, findConversation } from "@/features/console/demo/store";
 import type { Message, PlanItemState, WorkDetail, WorkPlan } from "@/features/console/demo/types";
@@ -217,8 +219,14 @@ export function StepLine({ m }: { m: StepMsg }) {
   const can = !!m.detail;
   const icon: IconName =
     m.variant === "error" ? "circle-x" : m.variant === "retry" ? "refresh-cw" : m.variant === "gate" ? "hand" : ((m.icon ?? "check") as IconName);
+  const traced = m.variant === "tool" || m.variant === "retry" || m.variant === "error";
+  const toolName = traced ? (m.tool ?? TOOL_OF[m.icon ?? ""] ?? "Tool") : undefined;
+  /* a step that read a bank shows that bank's logo in the icon slot */
+  const bank = m.variant === "tool" ? (bankOf(m.tool) ?? (m.icon === "landmark" ? (bankOf(m.text) ?? bankOf(toolName)) : undefined)) : undefined;
   const lead =
-    m.variant === "handoff" && m.to ? (
+    bank ? (
+      <BankLogo bank={bank.name} size={16} className="mc-ws__i" />
+    ) : m.variant === "handoff" && m.to ? (
       <span className="mc-ws__hand" aria-hidden="true">
         <HelperFace name={m.from} size={14} />
         <Icon name="arrow-right" className="i mc-ws__arr" />
@@ -227,8 +235,6 @@ export function StepLine({ m }: { m: StepMsg }) {
     ) : (
       <Icon name={icon} className="i mc-ws__i" />
     );
-  const traced = m.variant === "tool" || m.variant === "retry" || m.variant === "error";
-  const toolName = traced ? (m.tool ?? TOOL_OF[m.icon ?? ""] ?? "Tool") : undefined;
   const body = (
     <>
       {lead}

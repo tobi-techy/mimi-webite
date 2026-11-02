@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { consoleMotion } from "@/config/console-motion";
 import { ReactTarget, ReactionLayer, type LayerState } from "@/features/console/components/chat/Tapbacks";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
+import { AskBubble, chatHref } from "@/features/console/components/chat/Ask";
+import { decideCard } from "@/features/console/components/credit/limit-entry";
+import { useLive } from "@/features/console/api/live-store";
+import Link from "next/link";
 import type { FaceState } from "@/features/console/demo/roster";
 import { splitUrls, toPlainText } from "@/features/console/lib/plain-text";
 import { safeHref } from "@/features/console/lib/safe-href";
@@ -12,11 +16,12 @@ import { Answer } from "@/features/console/components/chat/answer/Answer";
 import { FileChip, UploadLine, useApiBlob, useVoicePlayer } from "@/features/console/components/chat/Attachments";
 import { Inline, plainInline } from "@/features/console/components/chat/answer/Inline";
 import { Icon } from "@/features/console/components/ui/Icon";
+import { StatusPill, StatusText } from "@/features/console/components/ui/StatusPill";
+import { WithBank } from "@/features/console/components/ui/BankLogo";
 import { MimiLooking } from "@/components/ui/MimiLooking";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo } from "@/features/console/demo/store";
 import {
-  approveCard,
   declineCard,
   openDoc,
   openPanel,
@@ -114,7 +119,12 @@ function Streamed({ text, fresh }: { text: string; fresh: boolean }) {
 
 const verdictLabel: Record<Verdict, string> = { verified: "Verified", self: "Self-reported", fake: "Fake alert" };
 export function VerdictTag({ v, children }: { v: Verdict; children?: ReactNode }) {
-  return <span className={cx("mc-vf", `mc-vf--${v}`)}>{children ?? verdictLabel[v]}</span>;
+  /* v2: verdicts are status pills (icon + tint), not mono tags */
+  return (
+    <StatusPill status={v} className="mc-vf">
+      {children ?? verdictLabel[v]}
+    </StatusPill>
+  );
 }
 
 /* ---------- message kinds ---------- */
@@ -141,11 +151,40 @@ function Bubble({ m, tail }: { m: Extract<Message, { kind: "text" }>; tail: bool
   );
 }
 
+/**
+ * A handoff: one small line with the other helper's mark that opens her chat. In the chat that
+ * handed it over it reads "Handed to Order: …" with a one-line result under it once she answers;
+ * in her chat it reads "From Mimi: …" and points back.
+ */
+function HandoffLine({ m }: { m: Extract<Message, { kind: "step" }> }) {
+  const conversations = useDemo((s) => s.conversations);
+  const live = useLive((s) => s.status === "ready");
+  const other = m.peer ?? m.to!;
+  const href = chatHref(conversations, other, live && conversations.some((c) => c.api?.kind === "owner"));
+  const text = m.text.replace(/\*\*/g, "");
+  return (
+    <p id={m.id} className={cx("mf-handoff", m.peer && "is-in")}>
+      <Link className="mf-handoff__l" href={href} aria-label={`${text}. Open ${other}'s chat`}>
+        <HelperFace name={other} size={16} quiet still />
+        <span className="mf-handoff__t">{text}</span>
+        <Icon name="chevron-right" />
+      </Link>
+      {m.result && (
+        <Link className="mf-handoff__r" href={href}>
+          {m.result}
+        </Link>
+      )}
+    </p>
+  );
+}
+
 function ProofCard({ m }: { m: Extract<Message, { kind: "proof" }> }) {
   return (
     <div className={cx("mc-pv", m.verdict === "fake" && "mc-pv--fake")}>
       <div className="mc-pv__top">
-        <b>{m.title}</b>
+        <b>
+          <WithBank text={m.title} size={20} />
+        </b>
         <span className="mc-mono">{m.meta}</span>
         <div className="mc-pv__amt">{naira(m.amount)}</div>
         <span className="mc-pv__stamp">{m.stamp}</span>
@@ -355,91 +394,128 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
   match: "shield-check",
 };
 
-const proofWord: Record<ProofLevel, string> = { verified: "verified", likely: "likely", estimated: "estimated" };
+const proofWord: Record<ProofLevel, string> = { verified: "Verified", likely: "Likely", estimated: "Estimated" };
 
+/**
+ * Decision card, round 2: what will happen in one title and one quiet sentence, at most one
+ * preview of what goes out, then the figures as two-line rows (label over its proof or flag on the
+ * left, amount over its note on the right, one shared right edge) and two equal buttons. Plans show
+ * only their total here; the shop-by-shop list opens on Review. No icon tile, no pills in rows, so
+ * every left edge sits on the card's 16px line.
+ */
 function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx }) {
   const c: DecisionCard = m.card;
   const fresh = useFresh(m.at);
   const plan = c.kind === "plan";
   const live = c.rows.filter((r) => r.tone !== "Skip");
-  const rows = plan ? live.slice(0, 2) : c.rows;
-  const more = plan ? live.length - rows.length : 0;
-  const icon = cardIcon[c.kind];
   const act = cardActions(c);
   const tier = tierOf(c);
+  const total = c.amount ?? (plan || c.kind === "order" ? live.reduce((s, r) => s + (r.amount ?? 0), 0) : undefined);
+  const needs = c.status === "needs";
+  /* a proof word only earns its line when the rows differ; when every row is verified, say it once */
+  const proofs = new Set(c.rows.map((r) => r.proof).filter(Boolean));
+  const allVerified = !plan && c.rows.length > 1 && c.rows.every((r) => r.proof === "verified");
+  const mixedProof = proofs.size > 1 || c.rows.some((r) => !r.proof);
+  const sub =
+    plan && needs
+      ? "One WhatsApp reminder to each shop. Nothing goes out until you approve."
+      : allVerified
+        ? `${c.sub} · all verified`
+        : c.sub;
+  const showTotal = total !== undefined && total > 0 && !sub.includes(naira(total));
   return (
-    <div className={cx("mc-apc", c.status === "needs" && fresh && consoleMotion.approvalAttention && "is-attn")}>
-      <div className="mc-apc__h">
-        <Icon name={icon} />
-        <div className="mc-apc__t">
-          {c.title}
-          <small className="mc-mono">{c.sub}</small>
+    <div
+      className={cx("mc-apc v2-dc", needs && fresh && consoleMotion.approvalAttention && "is-attn")}
+      title={`Risk tier: ${tier}`}
+    >
+      <div className="v2-dc__h">
+        <div className="v2-dc__t">
+          <b>{c.title}</b>
+          <small>{sub}</small>
         </div>
-        <span className={cx("mc-tier", `mc-tier--${tier.toLowerCase()}`)} title={`Risk tier: ${tier}`}>
-          {tier}
-        </span>
-        {/* a card waiting on you shows its action buttons and nothing else: no "Needs you" tag */}
-        {c.status === "sending" && <span className="mc-nd mc-nd--run">Sending</span>}
-        {c.status === "sent" && <span className="mc-nd mc-nd--ok">{plan || c.kind === "brand" ? "Sent" : "Done"}</span>}
-        {c.status === "declined" && <span className="mc-nd mc-nd--off">Discarded</span>}
+        {c.status === "sending" && <StatusPill status="running">{plan ? "Sending" : "Saving"}</StatusPill>}
+        {c.status === "sent" && <StatusPill status="sent">{plan || c.kind === "brand" ? "Sent" : "Done"}</StatusPill>}
+        {c.status === "declined" && <StatusPill status="skipped">Discarded</StatusPill>}
       </div>
       {c.email && (
-        <div className="mc-apc__mail">
-          <p>
-            <span>To</span>
-            {c.email.to}
+        <div className="v2-dc__quote">
+          <p className="v2-dc__to">
+            To {c.email.to} · {c.email.subject}
           </p>
-          <p>
-            <span>Subject</span>
-            {c.email.subject}
-          </p>
-          <p className="mc-apc__body">{c.email.body}</p>
+          <p>{c.email.body}</p>
         </div>
       )}
-      <div className="mc-apc__rows">
-        {rows.map((r) => (
-          <div key={r.label} className="mc-apc__rw">
-            <span>{r.label}</span>
-            <span>
-              {r.amount !== undefined && naira(r.amount)}
-              {r.amount !== undefined && (r.tone || r.note) && " · "}
-              {r.tone ?? r.note}
-              {r.proof && <em className={cx("mc-prf", `mc-prf--${r.proof}`)}>{proofWord[r.proof]}</em>}
-              {r.flag && <em className="mc-or"> · {r.flag}</em>}
-            </span>
-          </div>
-        ))}
-        {more > 0 && (
-          <div className="mc-apc__rw">
-            <span>+{more} more</span>
-            <span />
+      {!c.email && c.message && needs && (
+        <div className="v2-dc__quote">
+          <p className="v2-dc__to">To {c.message.to}</p>
+          <p>{c.message.text}</p>
+        </div>
+      )}
+      <dl className="v2-dc__rows">
+        {!plan &&
+          c.rows.map((r) => {
+            const side = r.flag ? (
+              <StatusText status="fake">{r.flag}</StatusText>
+            ) : r.proof && mixedProof ? (
+              <StatusText status={r.proof === "verified" ? "verified" : "self"}>{proofWord[r.proof]}</StatusText>
+            ) : null;
+            const note = r.tone ?? r.note;
+            return (
+              <div key={r.label}>
+                <dt>
+                  <span>
+                    <WithBank text={r.label} />
+                  </span>
+                  {side}
+                </dt>
+                <dd>
+                  {r.amount !== undefined ? (
+                    <>
+                      <span className="v2-num">{naira(r.amount)}</span>
+                      {note && <small>{note}</small>}
+                    </>
+                  ) : (
+                    note && <span className="v2-dc__note">{note}</span>
+                  )}
+                </dd>
+              </div>
+            );
+          })}
+        {showTotal && (
+          <div className="v2-dc__total">
+            <dt>
+              <span>{plan ? "Total owed" : "Total"}</span>
+            </dt>
+            <dd>
+              <span className="v2-num">{naira(total)}</span>
+            </dd>
           </div>
         )}
-      </div>
-      {c.status === "needs" && (
-        <div className="mc-apc__ft">
+      </dl>
+      {needs && (
+        <div className="v2-dc__f">
           <button
             type="button"
-            className="mc-btn"
+            className="v2-btn"
             onClick={() => (act.secondary === "Review" ? openSheet(ctx.slug, m.id) : declineCard(ctx.slug, m.id))}
           >
             {act.secondary}
           </button>
-          <button type="button" className="mc-btn mc-btn--pri" onClick={() => approveCard(ctx.slug, m.id)}>
+          <button type="button" className="v2-btn v2-btn--pri" onClick={() => decideCard(ctx.slug, m)}>
             {act.primary}
           </button>
         </div>
       )}
       {c.status === "sending" && (
-        <div className="mc-apc__done mc-mono">
+        <p className="v2-dc__done">
           <i className="mc-spin" aria-hidden="true" />
           {plan ? "Sending on WhatsApp" : "Saving"}
-        </div>
+        </p>
       )}
       {c.status === "sent" && (
-        <div className="mc-apc__done mc-apc__done--ok mc-mono" role="status">
-          ✓ {c.doneText} · {c.sentAt}
-        </div>
+        <p className="v2-dc__done" role="status">
+          {c.doneText} · {c.sentAt}
+        </p>
       )}
     </div>
   );
@@ -491,6 +567,7 @@ function bodyOf(m: Message, ctx: Ctx, tail: boolean): ReactNode {
   if (m.kind === "doc") return <DocChip m={m} />;
   if (m.kind === "computer") return <ComputerChip m={m} />;
   if (m.kind === "answer") return <Answer m={m} />;
+  if (m.kind === "ask") return <AskBubble m={m} slug={ctx.slug} />;
   return null;
 }
 
@@ -588,7 +665,7 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
     }
     if (m.kind === "event") {
       items.push(
-        <p key={m.id} className={cx("mc-ev", isFreshAt(m.at) && "mc-in")} role="note">
+        <p key={m.id} className={cx("mc-ev", m.tone === "stop" && "mc-ev--stop", isFreshAt(m.at) && "mc-in")} role={m.tone === "stop" ? "status" : "note"}>
           {m.text}
         </p>,
       );
@@ -605,6 +682,11 @@ export function MessageFeed({ slug, messages: all, typing: typingIn }: { slug: s
           </p>
         </Row>,
       );
+      return;
+    }
+    /* the trail is off: a finished handoff reads as one small line with the new helper's mark */
+    if (!showWork && m.kind === "step" && m.variant === "handoff" && m.to) {
+      items.push(<HandoffLine key={m.id} m={m} />);
       return;
     }
     if (m.kind === "thought" || m.kind === "step") {

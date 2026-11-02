@@ -1,7 +1,9 @@
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { ShopDrawer } from "@/features/console/components/shops/ShopDrawer";
 import { Avatar } from "@/features/console/components/ui/Avatar";
-import { ButtonLink } from "@/features/console/components/ui/Button";
+import { Button, ButtonLink } from "@/features/console/components/ui/Button";
+import { openLimitFor } from "@/features/console/components/credit/limit-entry";
+import { limitOf, useLimits } from "@/features/console/lib/credit-limits";
 import { Pill } from "@/features/console/components/ui/Pill";
 import { consoleRoutes } from "@/features/console/config";
 import type { Shop } from "@/features/console/content/shops";
@@ -14,6 +16,8 @@ const TITLE_ID = "shop-title";
  * payments, disputes). No sell-through, score or best sellers, since the API has none of those.
  */
 export function LiveShopDetail({ shop, live }: { shop: Shop; live: NonNullable<Shop["live"]> }) {
+  /* a limit the owner set from the console wins over the book's figure */
+  const limit = useLimits((s) => s.set[shop.id]?.limit) ?? limitOf(shop.id, live.creditLimit);
   return (
     <ShopDrawer
       titleId={TITLE_ID}
@@ -50,7 +54,7 @@ export function LiveShopDetail({ shop, live }: { shop: Shop; live: NonNullable<S
           <span>Overdue</span>
         </div>
         <div>
-          <b>{nairaShort(live.creditLimit)}</b>
+          <b>{nairaShort(limit)}</b>
           <span>Credit limit</span>
         </div>
       </div>
@@ -93,6 +97,7 @@ export function LiveShopDetail({ shop, live }: { shop: Shop; live: NonNullable<S
         </>
       )}
       <div className="x-dbtns">
+        <Button onClick={() => openLimitFor(shop)}>Set limit</Button>
         <ButtonLink variant="primary" href={consoleRoutes.threads}>
           Open threads
         </ButtonLink>

@@ -1,3 +1,5 @@
+import { agoLabel } from "@/features/console/api/mappers";
+import { helperActivity, needsLine } from "@/features/console/lib/helper-activity";
 import type { Conversation, DemoState, HelperName } from "@/features/console/demo/types";
 
 /**
@@ -106,7 +108,12 @@ export type RosterRow = {
   steps: number;
   /** Where the row opens: the newest thread that needs the owner, else the newest thread. */
   thread?: Conversation;
+  /** Live demo: her lines that came since the owner last opened her (a neutral count). */
+  unread?: number;
+  /** Live demo: her lines sit in the owner's shared thread with Mimi; the row opens her side of it. */
+  shared?: boolean;
 };
+
 
 const needsIn = (c: Conversation) => c.messages.filter((m) => m.kind === "card" && m.card.status === "needs").length;
 
@@ -122,7 +129,13 @@ export function runningIn(s: Pick<DemoState, "typing">, c: Conversation): boolea
 }
 
 /** One roster row, derived from the demo store so faces follow the work. */
-export function rosterRow(s: Pick<DemoState, "conversations" | "typing" | "computer">, name: RosterName): RosterRow {
+export function rosterRow(
+  s: Pick<DemoState, "conversations" | "typing" | "computer">,
+  name: RosterName,
+  /** Live demo: when the owner last saw this helper's lines (unread counts after it). */
+  seen: number = Number.POSITIVE_INFINITY,
+  now: number = Date.now(),
+): RosterRow {
   const seed = rosterSeed[name];
   const mine = s.conversations.filter((c) => c.helper === name);
   const total = s.conversations.reduce((n, c) => n + needsIn(c), 0);
@@ -142,7 +155,7 @@ export function rosterRow(s: Pick<DemoState, "conversations" | "typing" | "compu
   } else if (seed.base === "blocked" && needs === 0) {
     preview = seed.settled;
   }
-  if (name === "Mimi") preview = total ? `${total} things need you · team on track` : seed.settled;
+  if (name === "Mimi") preview = total ? `${needsLine(total)} · team on track` : seed.settled;
   if (name === "Proof" && !live && s.computer.helper === "Proof" && (s.computer.status === "live" || s.computer.status === "user")) {
     state = s.computer.status === "user" ? "waiting" : "working";
     step = s.computer.status === "user" ? "You have her computer · she resumes when you're done" : `Computer · ${s.computer.activity}`;
@@ -150,10 +163,23 @@ export function rosterRow(s: Pick<DemoState, "conversations" | "typing" | "compu
   const thread = mine.find((c) => needsIn(c) > 0) ?? mine[0];
   /* threads from the API (demo build): the row reads from them, never from the sample outcomes */
   if (s.conversations.some((c) => c.api)) {
-    if (!live) state = thread ? threadFaceState(thread) : "idle";
-    if (name !== "Mimi") preview = thread?.preview ?? "Nothing yet";
-    if (!live) step = thread ? `${thread.status.charAt(0).toUpperCase()}${thread.status.slice(1)}` : "Waiting for work";
-    return { name, state, needs, preview, step, ago: thread?.ago ?? "", costToday: 0, steps: 0, thread };
+    /* every answer lands in the owner's one thread with Mimi: a helper's row reads her own lines in it */
+    const act = helperActivity(s.conversations, name, seen);
+    /* every helper has her own chat: in the live demo it is the owner's shared thread seen as hers,
+       so her row always opens it (`with=`), even before she has said anything */
+    const ownerThread = s.conversations.find((c) => c.api?.kind === "owner");
+    const home = (act.slug ? s.conversations.find((c) => c.slug === act.slug) : undefined) ?? ownerThread;
+    const shared = name !== "Mimi" && !!home && home.helper !== name;
+    const where = shared ? home : thread;
+    /* her cards waiting on the owner, in her own threads or the shared one */
+    const cards = name === "Mimi" ? needs : s.conversations.reduce((n, c) => n + c.messages.filter((m) => m.kind === "card" && m.card.status === "needs" && (c.helper === name || m.from === name)).length, 0);
+    if (!live) state = cards > 0 ? "waiting" : where ? threadFaceState(where.helper === name ? where : { state: "idle" }) : "idle";
+    /* Mimi's row reads her own lines only: what other helpers said lives in their chats */
+    if (name === "Mimi") preview = total ? needsLine(total) : act.last?.text ?? "Ask me anything";
+    else preview = act.last?.text ?? thread?.preview ?? "Nothing yet";
+    if (!live) step = cards > 0 ? "Waiting on you" : act.last && name !== "Mimi" ? "Waiting for your next message" : where ? `${where.status.charAt(0).toUpperCase()}${where.status.slice(1)}` : "Waiting for work";
+    const ago = act.last ? agoLabel(act.last.at, now) : thread?.ago ?? "";
+    return { name, state, needs: cards, preview, step, ago, costToday: 0, steps: 0, thread: where, unread: act.unread, shared };
   }
   return { name, state, needs, preview, step, ago: thread?.ago ?? "", costToday: seed.costToday, steps: seed.steps, thread };
 }

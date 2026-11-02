@@ -8,9 +8,12 @@ import { EmptyThread, MessageFeed, prefersReducedMotion } from "@/features/conso
 import { PlanSheet } from "@/features/console/components/chat/PlanSheet";
 import { MemorySheet, StepsSheet, TaskSheet, taskWord } from "@/features/console/components/chat/QuietSheets";
 import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
+import { HelperBrief } from "@/features/console/components/helpers/HelperBrief";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
-import { useLive } from "@/features/console/api/live-store";
+import { markViewed, setFocus, useLive } from "@/features/console/api/live-store";
+import { asksIn, assignFor, borrowedChat, ownChat } from "@/features/console/lib/chat-view";
+import { NeedsYou } from "@/features/console/components/chat/Ask";
 import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
 import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -30,9 +33,9 @@ import {
   stopDemo,
   togglePanel,
 } from "@/features/console/demo/engine";
-import { dayLabel, helperSections, rosterRow } from "@/features/console/demo/roster";
+import { dayLabel, helperSections, rosterNames, rosterRow, type RosterName } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
-import type { Conversation, Speaker } from "@/features/console/demo/types";
+import type { Conversation, HelperName, Message, Speaker, Worker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useToast } from "@/features/console/hooks/use-toast";
@@ -87,6 +90,16 @@ function GettingStarted() {
   );
 }
 
+/** Live demo: under an ask answered in Mimi's chat, the helper's chat says Mimi passed it on. */
+function passedOn(lines: Message[], answers: Readonly<Record<string, { via: string }>>): Message[] {
+  const out: Message[] = [];
+  for (const m of lines) {
+    out.push(m);
+    if (m.kind === "ask" && answers[m.id]?.via === "mimi") out.push({ id: `${m.id}:passed`, kind: "event", text: `Mimi passed your answer to ${m.from}`, at: m.at });
+  }
+  return out;
+}
+
 const labelOf = (c: Conversation) => {
   const first = c.messages[0];
   return first?.kind === "date" ? first.label : dayLabel(c.ago);
@@ -103,8 +116,17 @@ function TaskSection({
   typing,
   onTask,
   quiet,
+  focus,
+  lines,
+  from,
 }: {
   c: Conversation;
+  /** Live demo: this helper's chat out of the shared thread (what she was asked, and her work). */
+  focus?: RosterName;
+  /** The lines to show (her own chat, or what was handed to her), worked out by the caller. */
+  lines: Message[];
+  /** A task another helper handed over: whose conversation it came from. */
+  from?: Worker;
   open: boolean;
   /** Mimi's conversation: a task that waits on you reads "Waiting", no orange mark (the header carries the one count). */
   quiet?: boolean;
@@ -114,7 +136,10 @@ function TaskSection({
   onTask: (slug: string) => void;
 }) {
   const label = labelOf(c);
-  const rest = c.messages[0]?.kind === "date" ? c.messages.slice(1) : c.messages;
+  /* the task line already carries the day */
+  const rest = lines[0]?.kind === "date" ? lines.slice(1) : lines;
+  /* live demo: the shared thread reads as "You and Collector" in her chat */
+  const title = focus && c.api ? `You and ${focus}` : from ? `From ${from}: ${c.title}` : c.title;
   const by = updatedBy(c);
   const st = taskState(c);
   const word = quiet && st === "needs" ? taskStateLabel.waiting : taskWord(c);
@@ -126,15 +151,15 @@ function TaskSection({
         type="button"
         className="mc-ev mc-ev--task mc-taskln"
         aria-haspopup="dialog"
-        aria-label={`${label !== prevLabel ? `${label}. ` : ""}${c.title}. ${word}${by ? `, updated by ${by} ${c.ago} ago` : ""}. Open the task`}
+        aria-label={`${label !== prevLabel ? `${label}. ` : ""}${title}. ${word}${by ? `, updated by ${by} ${c.ago} ago` : ""}. Open the task`}
         onClick={() => onTask(c.slug)}
       >
         {label !== prevLabel && <span className="mc-taskln__d">{label}</span>}
-        <span className="mc-taskln__t">{c.title}</span>
+        <span className="mc-taskln__t">{title}</span>
       </button>
       {rest.length === 0 && !typing ? (
         open ? (
-          <EmptyThread helper={c.helper} />
+          focus ? <EmptyThread helper={focus}>Nothing here yet. Ask {focus} anything below.</EmptyThread> : <EmptyThread helper={c.helper} />
         ) : null
       ) : (
         <MessageFeed slug={c.slug} messages={rest} typing={typing} />
@@ -144,7 +169,7 @@ function TaskSection({
 }
 
 /** A helper's one conversation: iMessage-style feed of her tasks in the Factory skin, docked composer (on the open task), workspace panel. */
-export function ThreadChat({ slug }: { slug: string }) {
+export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: RosterName }) {
   const conv = useDemo((s) => findConversation(s, slug));
   const typing = useDemo((s) => (s.typing?.slug === slug ? s.typing.who : null));
   const typingAny = useDemo((s) => s.typing);
@@ -157,6 +182,7 @@ export function ThreadChat({ slug }: { slug: string }) {
   /* quiet sheets: Steps (from the status line), a task's own thread, What I remember */
   const [quiet, setQuiet] = useState<{ kind: "steps" | "memory" } | { kind: "task"; slug: string } | null>(null);
   const liveStatus = useLive((s) => s.status);
+  const answers = useLive((s) => s.answers);
   const { toggleSidebar } = useShell();
   const host = useRef<HTMLDivElement>(null);
   const feed = useRef<HTMLDivElement>(null);
@@ -168,6 +194,19 @@ export function ThreadChat({ slug }: { slug: string }) {
     setActiveThread(slug);
     return () => setActiveThread(undefined);
   }, [slug]);
+
+  /* live demo: one helper's side of the shared thread (her sidebar row was tapped) */
+  const focus = focusIn && conv?.api && conv.helper !== focusIn ? focusIn : undefined;
+  useEffect(() => {
+    setFocus(focus ?? null);
+    return () => setFocus(null);
+  }, [focus]);
+  /* what is on screen counts as read: that helper's side, or the whole shared thread */
+  const msgCount = conv?.messages.length ?? 0;
+  useEffect(() => {
+    if (!conv?.api) return;
+    markViewed(focus ? [focus] : rosterNames);
+  }, [conv?.api, focus, msgCount]);
 
   /* keep the newest message in view, also while a reply streams in or chips appear (unless the owner scrolled up) */
   /* the whole conversation (every task of this helper) */
@@ -304,6 +343,16 @@ export function ThreadChat({ slug }: { slug: string }) {
           </section>
         </div>
       );
+    /* home with no chat to open (the demo API turned this visitor away): say so plainly, no dead end */
+    if (!slug)
+      return (
+        <section className="mc-empty-thread" aria-label="Thread">
+          <EmptyThread helper="Mimi">Mimi&apos;s chat can&apos;t open right now. You can still look around the demo.</EmptyThread>
+          <Link className="mc-btn" href={consoleRoutes.shops}>
+            See the shops
+          </Link>
+        </section>
+      );
     return (
       <section className="mc-empty-thread" aria-label="Thread">
         <EmptyThread helper="Mimi">This thread isn&apos;t in the demo any more.</EmptyThread>
@@ -314,11 +363,16 @@ export function ThreadChat({ slug }: { slug: string }) {
     );
   }
 
-  const job = conv.helper === "Mimi" ? "Your whole team" : helperJobs[conv.helper];
+  /* who the header shows: the thread's helper, or the helper whose side is open */
+  const who = focus ?? conv.helper;
+  const job = who === "Mimi" ? "Your whole team" : helperJobs[who];
   /* Grok Bot reading: the header carries what the helper is doing in one line ("Checking Ikeja payments…"),
      taken from the live work line the thread no longer shows */
-  const live = consoleThread.showWork ? null : liveWork(conv.messages);
-  const writing = (typing && typing !== "me") || conv.status === "typing";
+  /* live demo: the shared thread is busy for whichever chat sent the newest message; the others stay quiet */
+  const lastSent = [...conv.messages].reverse().find((m): m is Extract<Message, { kind: "text" }> => m.kind === "text" && m.from === "me");
+  const busyHere = !conv.api || (lastSent?.to ?? "Mimi") === who;
+  const live = consoleThread.showWork || !busyHere ? null : liveWork(conv.messages);
+  const writing = busyHere && ((typing && typing !== "me") || conv.status === "typing");
   /* one state for the open task: Working / Waiting / Needs you / Stuck / Done next to the status */
   const isMimi = conv.helper === "Mimi";
   /* Mimi's thread carries no "Needs you" state word: the one quiet "N waiting" link below stands for the pile */
@@ -344,8 +398,36 @@ export function ThreadChat({ slug }: { slug: string }) {
   const waitingAll = isMimi ? needs.length : 0;
   /* the header face follows the helper's real state: working while a task runs, waiting on an approval, a done pop when it finishes */
   const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper);
-  /* one conversation per helper: every task she has worked on, the open one last */
-  const sections = helperSections(conversations, conv.helper, slug);
+  /* one conversation per helper: every task she has worked on, the open one last, each read as her
+     own chat (work she handed over folds into one line). Live: the shared thread seen as `who`'s chat */
+  const own = helperSections(conversations, conv.helper, slug).map((c) => ({
+    c,
+    lines: c.api ? (focus ? passedOn(borrowedChat(c.messages, focus as HelperName), answers) : ownChat(c.messages, "Mimi")) : ownChat(c.messages, c.helper),
+    from: undefined as Worker | undefined,
+  }));
+  /* sample threads: what other helpers handed to her lives here too, as its own task */
+  const borrowed =
+    conv.api || who === "Mimi"
+      ? []
+      : conversations
+          .filter((c) => c.helper !== who && !c.api)
+          .map((c) => ({ c, lines: borrowedChat(c.messages, who as HelperName, c.helper), from: c.helper as Worker | undefined }))
+          .filter((x) => x.lines.some((m) => m.kind !== "date" && m.kind !== "step"));
+  const sections = [...borrowed, ...own];
+  /* Mimi is the inbox for questions: every helper's ask shows in her chat as "Needs you" */
+  const asks = who === "Mimi" ? asksIn(conversations.filter((c) => (conv.api ? !!c.api : !c.api))) : [];
+  /* the typing dots belong to the chat the newest message was typed in */
+  const lastMine = [...conv.messages].reverse().find((m): m is Extract<Message, { kind: "text" }> => m.kind === "text" && m.from === "me");
+  const typedIn: Worker = lastMine?.to ?? "Mimi";
+  const dotsHere = !conv.api || typedIn === who;
+  /* the newest turn's chips fit this chat only when that turn was this helper's */
+  const lastHandoff = [...conv.messages].reverse().find((m): m is Extract<Message, { kind: "step" }> => m.kind === "step" && m.variant === "handoff");
+  const newestBy: Worker = lastHandoff?.to ?? "Mimi";
+  const chipsFit = !conv.api || (focus ? newestBy === focus : newestBy === "Mimi" || lastHandoff?.via !== "assign");
+  /* a question waiting on the owner is the next step: no chips under it */
+  const openLines = sections.find((x) => x.c.slug === slug && !x.from)?.lines ?? [];
+  const lastLine = [...openLines].reverse().find((m) => m.kind !== "date" && m.kind !== "event");
+  const askOpen = lastLine?.kind === "ask" && !lastLine.answered && !answers[lastLine.id];
   /* computer level 1: a live status line in the header while the panel is closed */
   const compActive = computer.status === "live" || computer.status === "paused" || computer.status === "user";
   /* the Computer panel is sample data: its live chip never shows on a thread from the API */
@@ -355,9 +437,9 @@ export function ThreadChat({ slug }: { slug: string }) {
     <div className={cx("mc-tv", panelOpen && "has-panel", full && panelOpen && "is-full")} ref={host}>
       <section
         className="mc-thread"
-        aria-label={`${conv.helper}: conversation`}
+        aria-label={focus ? `${focus}: her answers in your thread with Mimi` : `${conv.helper}: conversation`}
         /* helper threads take the helper's colour on your bubbles and the send button (helpers-v6.css) */
-        data-helper={conv.helper === "Mimi" ? undefined : conv.helper.toLowerCase()}
+        data-helper={who === "Mimi" ? undefined : who.toLowerCase()}
       >
         {/* iMessage-style header (29 Oct 2026): menu left, the helper's face + name centred, actions right */}
         <header className="mc-hdr mc-hdr--title mc-hdr--center">
@@ -381,12 +463,12 @@ export function ThreadChat({ slug }: { slug: string }) {
                 className="mc-tt__b"
                 aria-haspopup="menu"
                 aria-expanded={menu}
-                title={`${conv.helper} · ${job}`}
+                title={`${who} · ${job}`}
                 onClick={() => setMenu(!menu)}
               >
-                <span className={cx("mc-tt__chip", conv.helper === "Mimi" && "is-mimi", (live || writing || face.state === "working") && "is-working")}>
+                <span className={cx("mc-tt__chip", who === "Mimi" && "is-mimi", (live || writing || face.state === "working") && "is-working")}>
                   <HelperFace
-                    name={conv.helper}
+                    name={who}
                     size={60}
                     state={live || writing ? "working" : tstate === "stuck" ? "blocked" : tstate === "needs" ? "waiting" : isMimi && face.state === "waiting" ? "idle" : face.state}
                     dot={!isMimi && (face.needs > 0 || tstate === "needs")}
@@ -394,12 +476,13 @@ export function ThreadChat({ slug }: { slug: string }) {
                     quiet
                   />
                 </span>
-                <span className={cx("mc-tt__nm", conv.helper === "Mimi" && "is-mimi")}>
-                  <span className="mc-tt__t">{conv.helper}</span>
+                <span className={cx("mc-tt__nm", who === "Mimi" && "is-mimi")}>
+                  <span className="mc-tt__t">{who}</span>
                   <Icon name="chevron-right" className="i mc-tt__c" />
                 </span>
               </button>
-              <p className={cx("mc-tt__s", (live || writing) && "is-busy")} aria-live="polite">
+              <p className="mf-job">{who === "Mimi" ? "Runs your team for Coral Lane · reports to you" : `${job} for Coral Lane · reports to you`}</p>
+              <p className={cx("mc-tt__s", (live || writing) && "is-busy", tstate === "needs" && "is-needs")} aria-live="polite">
                 {waitingAll > 0 ? null : statusText ? (
                   <button type="button" className="mc-tt__sb" aria-haspopup="dialog" aria-label={`${statusText}. Show steps`} onClick={() => setQuiet({ kind: "steps" })}>
                     <span key={statusText} className="mc-tt__st">
@@ -414,13 +497,21 @@ export function ThreadChat({ slug }: { slug: string }) {
                   </Link>
                 )}
               </p>
+              {/* the demo / setup pill sits under the header, out of the feed's top fade (it read washed out there) */}
+              {isMimi && !focus && <GettingStarted />}
               {menu && (
             <div className="mc-menu mc-menu--l" role="menu">
               {/* the role moved here from the header status line */}
               <p className="mc-menu__job">{job}</p>
-              <Link role="menuitem" href={helperHref(conv.helper)} onClick={() => setMenu(false)}>
+              {focus && (
+                <Link role="menuitem" href={consoleRoutes.home} onClick={() => setMenu(false)}>
+                  <Icon name="message-square" />
+                  Whole thread with Mimi
+                </Link>
+              )}
+              <Link role="menuitem" href={helperHref(who)} onClick={() => setMenu(false)}>
                 <Icon name="users" />
-                About {conv.helper}
+                About {who}
               </Link>
               <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "steps" }))}>
                 <Icon name="list-checks" />
@@ -547,20 +638,23 @@ export function ThreadChat({ slug }: { slug: string }) {
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
-            {conv.helper === "Mimi" && <GettingStarted />}
-            {conv.helper === "Mimi" && <LiveDemoNote />}
-            {sections.map((c, i) => (
+            {conv.helper === "Mimi" && !focus && <LiveDemoNote />}
+            {sections.map(({ c, lines, from }, i) => (
               <TaskSection
-                key={c.slug}
+                key={`${from ?? "own"}:${c.slug}`}
                 c={c}
-                open={c.slug === slug}
-                prevLabel={i > 0 ? labelOf(sections[i - 1]!) : undefined}
-                typing={typingAny?.slug === c.slug ? typingAny.who : null}
+                lines={lines}
+                from={from}
+                open={c.slug === slug && !from}
+                prevLabel={i > 0 ? labelOf(sections[i - 1]!.c) : undefined}
+                typing={typingAny?.slug === c.slug && dotsHere && (!from || typingAny.who === who) ? (conv.api ? (who as Speaker) : typingAny.who) : null}
                 onTask={(t) => setQuiet({ kind: "task", slug: t })}
                 quiet={conv.helper === "Mimi"}
+                focus={focus}
               />
             ))}
-            <Replies slug={slug} />
+            <NeedsYou asks={asks} />
+            {!askOpen && <Replies slug={slug} who={who} fit={chipsFit} />}
           </div>
         </div>
         <PlanStrip slug={slug} />
@@ -582,7 +676,7 @@ export function ThreadChat({ slug }: { slug: string }) {
               <Icon name="chevron-down" />
             </button>
           )}
-          <Composer slug={slug} helper={conv.helper} />
+          <Composer slug={slug} helper={who} assign={conv.api ? assignFor(who) : undefined} to={conv.api && focus ? focus : undefined} />
         </div>
         {sheetOpen && <PlanSheet />}
         {quiet?.kind === "steps" && <StepsSheet slug={slug} onClose={() => setQuiet(null)} />}
@@ -592,6 +686,9 @@ export function ThreadChat({ slug }: { slug: string }) {
           return t ? <TaskSheet c={t} onClose={() => setQuiet(null)} /> : null;
         })()}
       </section>
+      {!isMimi && !focus && !panelOpen && (
+        <HelperBrief name={conv.helper as HelperName} state={live || writing ? "working" : face.state} step={statusText || face.step} />
+      )}
       <WorkspacePanel slug={slug} host={host} />
     </div>
   );

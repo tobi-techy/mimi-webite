@@ -99,7 +99,7 @@ html:not([data-theme="dark"]) .mc-me { border-top: 0; }
 
 /* ---------- page headers (Shops, Automations, Settings) ---------- */
 .mc-app h1.x-title, .mc-app .x-alh__t, .mc-app .x-set h1.x-title, .mc-app .x-set .x-shead h1 {
-  font: 500 17px/24px var(--font-geist-sans), system-ui, sans-serif !important; letter-spacing: -0.01em !important; color: var(--ink);
+  font: 400 17px/24px var(--font-geist-sans), system-ui, sans-serif !important; letter-spacing: -0.01em !important; color: var(--ink);
 }
 .mc-app .x-sub, .mc-app .x-set .x-sub { margin: 4px 0 0; font-size: 15px; line-height: 22px; color: var(--muted); }
 .x-lhd { min-height: 32px; gap: 8px; }

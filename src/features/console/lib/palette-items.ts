@@ -57,7 +57,7 @@ function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
   (
     [
       ["Threads", "messages-square", consoleRoutes.threads],
-      ["Needs you", "check", consoleRoutes.needs],
+      ["Waiting on you", "check", consoleRoutes.needs],
       ["Shops", "store", consoleRoutes.shops],
       ["Credit", "landmark", consoleRoutes.credit],
       ["Automations", "refresh-cw", consoleRoutes.automations],
@@ -171,7 +171,7 @@ export function paletteSections(
     return [g, tab === "All" ? m.slice(0, 6) : m];
   });
   if (!q) return sections;
-  /* a group with a title match goes first, so "Needs you" + Enter opens the pile, not a thread whose status says it */
+  /* a group with a title match goes first, so "Waiting on you" + Enter opens the pile, not a thread whose status says it */
   const named = ([, m]: [PaletteGroup, PaletteItem[]]) => m.some((it) => it.title.toLowerCase().includes(q));
   return [...sections.filter(named), ...sections.filter((s) => !named(s))];
 }

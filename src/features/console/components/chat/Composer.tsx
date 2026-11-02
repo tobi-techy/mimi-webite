@@ -127,7 +127,7 @@ function squish(el: HTMLElement | null) {
 }
 
 /** The docked pill composer: + menu, text, mic (voice note) and send. */
-export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
+export function Composer({ slug, helper, assign, to }: { slug: string; helper: Worker; /** Live demo: the helper this chat sends to (`assign_to`). */ assign?: string; /** Live demo: the chat the bubble shows in until the API files it. */ to?: Worker }) {
   const [text, setText] = useState("");
   const [menu, setMenu] = useState(false);
   const [rec, setRec] = useState(0);
@@ -160,6 +160,9 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   const recording = useRef<Recording | null>(null);
   /* demo build, API thread: photos, voice notes and invoices go to Mimi for real */
   const live = isApiThread(slug);
+  /* the demo's allowance is used up (or the demo is paused): the API refuses new turns, so the composer shuts and says why */
+  const capRaw = useLive((s) => (s.status === "ready" ? s.cap : null));
+  const cap = live ? capRaw : null;
 
   /* a recording never outlives the composer */
   useEffect(
@@ -280,10 +283,11 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   }
 
   function send() {
-    if (!value.trim() || playing) return;
+    if (!value.trim() || playing || cap) return;
     squish(sendBtn.current);
-    if (running) steerMessage(slug, value);
-    else sendMessage(slug, value);
+    const route = { assign, to };
+    if (running) steerMessage(slug, value, route);
+    else sendMessage(slug, value, route);
     setSteering(null);
     setText("");
     input.current?.focus();
@@ -321,7 +325,13 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
   }
 
   return (
-    <div className="mc-cmp" ref={wrap}>
+    <div className={cx("mc-cmp", cap && "is-shut")} ref={wrap}>
+      {cap && (
+        <p className="mc-steer mc-cap" role="status" id={`cap-${slug}`}>
+          {/* the note in the thread says it in full; here only what shut the composer */}
+          {cap.text.replace(/\s*You can still look around\.?$/, "")}
+        </p>
+      )}
       {live &&
         (Object.keys(ACCEPT) as AttachPurpose[]).map((p) => (
           <input
@@ -346,6 +356,7 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
         type="button"
         className={cx("mc-pl", menu && "is-on")}
         aria-label="Add"
+        disabled={!!cap}
         aria-expanded={menu}
         aria-haspopup="menu"
         onClick={() => {
@@ -466,8 +477,10 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
             rows={1}
             value={value}
             readOnly={draft !== null}
+            disabled={!!cap}
+            aria-describedby={cap ? `cap-${slug}` : undefined}
             aria-label={`Message ${helper}`}
-            placeholder={`Message ${helper}`}
+            placeholder={cap ? "You can still look around" : `Message ${helper}`}
             aria-autocomplete="list"
             aria-controls={ac ? `ac-${slug}` : undefined}
             onChange={(e) => {
@@ -504,10 +517,10 @@ export function Composer({ slug, helper }: { slug: string; helper: Worker }) {
         )}
         {rec === 0 && (
           <>
-            <button type="button" className="mc-mic" aria-label="Record a voice note" onClick={mic}>
+            <button type="button" className="mc-mic" aria-label="Record a voice note" disabled={!!cap} onClick={mic}>
               <Icon name="mic" />
             </button>
-            <button ref={sendBtn} type="button" className="mc-snd" aria-label="Send" disabled={!value.trim()} onClick={send}>
+            <button ref={sendBtn} type="button" className="mc-snd" aria-label="Send" disabled={!value.trim() || !!cap} onClick={send}>
               <Icon name="arrow-up" />
             </button>
           </>

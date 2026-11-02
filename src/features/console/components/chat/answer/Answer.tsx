@@ -33,7 +33,7 @@ function Block({ b, cites }: { b: AnswerBlock; cites?: Record<number, Source> })
 export function Answer({ m }: { m: AnswerMessage }) {
   return (
     <div className="mc-ans">
-      {m.worked && consoleThread.showWork && <WorkedFor id={m.id} secs={m.worked.secs} work={m.worked.work} />}
+      {m.worked && (consoleThread.showWork || consoleThread.showStepsLine) && <WorkedFor id={m.id} secs={m.worked.secs} work={m.worked.work} />}
       {m.blocks.map((b, i) => (
         <Block key={i} b={b} cites={m.cites} />
       ))}

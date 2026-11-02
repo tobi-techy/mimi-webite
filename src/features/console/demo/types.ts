@@ -106,6 +106,10 @@ export type Message =
       read?: boolean;
       /** Sent while the helper was mid-task: waits for the current task ("Queued, after current task"). */
       queued?: boolean;
+      /** Live demo: the API turn this message belongs to (routes it to the right helper's chat). */
+      turn?: string;
+      /** The chat it was typed in, while the API has not filed it under a turn yet. */
+      to?: Worker;
     } & Reactable)
   | ({
       id: string;
@@ -135,11 +139,26 @@ export type Message =
   | ({ id: string; kind: "voice"; from: Speaker; at: number; seconds: number; caption: string; transcript?: string; audio?: VoiceAudio } & Sent & Reactable)
   /** A document the owner attached (an invoice PDF). `local` is a blob: URL while the tab keeps it. */
   | ({ id: string; kind: "file"; from: Speaker; at: number; name: string; mime: string; size: number; local?: string } & Sent)
-  | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard } & Reactable)
+  | ({ id: string; kind: "card"; from: Speaker; at: number; card: DecisionCard; turn?: string } & Reactable)
+  /**
+   * A helper needs the owner's answer (a question, or a paused job asking to go on). It shows in
+   * the helper's own chat and, as "Needs you", in Mimi's. Answered in either place, both show it.
+   */
+  | {
+      id: string;
+      kind: "ask";
+      from: HelperName;
+      at: number;
+      question: string;
+      /** Buttons; each sends its `text`. Without options the owner types an answer. */
+      options?: { label: string; text: string }[];
+      answered?: AskAnswer;
+      turn?: string;
+    }
   | { id: string; kind: "doc"; from: Speaker; at: number; docId: string; title: string; sub: string }
   | { id: string; kind: "computer"; from: Speaker; at: number; title: string; sub: string }
   /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
-  | { id: string; kind: "event"; text: string; at: number }
+  | { id: string; kind: "event"; text: string; at: number; /** A send the API refused (the demo allowance): reads as a stop, not a quiet aside. */ tone?: "stop" }
   /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
   | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
   /**
@@ -171,6 +190,13 @@ export type Message =
       to?: HelperName;
       /** Gates: the decision card message this waits on. */
       link?: string;
+      /** Live demo: the API turn, and how the helper was picked ("assign" = the owner wrote in her chat). */
+      turn?: string;
+      via?: string;
+      /** Handoffs, in the helper's chat: who handed it over (the line points back there). */
+      peer?: Worker;
+      /** Handoffs, in the chat that handed it over: one line on how it went. */
+      result?: string;
     }
   /**
    * A structured helper answer (Claude/Factory style): "Worked for 34s" that folds the work lines,
@@ -181,11 +207,15 @@ export type Message =
       kind: "answer";
       from: Worker;
       at: number;
+      turn?: string;
       worked?: { secs: number; work?: WorkLine[] };
       blocks: AnswerBlock[];
       /** What each numbered citation badge ([^n] in the copy) points at. */
       cites?: Record<number, Source>;
     };
+
+/** How an ask was answered: in Mimi's chat (she passed it on) or in the helper's own. */
+export type AskAnswer = { text: string; at: number; via: "mimi" | "helper" };
 
 /** A work line folded under "Worked for Ns": the same reasoning and step lines the feed shows. */
 export type WorkLine = Extract<Message, { kind: "thought" | "step" }>;
@@ -224,7 +254,11 @@ export type TableCell =
   | { entity: Entity; href?: string }
   | { score: number }
   | { money: number; tone?: StatTone }
-  | { link: string; href?: string; docId?: string };
+  | { link: string; href?: string; docId?: string }
+  /** v2: a status pill (icon + tint), e.g. Overdue · 33 days. */
+  | { status: CellStatus; text?: string };
+/** Status keys a table cell can show (matches ui/StatusPill). */
+export type CellStatus = "paid" | "verified" | "partial" | "overdue" | "failed" | "fake" | "awaiting" | "queued" | "upcoming" | "self" | "sent" | "skipped" | "running";
 export type TableColumn = { label: string; align?: "left" | "right" };
 
 export type DeliverableType = "Sheet" | "Doc" | "PDF";
@@ -288,7 +322,15 @@ export const reactableKinds = ["text", "proof", "photos", "poll", "voice", "card
 export type ReactableMessage = Extract<Message, { kind: (typeof reactableKinds)[number] }>;
 
 /** A reply chip: tapping it types `text` (or the label) into the composer, sends it and runs `step`. */
-export type Reply = { label: string; text?: string; step: string };
+export type Reply = {
+  label: string;
+  text?: string;
+  step: string;
+  /** Live demo (handoffs contract): the helper a chip's ask goes to (`assign_to`). */
+  assign?: string;
+  /** Live demo: a chip that opens a page instead of asking (`shop:<id>`, `order:<id>`, `approvals`). */
+  open?: string;
+};
 
 export type Conversation = {
   slug: string;

@@ -76,6 +76,67 @@ export type ApiThreadDetail = {
   messages: ApiMessage[];
   steps: ApiStep[];
   turns: ApiTurnRow[];
+  /** Handoffs contract (handoffs-2026-10-30.1): one per turn, oldest first. Absent on older APIs. */
+  handoffs?: ApiHandoff[];
+};
+
+/* ---------- handoffs contract (MIMI-AGENT docs/HANDOFFS.md, contract handoffs-2026-10-30.1) ---------- */
+
+export type ApiHandoff = {
+  handoff_id: string;
+  contract: string;
+  from_helper: string;
+  to_helper: string;
+  to_title: string;
+  skill: string;
+  reason: string;
+  via: string;
+  hop: number;
+  status: string;
+  started_at?: string;
+  finished_at?: string;
+};
+
+export type ApiIntent = { kind: "turn" | "open" | string; text: string; assign_to: string; target: string };
+export type ApiChip = { label: string; tier: string; intent: ApiIntent };
+
+export type ApiCardShopRow = {
+  shop_id: string;
+  name: string;
+  owed_kobo: number;
+  owed_naira?: string;
+  overdue_kobo: number;
+  overdue_naira?: string;
+  days_late: number;
+  credit_limit_kobo: number;
+  credit_limit_naira?: string;
+  open_invoices: number;
+};
+
+export type ApiCardItem = {
+  item_id: string;
+  label: string;
+  qty: number | null;
+  unit: string;
+  status: string;
+  amount_kobo: number | null;
+  amount_naira?: string;
+  shop_id: string;
+};
+
+export type ApiCard = {
+  kind: "shop_row" | "list" | string;
+  title: string;
+  skill: string;
+  shop_row: ApiCardShopRow | null;
+  items: ApiCardItem[];
+  total: number;
+  total_kobo?: number | null;
+  total_naira?: string;
+  empty_text: string;
+  actions?: { action: string; label: string; tier: string; intent: ApiIntent }[];
+  as_of?: string;
+  source?: string;
 };
 
 export type ApiReply = {
@@ -103,6 +164,11 @@ export type ApiTurn = {
   replies: ApiReply[];
   route: Record<string, unknown>;
   error: string;
+  /* handoffs contract: absent on older APIs (the console then shows the plain reply) */
+  handoff?: ApiHandoff | null;
+  card?: ApiCard | null;
+  chips?: ApiChip[];
+  task_status?: string;
 };
 
 export type ApiMediaKind = "image" | "voice" | "document";
@@ -112,6 +178,8 @@ export type ApiMedia = { ref: string; sha256: string; mime: string; kind: ApiMed
 
 export type ApiTurnIn = {
   message_id: string;
+  /** Handoffs contract: the owner (or a chip) picks the helper. Sent only when set. */
+  assign_to?: string;
   source: "owner_message" | "shop_message" | "rep_message";
   text: string;
   phone?: string;
@@ -228,16 +296,17 @@ export type ApiDemoSession = {
   caps: { ip_daily_cap_kobo: number; global_daily_cap_kobo: number };
 };
 
+/** GET /v1/me: the caller and, in demo mode, today's demo allowance (kobo). */
 export type ApiMe = {
   tenant_id: string;
   role: string;
-  mode: "live" | "demo";
+  mode: "live" | "demo" | string;
   demo?: {
-    expires_at: string;
+    expires_at: string | null;
     ip_spent_kobo: number;
     ip_cap_kobo: number;
     global_spent_kobo: number;
     global_cap_kobo: number;
     paused: boolean;
-  };
+  } | null;
 };

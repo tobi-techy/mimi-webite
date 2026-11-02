@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { WithBank } from "@/features/console/components/ui/BankLogo";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { VerdictTag } from "@/features/console/components/chat/Messages";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -46,7 +47,7 @@ export function PlanSheet() {
               From {m.from} · {live.length} shops · {naira(total)}
             </small>
           </div>
-          {c.status === "needs" ? <span className="mc-nd">Needs you</span> : <span className="mc-nd mc-nd--ok">Sent</span>}
+          {c.status === "needs" ? <span className="mc-nd">Waiting on you</span> : <span className="mc-nd mc-nd--ok">Sent</span>}
           <button ref={closeRef} type="button" className="mc-ib mc-ib--b" aria-label="Close plan" onClick={closeSheet}>
             <Icon name="x" />
           </button>
@@ -89,7 +90,9 @@ export function PlanSheet() {
           <h3 className="mc-cap">Proof</h3>
           {c.proof?.map((p) => (
             <div key={p.label} className="mc-pf">
-              {p.label}
+              <span>
+                <WithBank text={p.label} />
+              </span>
               <VerdictTag v={p.verdict} />
             </div>
           ))}

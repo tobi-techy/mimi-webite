@@ -5,6 +5,7 @@ import type {
   ApiCredit,
   ApiDecision,
   ApiDemoSession,
+  ApiMe,
   ApiMedia,
   ApiShopDetail,
   ApiShopList,
@@ -173,6 +174,9 @@ type Sig = { signal?: AbortSignal };
 export const mimiApi = {
   createDemoSession: () => call<ApiDemoSession>("/v1/demo/sessions", { method: "POST", timeoutMs: 20_000 }),
   resetDemo: (token: string) => call<ApiDemoSession>("/v1/demo/reset", { method: "POST", token, timeoutMs: 20_000 }),
+
+  /** The caller; in demo mode also today's allowance, so the composer can shut before a refused send. */
+  me: (token: string, o: Sig = {}) => call<ApiMe>("/v1/me", { token, ...o }),
 
   threads: (token: string, o: Sig = {}) => call<ApiThreadList>("/v1/threads?limit=50", { token, ...o }),
   thread: (token: string, id: string, o: Sig = {}) => call<ApiThreadDetail>(`/v1/threads/${q(id)}`, { token, ...o }),

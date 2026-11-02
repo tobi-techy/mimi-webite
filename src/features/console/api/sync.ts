@@ -3,12 +3,12 @@
 import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
 import { getLive, notify, setLive } from "@/features/console/api/live-store";
-import { friendlyMessage, inFlight, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
+import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
-import type { Conversation, Message } from "@/features/console/demo/types";
+import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
  * Reads the API into the console and keeps it fresh.
@@ -38,6 +38,20 @@ export const pending = new Map<string, Message[]>();
  * (with their local preview) in place of the API's copy. Their blob: URLs are revoked on reset.
  */
 export const localMedia = new Map<string, Message>();
+/**
+ * Messages the API refused to take (the demo allowance is used up, or the demo is paused), per
+ * thread: the owner's bubble and the note saying why. Shown after the API's own messages and kept
+ * until a reset, so a poll never wipes them; they never count as in flight (no polling, no dots).
+ */
+export const held = new Map<string, Message[]>();
+/** Handoffs contract: the card and chips of each finished turn this tab followed, by turn id. */
+const turnExtras = new Map<string, TurnExtras>();
+/**
+ * The chat each owner message was typed in (Collector's, Credit's…), by its console message id:
+ * the API files every owner message in the one thread with Mimi, so this keeps it in that
+ * helper's chat while its turn is still being routed (and after, when the owner picked her).
+ */
+export const sentFrom = new Map<string, Worker>();
 /** Turns sent from this console that have not finished: turn id to thread id. */
 export const openTurns = new Map<string, string>();
 /** Message ids already on screen, and when each new one arrived (drives the reveal). */
@@ -66,7 +80,10 @@ export function resetCaches() {
   credit = null;
   threads = [];
   pending.clear();
+  held.clear();
+  turnExtras.clear();
   openTurns.clear();
+  sentFrom.clear();
   seen.clear();
   arrived.clear();
   firstPaint = true;
@@ -139,7 +156,18 @@ function publish() {
   let typing: { slug: string; who: Conversation["helper"] } | null = null;
   const convs = threads.map((t) => {
     const d = details.get(t.thread_id)?.detail;
-    let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id), localMedia) : mapThreadSummary(t, now);
+    let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id), localMedia, turnExtras) : mapThreadSummary(t, now);
+    if (sentFrom.size)
+      c = {
+        ...c,
+        messages: c.messages.map((m) => {
+          if (m.kind !== "text" || m.from !== "me" || m.to) return m;
+          const to = sentFrom.get(m.id.replace(/^api-m:in:/, ""));
+          return to ? { ...m, to } : m;
+        }),
+      };
+    const kept = held.get(t.thread_id);
+    if (kept?.length) c = { ...c, messages: [...c.messages, ...kept] };
     if (running(t, d)) {
       const doing = (d && liveActivity(d)) ?? "reading your message";
       c = { ...c, state: "run", working: true, status: doing };
@@ -199,6 +227,22 @@ export async function loadShop(id: string, signal: AbortSignal): Promise<Shop | 
   }
 }
 
+/**
+ * Reads today's demo allowance (GET /v1/me) and shuts or reopens the composer. A turn that ran
+ * past the allowance is not refused mid-way, so this runs after each finished turn too. Quiet on
+ * failure: a refused send still shuts the composer on its own.
+ */
+export async function checkCap(t: string): Promise<void> {
+  try {
+    const me = await mimiApi.me(t);
+    const cap = capFromMe(me);
+    const was = getLive().cap;
+    if (was?.kind !== cap?.kind || was?.text !== cap?.text) setLive({ cap });
+  } catch {
+    /* the allowance check is a hint; the API still refuses a turn past it */
+  }
+}
+
 /* ---------- polling ---------- */
 
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -221,6 +265,7 @@ export async function refresh(withBook = false): Promise<void> {
     return;
   }
   busy = true;
+  let capCheck = false;
   try {
     await authed(async (t) => {
       for (const [turnId, thread] of [...openTurns]) {
@@ -228,11 +273,14 @@ export async function refresh(withBook = false): Promise<void> {
           const turn = await mimiApi.turn(t, turnId);
           if (["done", "failed", "parked", "cancelled"].includes(turn.state)) {
             openTurns.delete(turnId);
+            /* older APIs send neither: the plain reply shows as before */
+            if (turn.card || turn.chips?.length) turnExtras.set(turnId, { card: turn.card ?? null, chips: turn.chips ?? [] });
             const left = (pending.get(thread) ?? []).filter(keeps);
             if (left.length) pending.set(thread, left);
             else pending.delete(thread);
             if (turn.state === "failed") notify("other", "Mimi couldn't finish that one. Please ask again in a moment.");
             withBook = true;
+            capCheck = true;
           }
         } catch (e) {
           if (!(e instanceof MimiApiError) || e.kind !== "notfound") throw e;
@@ -241,6 +289,7 @@ export async function refresh(withBook = false): Promise<void> {
       }
       await refreshThreads(t);
       if (withBook) await refreshBook(t);
+      if (capCheck) await checkCap(t);
     });
   } catch (e) {
     report(e);
@@ -261,14 +310,14 @@ export async function startLive(): Promise<void> {
   started = true;
   try {
     await authed(async (t) => {
-      await Promise.all([refreshThreads(t), refreshBook(t)]);
+      await Promise.all([refreshThreads(t), refreshBook(t), checkCap(t)]);
     });
-    setLive({ status: "ready" });
+    setLive({ status: "ready", since: Date.now() });
   } catch (e) {
     const err = e instanceof MimiApiError ? e : new MimiApiError(0, "");
     if (isApiBacked()) {
       /* threads loaded but the book did not: stay on the API and say so */
-      setLive({ status: "ready" });
+      setLive({ status: "ready", since: Date.now() });
       report(err);
     } else {
       restoreSampleConversations();

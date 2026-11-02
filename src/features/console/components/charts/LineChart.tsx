@@ -1,10 +1,13 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
 type Point = { label: string; primary: number; secondary: number; title: string };
 
-const W = 640;
+const DEFAULT_W = 640;
 const H = 220;
 const PAD = { top: 12, right: 8, bottom: 24, left: 40 };
 const Y_TICKS = 4;
-const X_LABELS = 6;
 const SMOOTH = 1 / 6;
 
 /** Catmull-Rom through the points, as cubic Bézier segments. */
@@ -32,7 +35,32 @@ const niceMax = (v: number): number => {
  * Two lines over time as plain SVG: the primary series on the left axis with a soft area, the
  * secondary on its own hidden scale. Each point has a hover column with a native tooltip.
  */
-export function LineChart({ points, label }: { points: readonly Point[]; label: string }) {
+export function LineChart({
+  points,
+  label,
+  format = (v: number) => Math.round(v).toLocaleString("en-US"),
+  area = true,
+}: {
+  points: readonly Point[];
+  label: string;
+  /** Y-axis tick text (v2 chart cards pass a short naira format). */
+  format?: (v: number) => string;
+  /** The soft fill under the primary line (v2 cards turn it off: thin lines only). */
+  area?: boolean;
+}) {
+  /* the viewBox follows the real width, so axis text stays 11px instead of scaling with the card */
+  const ref = useRef<SVGSVGElement>(null);
+  const [W, setW] = useState(DEFAULT_W);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => {
+      const w = Math.round(e?.contentRect.width ?? 0);
+      if (w > 0) setW(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const n = points.length;
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
@@ -45,11 +73,11 @@ export function LineChart({ points, label }: { points: readonly Point[]; label: 
   const secondary = points.map((p, i) => [x(i), yS(p.secondary)] as const);
   const line = smoothPath(primary);
   const base = PAD.top + plotH;
-  const every = Math.max(1, Math.ceil(n / X_LABELS));
+  const every = Math.max(1, Math.ceil(n / Math.max(3, Math.min(7, Math.floor(plotW / 84)))));
   const col = n > 1 ? plotW / (n - 1) : plotW;
 
   return (
-    <svg className="x-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
+    <svg ref={ref} className="x-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
       {Array.from({ length: Y_TICKS + 1 }, (_, i) => {
         const v = (maxP / Y_TICKS) * i;
         const y = yP(v);
@@ -57,13 +85,13 @@ export function LineChart({ points, label }: { points: readonly Point[]; label: 
           <g key={i}>
             <line className="x-grid" x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} />
             <text x={PAD.left - 8} y={y + 4} textAnchor="end">
-              {Math.round(v).toLocaleString("en-US")}
+              {format(v)}
             </text>
           </g>
         );
       })}
       {points.map((p, i) =>
-        i % every === 0 || i === n - 1 ? (
+        (i % every === 0 && n - 1 - i >= every * 0.6) || i === n - 1 ? (
           <text
             key={p.label}
             x={x(i)}
@@ -74,7 +102,7 @@ export function LineChart({ points, label }: { points: readonly Point[]; label: 
           </text>
         ) : null,
       )}
-      <path className="x-area" d={`${line} L${x(n - 1)},${base} L${x(0)},${base} Z`} />
+      {area && <path className="x-area" d={`${line} L${x(n - 1)},${base} L${x(0)},${base} Z`} />}
       <path className="x-s1 x-line" d={line} />
       <path className="x-s2 x-line" d={smoothPath(secondary)} />
       {points.map((p, i) => (

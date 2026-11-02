@@ -42,7 +42,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         icon: "message-square",
         face: c.helper,
         title: c.title,
-        meta: `${c.state === "needs" ? "Needs you" : c.state === "run" ? "Running" : c.state === "done" ? "Done" : c.helper} · ${c.folder} · ${c.ago}`,
+        meta: `${c.state === "needs" ? "Waiting on you" : c.state === "run" ? "Running" : c.state === "done" ? "Done" : c.helper} · ${c.folder} · ${c.ago}`,
         href: conversationHref(c),
       })),
     [conversations],

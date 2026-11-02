@@ -8,10 +8,13 @@
  */
 import type { CreditLine, CreditRecommendation } from "../content/credit";
 import type { LiveShopExtra, Shop, ShopStatus } from "../content/shops";
-import type { CardStatus, Conversation, DecisionCard, Folder, HelperName, Message, ThreadState } from "../demo/types";
+import type { AnswerBlock, CardStatus, Conversation, DecisionCard, Folder, HelperName, Message, Reply, TableCell, ThreadState } from "../demo/types";
 import type {
   ApiApproval,
+  ApiCard,
+  ApiChip,
   ApiCredit,
+  ApiMe,
   ApiMessage,
   ApiShop,
   ApiShopDetail,
@@ -162,7 +165,7 @@ export function mapThreadSummary(t: ApiThreadSummary, now: number): Conversation
     working: state === "run",
     ago: agoLabel(at, now),
     created: true,
-    preview: t.last_text || (t.messages === 0 ? "No messages yet" : t.title),
+    preview: nairaSign(t.last_text) || (t.messages === 0 ? "No messages yet" : t.title),
     messages: at !== null ? [{ id: `api-d:${t.thread_id}`, kind: "date", label: dateLine(at, now) }] : [],
     api: { threadId: t.thread_id, kind: t.kind, shopId: t.shop_id, shopName: t.shop_name },
   };
@@ -318,7 +321,14 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
   }
   /* a drafted reply that waits in approvals shows as its card, not as a sent bubble */
   if (m.status === "pending_approval" || m.status === "draft") return null;
-  return { id, kind: "text", from, text: m.text, at };
+  const text = nairaSign(m.text);
+  /* a helper asking the owner: shown in her chat and, as "Needs you", in Mimi's. A paused job's
+     note reads as model and tool numbers, so it is asked again in plain words (Keep going / Stop) */
+  const pause = plainPause(text);
+  if (from !== "Mimi" && (pause || m.kind === "question"))
+    return { id, kind: "ask", from, at, question: pause?.question ?? text, ...(pause ? { options: pause.options } : {}) };
+  if (pause) return { id, kind: "text", from, text: pause.question, at };
+  return { id, kind: "text", from, text, at };
 }
 
 /** A reply that also went as a voice note: the note itself, played through the API on tap. */
@@ -342,19 +352,162 @@ function stillShown(m: Message, stored: { ids: ReadonlySet<string>; texts: Reado
   return false;
 }
 
+const clipText = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
+/** "Handed to Order: any new orders today" from the owner's ask (the task in her own words). */
+export function handoffText(to: string, ask?: string): string {
+  const t = (ask ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[?.!\s]+$/, "");
+  if (!t) return `Handed to ${to}`;
+  return `Handed to ${to}: ${clipText(t.charAt(0).toLowerCase() + t.slice(1), 64)}`;
+}
+
+
+/**
+ * The paused-job notes the API writes in code ("I paused collector: this job has used ₦32.56 of
+ * its ₦50.00 model budget… Keep going?") read as model and tool numbers to a distributor. This
+ * gives the same question in plain words with two buttons, or null for any other text. The
+ * buttons send the words the API already understands ("keep going", "stop"); nothing about the
+ * budget itself changes.
+ */
+export function plainPause(text: string): { question: string; options: { label: string; text: string }[] } | null {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (/^I paused \w+(?::| after)/i.test(t) && /Keep going\?$/i.test(t))
+    return {
+      question: "I stopped to check with you before doing more on this job. Nothing was lost, and nothing more goes out until you say so. Should I keep going?",
+      options: [
+        { label: "Keep going", text: "keep going" },
+        { label: "Stop", text: "stop" },
+      ],
+    };
+  if (/^I stopped \w+ on this job because/i.test(t) && /keep going/i.test(t))
+    return {
+      question: "I stopped because I kept trying the same step. Nothing more was sent. Should I try again?",
+      options: [
+        { label: "Try again", text: "keep going" },
+        { label: "Stop", text: "stop" },
+      ],
+    };
+  return null;
+}
+
+/* ---------- handoffs contract (handoffs-2026-10-30.1) ---------- */
+
+/** What a finished turn brought beyond its reply (only on APIs with the handoffs contract). */
+export type TurnExtras = { card?: ApiCard | null; chips?: ApiChip[] };
+
+/** Step events of the contract: `handoff` shows as one quiet line; the other two never show. */
+const HANDOFF_STEPS = new Set(["handoff", "handoff_result", "card_read"]);
+
+/** "Asking Collector", or null when Mimi answers herself (no hand-over to show). */
+export function handoffLine(s: Pick<ApiStep, "type" | "short">): string | null {
+  if (s.type !== "handoff") return null;
+  const t = (s.short ?? "").trim();
+  if (!t || /^mimi\b/i.test(t)) return null;
+  return nairaSign(t);
+}
+
+const kobo = (k: number | null | undefined): number | null => (typeof k === "number" && Number.isFinite(k) ? koboToNaira(k) : null);
+const nairaText = (k: number | null | undefined, s?: string): string => {
+  const n = kobo(k);
+  return n !== null ? `₦${n.toLocaleString("en-US")}` : nairaSign(s ?? "");
+};
+
+/**
+ * An answer card (`shop_row` or `list`) as the answer blocks the console already draws: a shop
+ * row reads as stat cards, a list as a table. Every figure is the API's (kobo, read from the book).
+ * Unknown kinds give nothing (the reply sentence still shows).
+ */
+export function cardBlocks(card: ApiCard | null | undefined): AnswerBlock[] {
+  if (!card) return [];
+  if (card.kind === "shop_row" && card.shop_row) {
+    const r = card.shop_row;
+    const items = [
+      { label: "Owes", value: nairaText(r.owed_kobo, r.owed_naira) },
+      { label: "Overdue", value: nairaText(r.overdue_kobo, r.overdue_naira), tone: r.overdue_kobo > 0 ? ("bad" as const) : ("flat" as const) },
+      { label: "Days late", value: String(Math.max(0, r.days_late ?? 0)) },
+      { label: "Limit", value: nairaText(r.credit_limit_kobo, r.credit_limit_naira) },
+    ];
+    return [{ type: "stats", items }];
+  }
+  if (card.kind === "list") {
+    if (!card.items?.length) return card.empty_text ? [{ type: "text", text: nairaSign(card.empty_text) }] : [];
+    const money = card.items.some((i) => kobo(i.amount_kobo) !== null);
+    const qty = card.items.some((i) => typeof i.qty === "number");
+    const columns = [{ label: card.title || "Item" }, ...(qty ? [{ label: "Qty", align: "right" as const }] : []), { label: "Status" }, ...(money ? [{ label: "Amount", align: "right" as const }] : [])];
+    const rows: TableCell[][] = card.items.slice(0, 8).map((i) => [
+      nairaSign(i.label),
+      ...(qty ? [typeof i.qty === "number" ? `${i.qty}${i.unit ? ` ${i.unit}` : ""}` : ""] : []),
+      nairaSign(i.status || ""),
+      ...(money ? [kobo(i.amount_kobo) !== null ? { money: kobo(i.amount_kobo)! } : ""] : []),
+    ]);
+    const more = card.total > rows.length ? `${rows.length} of ${card.total}` : undefined;
+    return [{ type: "table", columns, rows, label: more }];
+  }
+  return [];
+}
+
+/** Next-step chips (two or three, safe tier only): an ask for Mimi or a page to open. Nothing else. */
+export function chipReplies(chips: ApiChip[] | null | undefined): Reply[] {
+  const out: Reply[] = [];
+  for (const c of chips ?? []) {
+    if (c.tier !== "safe" || !c.label?.trim()) continue;
+    const i = c.intent;
+    if (i?.kind === "turn" && i.text?.trim()) out.push({ label: nairaSign(c.label.trim()), text: i.text.trim(), step: "api", assign: i.assign_to || undefined });
+    else if (i?.kind === "open" && /^(shop:|order:|approvals$)/.test(i.target ?? "")) out.push({ label: nairaSign(c.label.trim()), step: "api", open: i.target });
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
 /**
  * One thread with its messages, the helpers' work steps (folded in before each turn's reply) and
  * its approvals as decision cards. `pending` is a message the owner just sent that the API has not
  * stored yet (kept so the bubble does not blink out while the turn is queued).
  */
-export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: number, pending: Message[] = [], local?: ReadonlyMap<string, Message>): Conversation {
+export function mapThread(
+  d: ApiThreadDetail,
+  approvals: ApiApproval[],
+  now: number,
+  pending: Message[] = [],
+  local?: ReadonlyMap<string, Message>,
+  /** Handoffs contract: cards and chips of turns this tab followed, by turn id. */
+  extras?: ReadonlyMap<string, TurnExtras>,
+): Conversation {
   const base = mapThreadSummary(d.thread, now);
   const shopName = d.thread.shop_name;
   const helperByTurn = new Map(d.turns.map((t) => [t.turn_id, helperOf(t.helper)]));
   const runningTurns = new Set(d.turns.filter((t) => t.state === "running" || t.state === "queued").map((t) => t.turn_id));
   const stepsByTurn = new Map<string, ApiStep[]>();
+  /* handoffs contract: one "Handed to Collector: …" line before the helper's answer (her chat
+     then holds the work); its other events never show */
+  const askByTurn = new Map<string, string>();
+  for (const m of d.messages) if (m.direction === "in" && m.sender === "owner" && m.turn_id && m.text && !askByTurn.has(m.turn_id)) askByTurn.set(m.turn_id, m.text);
+  const viaByTurn = new Map<string, string>();
+  for (const h of d.handoffs ?? []) viaByTurn.set(h.handoff_id.replace(/^ho_/, ""), h.via);
+  const handoffByTurn = new Map<string, Message>();
   for (const s of d.steps) {
     const k = s.turn_id ?? "";
+    if (HANDOFF_STEPS.has(s.type)) {
+      const line = handoffLine(s);
+      const to = k ? helperByTurn.get(k) : undefined;
+      if (line && k && to && to !== "Mimi" && !handoffByTurn.has(k))
+        handoffByTurn.set(k, {
+          id: `api-ho:${s.event_id}`,
+          kind: "step",
+          from: "Mimi",
+          at: parseApiTime(s.at) ?? 0,
+          variant: "handoff",
+          to,
+          state: "done",
+          text: handoffText(to, askByTurn.get(k)),
+          turn: k,
+          via: viaByTurn.get(k),
+        });
+      continue;
+    }
     stepsByTurn.set(k, [...(stepsByTurn.get(k) ?? []), s]);
   }
   const fromOf = (turn: string | null): Roster => {
@@ -363,10 +516,14 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
   };
 
   const out: Message[] = [];
+  /* each turn's last reply bubble: a card from the handoffs contract joins it */
+  const lastReply = new Map<string, number>();
   const emitted = new Set<string>();
   const emitSteps = (turn: string) => {
     if (emitted.has(turn)) return;
     emitted.add(turn);
+    const ho = handoffByTurn.get(turn);
+    if (ho) out.push(ho);
     const steps = stepsByTurn.get(turn) ?? [];
     if (!steps.length) return;
     /* while the turn runs its steps show one by one; once done they fold into one line */
@@ -376,8 +533,11 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
   d.messages.forEach((m, i) => {
     const turn = m.turn_id ?? "";
     if (m.direction === "out" && turn) emitSteps(turn);
-    const mapped = mapMessage(m, fromOf(m.turn_id), shopName, local);
+    const raw = mapMessage(m, fromOf(m.turn_id), shopName, local);
+    /* each line keeps its turn: the console files it in the chat of the helper who took the turn */
+    const mapped = raw && turn && (raw.kind === "text" || raw.kind === "ask") ? { ...raw, turn } : raw;
     if (mapped) out.push(mapped);
+    if (mapped?.kind === "text" && m.direction === "out" && turn) lastReply.set(turn, out.length - 1);
     const spoken = replyVoice(m, fromOf(m.turn_id));
     if (spoken) out.push(spoken);
     /* a turn with no reply yet: its steps go right after its last inbound message */
@@ -387,12 +547,21 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
     }
   });
   for (const turn of stepsByTurn.keys()) if (turn) emitSteps(turn);
+  for (const [turn, i] of lastReply) {
+    const blocks = cardBlocks(extras?.get(turn)?.card);
+    const m = out[i];
+    if (!blocks.length || m?.kind !== "text" || m.from === "me") continue;
+    out[i] = { id: m.id, kind: "answer", from: m.from, at: m.at, turn, blocks: [{ type: "text", text: m.text, lead: true }, ...blocks] };
+  }
+  /* chips from the newest turn only, once it has answered */
+  const newest = d.turns.at(-1);
+  const replies = newest && lastReply.has(newest.turn_id) ? chipReplies(extras?.get(newest.turn_id)?.chips) : [];
 
   for (const a of approvals) {
     if (a.thread_id !== d.thread.thread_id) continue;
     const card = mapApprovalCard(a, shopName);
     if (!card) continue;
-    out.push({ id: `apr:${a.approval_id}`, kind: "card", from: helperOf(a.helper), at: parseApiTime(a.created_at) ?? 0, card });
+    out.push({ id: `apr:${a.approval_id}`, kind: "card", from: helperOf(a.helper), at: parseApiTime(a.created_at) ?? 0, card, ...(a.turn_id ? { turn: a.turn_id } : {}) });
   }
 
   const stored = { ids: new Set(d.messages.map((m) => m.message_id)), texts: new Set(d.messages.map((m) => m.text)) };
@@ -409,6 +578,7 @@ export function mapThread(d: ApiThreadDetail, approvals: ApiApproval[], now: num
     status: stillPending.length ? "reading your message" : statusLine[state],
     working: state === "run",
     messages: [...date, ...out, ...shown],
+    ...(replies.length ? { replies } : {}),
   };
 }
 
@@ -512,6 +682,34 @@ export function mapCreditRecs(c: ApiCredit): CreditRecommendation[] {
   return c.requests
     .filter((r) => r.status === "pending")
     .map((r) => ({ shopId: r.shop_id, to: koboToNaira(r.amount_kobo), verb: "Raise", why: r.reason || "Asked by the Credit helper", approvalId: r.approval_id || undefined }));
+}
+
+/* ---------- money ---------- */
+
+/**
+ * Helpers sometimes write naira as a plain "N" ("N2,387,250", "N50k"). The console always shows
+ * the naira sign: an "N" right before a figure, not inside a word, becomes "₦".
+ */
+export function nairaSign(text: string): string {
+  if (!text) return text;
+  return text.replace(/(^|[^A-Za-z0-9_₦])N(?=\d)/g, "$1₦");
+}
+
+/* ---------- the demo allowance ---------- */
+
+/** Plain words for a shut composer: the demo's allowance is used up, or the demo is paused. */
+export function capText(kind: "capped" | "paused", detail = ""): string {
+  return kind === "paused" ? friendlyMessage("paused") : friendlyMessage("capped", detail);
+}
+
+/** From GET /v1/me: is the composer shut today? Null while there is allowance left. */
+export function capFromMe(me: ApiMe | null | undefined): { kind: "capped" | "paused"; text: string } | null {
+  const d = me?.demo;
+  if (!d) return null;
+  if (d.paused) return { kind: "paused", text: capText("paused") };
+  if (d.global_cap_kobo > 0 && d.global_spent_kobo >= d.global_cap_kobo) return { kind: "capped", text: capText("capped", "everyone") };
+  if (d.ip_cap_kobo > 0 && d.ip_spent_kobo >= d.ip_cap_kobo) return { kind: "capped", text: capText("capped") };
+  return null;
 }
 
 /* ---------- errors ---------- */

@@ -6,6 +6,7 @@ import type { ErrorKind } from "@/features/console/api/mappers";
 import type { CreditLine, CreditRecommendation } from "@/features/console/content/credit";
 import type { Shop } from "@/features/console/content/shops";
 import { isApiBacked } from "@/features/console/demo/store";
+import type { AskAnswer } from "@/features/console/demo/types";
 
 /**
  * State of the live layer (demo build, NEXT_PUBLIC_MIMI_MODE=demo), read by screens through
@@ -25,6 +26,21 @@ export type LiveState = {
   shopDetails: Record<string, Shop>;
   creditLines: CreditLine[] | null;
   creditRecs: CreditRecommendation[] | null;
+  /**
+   * The demo's daily allowance is used up (or the demo is paused): the API refuses new turns, so
+   * the composer is shut and says why. Set from a refused send (429/503) or from GET /v1/me.
+   */
+  cap: { kind: "capped" | "paused"; text: string } | null;
+  /**
+   * Sidebar unread counts: when the API data first showed (anything older counts as read) and when
+   * the owner last had each helper's lines on screen. `focus` is the helper whose side of the
+   * shared thread is open (the row tapped), so that row reads as selected.
+   */
+  since: number;
+  viewed: Readonly<Record<string, number>>;
+  focus: string | null;
+  /** Answers the owner gave in this tab to a helper's ask, by its message id (both chats read these). */
+  answers: Readonly<Record<string, AskAnswer>>;
 };
 
 const INITIAL: LiveState = {
@@ -34,6 +50,11 @@ const INITIAL: LiveState = {
   shopDetails: {},
   creditLines: null,
   creditRecs: null,
+  cap: null,
+  since: 0,
+  viewed: {},
+  focus: null,
+  answers: {},
 };
 let live: LiveState = INITIAL;
 const listeners = new Set<() => void>();
@@ -67,4 +88,20 @@ export const apiActive = (): boolean => USES_API && isApiBacked() && live.status
 
 export function notify(kind: ErrorKind | "info", text: string) {
   setLive({ notice: { kind, text, at: Date.now() } });
+}
+
+/** When the owner last saw a helper's lines (0 before the API data showed: nothing counts as unread). */
+export const seenAt = (s: LiveState, name: string): number => (s.since ? Math.max(s.since, s.viewed[name] ?? 0) : Number.POSITIVE_INFINITY);
+
+/** The owner has these helpers' lines on screen now: their unread counts clear. */
+export function markViewed(names: readonly string[]) {
+  const now = Date.now();
+  const viewed = { ...live.viewed };
+  for (const n of names) viewed[n] = now;
+  setLive({ viewed });
+}
+
+/** The helper whose side of the shared thread is open, or null. */
+export function setFocus(focus: string | null) {
+  if (live.focus !== focus) setLive({ focus });
 }

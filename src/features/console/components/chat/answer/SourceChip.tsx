@@ -1,6 +1,8 @@
 "use client";
 
+import { BankLogo } from "@/features/console/components/ui/BankLogo";
 import { Icon } from "@/features/console/components/ui/Icon";
+import { bankOf } from "@/features/console/lib/banks";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { openDoc } from "@/features/console/demo/engine";
 import type { Source, SourceKind } from "@/features/console/demo/types";
@@ -18,9 +20,10 @@ export const sourceIcon: Record<SourceKind, IconName> = {
 
 /** Where a fact came from: icon + name in a hairline 3px chip, truncated ("WhatsApp · Joy Pro…"). */
 export function SourceChip({ source, className }: { source: Source; className?: string }) {
+  const bank = source.kind === "bank" ? bankOf(source.name) : undefined;
   const body = (
     <>
-      <Icon name={sourceIcon[source.kind]} />
+      {bank ? <BankLogo bank={bank.name} size={16} /> : <Icon name={sourceIcon[source.kind]} />}
       <span className="mc-src__n">{source.name}</span>
     </>
   );

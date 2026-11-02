@@ -15,7 +15,7 @@ import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
 
 const naira = (n: number) => `₦${n.toLocaleString("en-US")}`;
-const runWord = { done: "Done", needs: "Needs you", failed: "Failed, retried", run: "Running" } as const;
+const runWord = { done: "Done", needs: "Waiting on you", failed: "Failed, retried", run: "Running" } as const;
 
 /**
  * One helper's own view (/console/helpers/[name]): who she is and what she is doing now, what

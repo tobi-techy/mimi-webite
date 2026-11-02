@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { ShopAvatar, type ShopAvatarSize } from "@/features/console/components/ui/ShopAvatar";
 import { avatarFor } from "@/features/console/lib/avatar";
 import { cx } from "@/lib/cx";
 
@@ -15,27 +14,15 @@ type AvatarProps = {
   neutral?: boolean;
 };
 
-const shopSize: Record<AvatarSize | "default", ShopAvatarSize> = { xs: 20, default: 28, md: 32, lg: 48 };
-
 /**
- * Shops get a generated shop-front sticker (`ShopAvatar`); people and the workspace (`neutral`,
- * or explicit `initials`) keep initials in a circle (`.c-avatar`). Decorative.
+ * Shops and people are round initials avatars (`.c-avatar`, Factory rebuild 31 Oct 2026: helpers are
+ * the only marks). The workspace and the signed-in user (`neutral`) are warm grey. Decorative.
  */
 export function Avatar({ name, initials, size, neutral }: AvatarProps) {
-  if (!neutral && !initials) return <ShopAvatar name={name} size={shopSize[size ?? "default"]} />;
   const a = avatarFor(name);
-  const style: CSSProperties | undefined = neutral
-    ? undefined
-    : {
-        background: `color-mix(in srgb, ${a.tint} 38%, var(--frame))`,
-        color: `color-mix(in srgb, ${a.tint} 55%, var(--ink))`,
-      };
+  const style: CSSProperties | undefined = neutral ? undefined : ({ "--av": a.tint } as CSSProperties);
   return (
-    <span
-      className={cx("c-avatar", size && `c-avatar--${size}`, neutral && "c-avatar--neutral")}
-      aria-hidden="true"
-      style={style}
-    >
+    <span className={cx("c-avatar", size && `c-avatar--${size}`, neutral ? "c-avatar--neutral" : "mf-av mf-av--c")} aria-hidden="true" style={style}>
       {initials ?? a.initials}
     </span>
   );

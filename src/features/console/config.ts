@@ -12,12 +12,15 @@ export const consoleRoutes = {
   threads: consolePath("/threads"),
   shops: consolePath("/shops"),
   credit: consolePath("/credit"),
+  /** Shop lists: one message, sent to each shop privately (demo data). */
+  lists: consolePath("/lists"),
   automations: consolePath("/automations"),
   helpers: consolePath("/helpers"),
   settings: consolePath("/settings"),
 } as const;
 
 export const threadHref = (slug: string): string => `${consoleRoutes.threads}/${slug}`;
+export const listHref = (id: string): string => `${consoleRoutes.lists}/${id}`;
 export const helperHref = (name: string): string => `${consoleRoutes.helpers}/${name.toLowerCase()}`;
 /** Sample shops have their own static page; shops from the API open at /shops/live?id=… (static-export safe). */
 export const shopHref = (id: string): string =>
@@ -37,4 +40,10 @@ export const DRAWER_BREAKPOINT = 899;
  */
 export const consoleThread = {
   showWork: false,
+  /**
+   * v2 (design/console-components-v2): even with the trail off, an answer keeps one quiet,
+   * collapsed line ("6 steps · 34s") that opens into the activity list (Muse/Grok's second
+   * status layer). Turn off to go back to bubbles only.
+   */
+  showStepsLine: true,
 } as const;

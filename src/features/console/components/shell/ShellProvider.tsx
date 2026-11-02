@@ -1,5 +1,6 @@
 "use client";
 
+import { LimitSheetHost } from "@/features/console/components/credit/SetLimitSheet";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { CommandPalette } from "@/features/console/components/shell/CommandPalette";
@@ -113,6 +114,7 @@ export function ShellProvider({ sidebar, children }: ShellProviderProps) {
           </div>
           {children}
         </main>
+        <LimitSheetHost />
       </div>
       {paletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
     </ShellContext>
