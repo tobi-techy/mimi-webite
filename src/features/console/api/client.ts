@@ -2,11 +2,16 @@ import { MIMI_API_URL } from "@/features/console/api/config";
 import { errorKind, type ErrorKind } from "@/features/console/api/mappers";
 import type {
   ApiApprovalList,
+  ApiConnect,
+  ApiConnectorList,
   ApiCredit,
   ApiDecision,
   ApiDemoSession,
+  ApiEventIn,
+  ApiLimitChange,
   ApiMe,
   ApiMedia,
+  ApiPolicy,
   ApiShopDetail,
   ApiShopList,
   ApiThreadDetail,
@@ -44,7 +49,7 @@ export const isAbort = (e: unknown): boolean => e instanceof DOMException && e.n
 
 type Opts = {
   token?: string | null;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "DELETE";
   body?: unknown;
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -216,4 +221,21 @@ export const mimiApi = {
   shops: (token: string, o: Sig = {}) => call<ApiShopList>("/v1/shops", { token, ...o }),
   shop: (token: string, id: string, o: Sig = {}) => call<ApiShopDetail>(`/v1/shops/${q(id)}`, { token, ...o }),
   credit: (token: string, o: Sig = {}) => call<ApiCredit>("/v1/credit", { token, ...o }),
+
+  /* ---- demo wiring (writes never retry) ---- */
+  /** The owner sets a shop's credit limit (whole naira). */
+  setLimit: (token: string, shopId: string, amount: number, reason?: string) =>
+    call<ApiLimitChange>(`/v1/credit/${q(shopId)}/limit`, { method: "POST", token, body: { amount_ngn: Math.round(amount), ...(reason ? { reason: reason.slice(0, 500) } : {}) } }),
+  undoLimit: (token: string, changeId: string) => call<ApiLimitChange>(`/v1/credit/changes/${q(changeId)}/undo`, { method: "POST", token }),
+  /** Undo what an approval did (a Zoho record). */
+  undoApproval: (token: string, id: string) => call<ApiDecision>(`/v1/approvals/${q(id)}/undo`, { method: "POST", token }),
+  connectors: (token: string, o: Sig = {}) => call<ApiConnectorList>("/v1/connectors", { token, ...o }),
+  connect: (token: string, toolkit: string) => call<ApiConnect>(`/v1/connectors/${q(toolkit)}/connect`, { method: "POST", token, body: {} }),
+  disconnect: (token: string, connectionId: string) => call<{ connection_id: string; status: string }>(`/v1/connectors/${q(connectionId)}`, { method: "DELETE", token }),
+  policy: (token: string, o: Sig = {}) => call<ApiPolicy>("/v1/policy", { token, ...o }),
+  /** A routine or webhook event (morning brief, bank credit). Deduped on event_id by the API. */
+  event: (token: string, body: ApiEventIn) => call<{ turn_id?: string; thread_id?: string } & Record<string, unknown>>("/v1/events", { method: "POST", token, body, retries: 1 }),
 };
+
+/** A route this API build does not have yet (an older demo host): the console falls back to its own copy. */
+export const missingRoute = (e: unknown): boolean => e instanceof MimiApiError && (e.status === 404 || e.status === 405) && (!e.detail || /^not found$/i.test(e.detail.trim()));

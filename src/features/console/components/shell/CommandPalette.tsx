@@ -16,10 +16,11 @@ import {
 } from "@/features/console/lib/palette-items";
 import { cx } from "@/lib/cx";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
+import { apiActive } from "@/features/console/api/live-store";
 import { DEMO_SLUG, conversationHref, playDemo, resetDemo, stageStory } from "@/features/console/demo/engine";
 import { useDemo } from "@/features/console/demo/store";
 import { Kbd } from "@/features/console/components/ui/Kbd";
-import { threadHref } from "@/features/console/config";
+import { consoleRoutes, threadHref } from "@/features/console/config";
 
 /** ⌘K quick actions: search threads, shops, pages, settings and actions. */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
@@ -72,7 +73,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (it.action === "playDemo") void playDemo((href) => router.push(href));
     if (it.action === "walkDemo") {
       stageStory();
-      router.push(threadHref(DEMO_SLUG));
+      /* the live demo has no sample story thread: stageStory starts the tour in Mimi's chat */
+      router.push(apiActive() ? consoleRoutes.home : threadHref(DEMO_SLUG));
     }
     if (it.action === "resetDemo") {
       resetDemo();

@@ -1,6 +1,6 @@
 "use client";
 
-import { isApiCard, isApiThread, liveDecide, liveReset, liveSend, liveStart } from "@/features/console/api/actions";
+import { isApiCard, isApiThread, liveDecide, liveReset, liveSend, liveStart, liveUndo } from "@/features/console/api/actions";
 import { apiActive, notify } from "@/features/console/api/live-store";
 import { consoleMotion } from "@/config/console-motion";
 import { sfx } from "@/lib/sound";
@@ -42,6 +42,7 @@ import { splitReply, typingMs } from "@/features/console/lib/thread-view";
 import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 import { consoleRoutes, threadHref } from "@/features/console/config";
+import { isTourCard, startTour, tourChip, tourDecide, tourUndo } from "@/features/console/demo/tour";
 
 /**
  * The demo engine: keyword-matched scripts that make helpers type, answer, build cards, drive the
@@ -340,6 +341,7 @@ let chipBusy = false;
  * camera), sends it, then runs the chip's scripted step. The only sound is the tap.
  */
 export async function tapChip(slug: string, reply: Reply): Promise<void> {
+  if (isTourCard(slug)) return tourChip(reply);
   if (chipBusy || getDemo().typing?.slug === slug) return;
   chipBusy = true;
   const ep = epoch;
@@ -1334,6 +1336,7 @@ export function answerAsk(slug: string, messageId: string, text: string, via: "m
 
 /** Approve a card (from its thread, the plan sheet or the Needs you pile: one shared store). */
 export function approveCard(slug: string, messageId: string, quiet = false) {
+  if (isTourCard(slug)) return tourDecide(messageId, true);
   if (isApiCard(messageId)) return void liveDecide(slug, messageId, true);
   const ep = epoch;
   const c = findConversation(getDemo(), slug);
@@ -1370,6 +1373,7 @@ async function approvePending(slug: string, kind: DecisionCard["kind"] | undefin
 }
 
 export function declineCard(slug: string, messageId: string) {
+  if (isTourCard(slug)) return tourDecide(messageId, false);
   if (isApiCard(messageId)) return void liveDecide(slug, messageId, false);
   sfx("console", "tap");
   const c = findConversation(getDemo(), slug);
@@ -1721,7 +1725,8 @@ const STORY_ASK = "Chase everyone over ₦50k this week. Polite, but firm past a
  * (a presenter tapping, or the guided demo tapping for them).
  */
 export function stageStory(playing = false) {
-  if (apiActive()) return void notify("info", "The guided demo uses sample data, so it is not part of the live demo. Everything else here is live.");
+  /* the live demo has no sample story thread: the five-scene tour is its guided demo */
+  if (apiActive()) return startTour();
   resetDemo();
   patchConversation(DEMO_SLUG, (c) => ({
     ...c,
@@ -1772,8 +1777,15 @@ async function tapStep(slug: string, step: string, ep: number): Promise<boolean>
 }
 
 /** Auto-plays the collections story through the same chips a presenter taps (~70s). */
+/** Plays the five-scene demo in Mimi's chat (live demo and sample data alike). */
 export async function playDemo(go: (href: string) => void) {
-  if (apiActive()) return void notify("info", "The guided demo uses sample data, so it is not part of the live demo. Everything else here is live.");
+  startTour();
+  go(consoleRoutes.home);
+}
+
+/** The older collections story, auto-played through its chips (sample data only). */
+export async function playCollectionsStory(go: (href: string) => void) {
+  if (apiActive()) return playDemo(go);
   stageStory(true);
   const ep = epoch;
   const slug = DEMO_SLUG;
@@ -1840,6 +1852,12 @@ export function fileInvoice(slug: string) {
     sfx("console", "ready", { theme: "bubble", emphasis: "subtle" });
     openPanel("Docs", docId);
   })();
+}
+
+/** Undo under a done card: the tour's own, or an API Zoho record or limit change. */
+export function undoCard(slug: string, messageId: string) {
+  if (isTourCard(slug)) return tourUndo(messageId);
+  if (isApiCard(messageId)) return void liveUndo(slug, messageId);
 }
 
 export function setActiveThread(slug: string | undefined) {

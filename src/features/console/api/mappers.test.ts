@@ -7,10 +7,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   agoLabel,
+  briefLines,
   cardKindOf,
   clockLabel,
   errorKind,
   friendlyMessage,
+  gradeOf,
   helperOf,
   liveActivity,
   mapApprovalCard,
@@ -304,7 +306,7 @@ test("mapShop with detail: payments, open invoices and disputes", () => {
     disputes: [{ dispute_id: "dsp-0000", delivery_id: "dlv-22-0006", sku: "NDL-70-CTN", missing: 2, text: "I didn't collect the 2 cartons", status: "open" }],
   };
   const s = mapShop(shop, d);
-  assert.deepEqual(s.payments, [{ date: "Oct 24", amount: 505000, verified: true }]);
+  assert.deepEqual(s.payments, [{ date: "Oct 24", amount: 505000, verified: true, proof: "verified" }]);
   assert.equal(s.lastPayment, "Oct 24");
   assert.deepEqual(s.live?.receivables, [{ id: "dlv-04-0001", due: "Sep 11", daysOverdue: 45, outstanding: 50600 }]);
   assert.deepEqual(s.live?.disputes, ["I didn't collect the 2 cartons"]);
@@ -403,4 +405,61 @@ test("an attachment sent from this tab keeps its preview and never shows twice",
   const photos = stored.messages.filter((m) => m.kind === "photos");
   assert.equal(photos.length, 1);
   assert.ok(photos[0]?.kind === "photos" && photos[0].photos[0] === "blob:x");
+});
+
+/* ---------- demo wiring (API-CONTRACT.md, 2 Nov 2026) ---------- */
+
+test("proof grade: proof_grade first, then the stored proof_level, then bank_confirmed", () => {
+  assert.equal(gradeOf({ proof_grade: "estimated", proof_level: "verified" }), "estimated");
+  assert.equal(gradeOf({ proof_level: "likely" }), "estimated");
+  assert.equal(gradeOf({ proof_level: "estimated" }), "unverified");
+  assert.equal(gradeOf({ bank_confirmed: true }), "verified");
+  assert.equal(gradeOf({}), "unverified");
+});
+
+test("zoho_payment approval: a plain Record card, then Recorded in Zoho with Undo, then undone", () => {
+  const a: ApiApproval = {
+    ...approval,
+    kind: "zoho_payment",
+    payload: { kind: "zoho_payment", shop_name: "Mama Chidi Kiosk", amount_ngn: 34950, invoice_number: "INV-56-9034", reference_number: "mimi-zp-1", payment_id: "p", shop_id: "shop-035" },
+  };
+  const pending = mapApprovalCard({ ...a, status: "pending" }, "")!;
+  assert.equal(pending.kind, "zoho");
+  assert.equal(pending.title, "Record ₦34,950 from Mama Chidi Kiosk in Zoho Books");
+  assert.equal(pending.labels?.primary, "Record in Zoho");
+  assert.ok(!JSON.stringify(pending).includes("mimi-zp-1"), "no internal reference in the card");
+  const done = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: true, demo: true } }, "")!;
+  assert.equal(done.status, "sent");
+  assert.equal(done.doneText, "Recorded in Zoho");
+  assert.deepEqual(done.undo, { state: "ready" });
+  const back = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: false, undone_at: "2026-11-03T08:00:00Z" } }, "")!;
+  assert.equal(back.undo?.state, "done");
+});
+
+test("credit_over_limit approval: reasons, Approve new limit / Keep limit, Undo by change id", () => {
+  const a: ApiApproval = {
+    ...approval,
+    kind: "credit_over_limit",
+    blocked: true,
+    payload: { kind: "credit_over_limit", shop_name: "Yemisi & Sons Mini Mart", order_ngn: 120000, limit_ngn: 630000, owed_ngn: 770200, suggested_limit_ngn: 900000, reasons: ["Owes N770,200 now.", "₦635,500 is overdue."] },
+  };
+  const c = mapApprovalCard({ ...a, status: "pending" }, "")!;
+  assert.equal(c.kind, "limit");
+  assert.deepEqual(c.labels, { primary: "Approve new limit", secondary: "Keep limit" });
+  assert.deepEqual(c.reasons, ["Owes ₦770,200 now.", "₦635,500 is overdue."]);
+  const ok = mapApprovalCard({ ...a, status: "approved", result: { change_id: "lch_1", old_limit_ngn: 630000, new_limit_ngn: 900000, undo_available: true } }, "")!;
+  assert.equal(ok.doneText, "Limit now ₦900,000");
+  assert.deepEqual(ok.undo, { state: "ready", changeId: "lch_1" });
+  const undone = mapApprovalCard({ ...a, status: "approved", result: { change_id: "lch_1", old_limit_ngn: 630000, new_limit_ngn: 900000, undo_available: true } }, "", new Set(["lch_1"]))!;
+  assert.deepEqual(undone.undo, { state: "done", text: "Limit back to ₦630,000" });
+  assert.equal(mapApprovalCard({ ...a, status: "rejected" }, "")!.declinedText, "Limit kept");
+});
+
+test("morning brief: one overdue shop per line; other text unchanged", () => {
+  const t = "Good morning. Top overdue: Mama Sola Provisions is 133 days overdue on ₦2,387,250; Funke & Sons Mini Mart is 45 days overdue on ₦1,070,050. In all ₦7,231,000 is overdue across 14 shops.";
+  assert.equal(
+    briefLines(t),
+    "Good morning.\n\nTop overdue:\n• Mama Sola Provisions is 133 days overdue on ₦2,387,250\n• Funke & Sons Mini Mart is 45 days overdue on ₦1,070,050\n\nIn all ₦7,231,000 is overdue across 14 shops.",
+  );
+  assert.equal(briefLines("Good morning, nothing is overdue."), "Good morning, nothing is overdue.");
 });

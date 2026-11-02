@@ -11,7 +11,7 @@ import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperBrief } from "@/features/console/components/helpers/HelperBrief";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
-import { markViewed, setFocus, useLive } from "@/features/console/api/live-store";
+import { apiActive, markViewed, setFocus, useLive } from "@/features/console/api/live-store";
 import { asksIn, assignFor, borrowedChat, ownChat } from "@/features/console/lib/chat-view";
 import { NeedsYou } from "@/features/console/components/chat/Ask";
 import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
@@ -37,6 +37,7 @@ import { dayLabel, helperSections, rosterNames, rosterRow, type RosterName } fro
 import { helperJobs } from "@/features/console/demo/seed";
 import type { Conversation, HelperName, Message, Speaker, Worker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
+import { TOUR_SLUG, startTour } from "@/features/console/demo/tour";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { isSoundOn, setSound } from "@/lib/sound";
@@ -53,16 +54,17 @@ const SETUP_STEPS = 5;
  */
 function GettingStarted() {
   const status = useLive((s) => s.status);
-  const shops = useLive((s) => s.shops);
+  const touring = useDemo((s) => s.conversations.some((c) => c.slug === TOUR_SLUG));
   if (status === "connecting") return null;
-  if (status === "ready")
-    return (
-      <Link href={consoleRoutes.shops} className="mc-gs mc-gs--feed" aria-label={`Explore the demo: ${shops?.length ?? 0} made-up shops`}>
-        <Icon name="store" />
-        <span className="mc-gs__t">Explore the demo</span>
-        <span className="mc-gs__k">{shops?.length ?? 0} made-up shops</span>
+  /* the demo build (live or fallen back to sample data): the five-scene tour is the way in */
+  if (status === "ready" || status === "fallback")
+    return touring ? null : (
+      <button type="button" className="mc-gs mc-gs--feed" onClick={() => startTour()} aria-label="Play the demo: one morning with Mimi, five short scenes">
+        <Icon name="play" />
+        <span className="mc-gs__t">Play the demo</span>
+        <span className="mc-gs__k">One morning, 5 scenes</span>
         <Icon name="chevron-right" />
-      </Link>
+      </button>
     );
   return (
     <Link
@@ -347,10 +349,15 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
     if (!slug)
       return (
         <section className="mc-empty-thread" aria-label="Thread">
-          <EmptyThread helper="Mimi">Mimi&apos;s chat can&apos;t open right now. You can still look around the demo.</EmptyThread>
-          <Link className="mc-btn" href={consoleRoutes.shops}>
-            See the shops
-          </Link>
+          <EmptyThread helper="Mimi">Mimi can&apos;t be reached right now, so the demo runs on sample data. Play it, or look around.</EmptyThread>
+          <div className="mc-empty-thread__acts">
+            <button type="button" className="mc-btn mc-btn--pri" onClick={() => startTour()}>
+              Play the demo
+            </button>
+            <Link className="mc-btn" href={consoleRoutes.shops}>
+              See the shops
+            </Link>
+          </div>
         </section>
       );
     return (
@@ -415,7 +422,9 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
           .filter((x) => x.lines.some((m) => m.kind !== "date" && m.kind !== "step"));
   const sections = [...borrowed, ...own];
   /* Mimi is the inbox for questions: every helper's ask shows in her chat as "Needs you" */
-  const asks = who === "Mimi" ? asksIn(conversations.filter((c) => (conv.api ? !!c.api : !c.api))) : [];
+  /* while the demo tour plays, its scenes are the one thing in Mimi's chat: other asks wait in Needs you */
+  const touring = conversations.some((c) => c.slug === TOUR_SLUG && c.state !== "done");
+  const asks = who === "Mimi" && !touring ? asksIn(conversations.filter((c) => (conv.api ? !!c.api : !c.api))) : [];
   /* the typing dots belong to the chat the newest message was typed in */
   const lastMine = [...conv.messages].reverse().find((m): m is Extract<Message, { kind: "text" }> => m.kind === "text" && m.from === "me");
   const typedIn: Worker = lastMine?.to ?? "Mimi";
@@ -552,7 +561,8 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                 onClick={() => {
                   setMenu(false);
                   stageStory();
-                  router.push(`${consoleRoutes.threads}/${DEMO_SLUG}`);
+                  /* live demo: stageStory starts the tour here in Mimi's chat (no sample story thread) */
+                  router.push(apiActive() ? consoleRoutes.home : `${consoleRoutes.threads}/${DEMO_SLUG}`);
                 }}
               >
                 <Icon name="list-checks" />
