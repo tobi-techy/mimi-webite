@@ -8,7 +8,8 @@ import { newSession, sessionToken, writeSession } from "@/features/console/api/s
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
-import { tourConversation } from "@/features/console/demo/tour-state";
+import { tourConversation, tourEcho } from "@/features/console/demo/tour-state";
+import { hideTourEcho } from "@/features/console/lib/tour-echo";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
@@ -182,7 +183,21 @@ function publish() {
   firstPaint = false;
   /* the demo tour (five scenes) is the console's own: it rides along with the API's threads */
   const tour = tourConversation();
-  setApiConversations(tour ? [...convs, tour] : convs);
+  if (!tour) {
+    setApiConversations(convs);
+    return syncTyping(typing);
+  }
+  /* the tour drives the visitor's book, so the API echoes it into the owner thread: hide the echo */
+  const echo = tourEcho(() => convs.find((c) => c.api?.kind === "owner")?.messages.map((m) => m.id) ?? []);
+  const shown = convs.map((c) => (c.api?.kind === "owner" ? { ...c, messages: hideTourEcho(c.messages, echo) } : c));
+  setApiConversations([...shown, tour]);
+  /* while it plays, the tour's own typing dots are its to clear, and the owner thread's echo types nothing */
+  if (echo.active && getDemo().typing?.slug === tour.slug) return;
+  const t = typing as { slug: string; who: Conversation["helper"] } | null;
+  syncTyping(echo.active && t?.slug !== tour.slug && t?.who === "Mimi" ? null : t);
+}
+
+function syncTyping(typing: { slug: string; who: Conversation["helper"] } | null) {
   const was = getDemo().typing;
   if (was?.slug !== (typing as { slug: string } | null)?.slug || (was && !typing)) setDemo((s) => ({ ...s, typing }));
 }

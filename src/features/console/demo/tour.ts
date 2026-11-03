@@ -7,7 +7,7 @@ import { republish } from "@/features/console/api/sync";
 import { creditLines } from "@/features/console/content/credit";
 import { shops as sampleShops, type Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, nextId, setDemo } from "@/features/console/demo/store";
-import { TOUR_SLUG, setTourConversation, tourConversation } from "@/features/console/demo/tour-state";
+import { TOUR_SLUG, ownTourApproval, resetTourEcho, setTourConversation, tourConversation } from "@/features/console/demo/tour-state";
 import type { Conversation, DecisionCard, HelperName, Message, Reply, Speaker } from "@/features/console/demo/types";
 import { naira } from "@/features/console/lib/format";
 import {
@@ -254,7 +254,10 @@ async function scene2(ep: number) {
   await sleep(500);
   if (!alive(ep)) return;
   const card = push({ kind: "card", from: "Mimi", at: Date.now(), card: zohoCard({ shop_name: b.pay.shop, amount_ngn: amount }, "needs") });
-  if (bank) live?.ids.set(card, bank.approval.approval_id);
+  if (bank) {
+    live?.ids.set(card, bank.approval.approval_id);
+    ownTourApproval(bank.approval.approval_id);
+  }
   setStatus("waiting on you", false, "needs");
 }
 
@@ -350,6 +353,7 @@ function begin(ep: number) {
     live = l;
   }
   setTourConversation(null);
+  resetTourEcho();
   if (!isApiBacked()) setDemo((s) => ({ ...s, conversations: s.conversations.filter((c) => c.slug !== TOUR_SLUG) }));
   update(() => base());
   setDemo((s) => ({ ...s, active: TOUR_SLUG, playing: false }));
@@ -459,12 +463,21 @@ export function tourUndo(id: string): void {
     }
     const text = c.kind === "zoho" ? "Taken back out of Zoho" : `Limit back to ${naira(b.order.limit)}`;
     setCard(id, (x) => ({ ...x, undo: { state: "done", text } }));
-    if (c.kind === "limit") {
-      released = false;
-      void say("Order", `Okay, the limit is back to ${naira(b.order.limit)} and the order is on hold again.`, ep, 700);
-    } else void say("Mimi", "Done. Zoho Books is back to how it was. The payment still counts as paid here.", ep, 700);
+    if (c.kind === "limit") released = false;
+    const line =
+      c.kind === "limit"
+        ? say("Order", `Okay, the limit is back to ${naira(b.order.limit)} and the order is on hold again.`, ep, 700)
+        : say("Mimi", "Done. Zoho Books is back to how it was. The payment still counts as paid here.", ep, 700);
+    if (!(await line)) return;
+    /* the next step stays on offer after an Undo (its chip may have gone while she typed) */
+    offer(undoNext(c.kind, b));
+    setStatus("waiting for your next message", false);
   })();
 }
+
+/** The chip that follows a card once it is decided (approved, declined or undone). */
+const undoNext = (kind: DecisionCard["kind"], b: Pick): Reply[] | undefined =>
+  kind === "zoho" ? next(`Next: ${first(b.order.shop)} orders over its limit`, "tour.s4") : kind === "limit" ? next("Next: a delivery gets confirmed", "tour.s5") : undefined;
 
 export const isTourCard = (slug: string): boolean => slug === TOUR_SLUG;
 
