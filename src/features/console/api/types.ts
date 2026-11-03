@@ -366,3 +366,51 @@ export type ApiMe = {
     paused: boolean;
   } | null;
 };
+
+/* ---------- computer tasks (hosted cloud browser, one per task) ---------- */
+
+/** One line of the run log. `screenshot` is an opaque reference; the console never puts it in an <img> src. */
+export type ApiComputerTaskStep = {
+  index: number;
+  /** The plain sentence a person reads. Optional: a step may arrive without one (the screen says so). */
+  action?: string | null;
+  url?: string | null;
+  note?: string | null;
+  screenshot?: string | null;
+};
+
+/** A file the task produced. Read defensively: the field names are not fixed yet. */
+export type ApiComputerTaskArtifact = Record<string, unknown> | string;
+
+/** GET /v1/computer/tasks/{id}. */
+export type ApiComputerTask = {
+  task_id: string;
+  status: string;
+  /** One of the kinds the owner named (see lib/computer-tasks.ts). */
+  kind?: string | null;
+  /** The POST response carries the plan; a later GET may not, so it is optional here. */
+  plan?: string[];
+  steps?: ApiComputerTaskStep[];
+  artifacts?: ApiComputerTaskArtifact[];
+  stop_reason?: string | null;
+  /** A signed link to watch the browser live. The service fills it only while the task runs. */
+  live_view_url?: string | null;
+};
+
+/** POST /v1/computer/tasks. */
+export type ApiComputerTaskIn = { goal: string; url: string; domain: string; kind: string };
+
+/** One row of GET /v1/computer/tasks (a summary; the step log comes from the detail route). */
+export type ApiComputerTaskSummary = {
+  task_id: string;
+  goal?: string | null;
+  kind?: string | null;
+  domain?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  step_count?: number | null;
+  stop_reason?: string | null;
+};
+
+/** GET /v1/computer/tasks. */
+export type ApiComputerTaskList = { tasks: ApiComputerTaskSummary[] };

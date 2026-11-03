@@ -15,6 +15,12 @@ export const consoleRoutes = {
   /** Shop lists: one message, sent to each shop privately (demo data). */
   lists: consolePath("/lists"),
   automations: consolePath("/automations"),
+  /** Computer tasks: one hosted cloud browser per task, approved once by the owner. */
+  computers: consolePath("/computers"),
+  /** Ask for a new task (goal and the site it starts on). */
+  newComputerTask: consolePath("/computers/new"),
+  /** One task, opened by id (?id=…, static-export safe like /shops/live?id=…). */
+  computerTask: consolePath("/computers/task"),
   helpers: consolePath("/helpers"),
   settings: consolePath("/settings"),
 } as const;
@@ -22,6 +28,8 @@ export const consoleRoutes = {
 export const threadHref = (slug: string): string => `${consoleRoutes.threads}/${slug}`;
 export const listHref = (id: string): string => `${consoleRoutes.lists}/${id}`;
 export const helperHref = (name: string): string => `${consoleRoutes.helpers}/${name.toLowerCase()}`;
+/** One computer task's page: the id goes in the query, so the static export has a page to serve. */
+export const computerTaskHref = (id: string): string => `${consoleRoutes.computerTask}?id=${encodeURIComponent(id)}`;
 /** Sample shops have their own static page; shops from the API open at /shops/live?id=… (static-export safe). */
 export const shopHref = (id: string): string =>
   findShop(id) ? `${consoleRoutes.shops}/${id}` : `${consoleRoutes.shops}/live?id=${encodeURIComponent(id)}`;

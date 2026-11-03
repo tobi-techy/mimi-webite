@@ -61,6 +61,7 @@ function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
       ["Shops", "store", consoleRoutes.shops],
       ["Credit", "landmark", consoleRoutes.credit],
       ["Automations", "refresh-cw", consoleRoutes.automations],
+      ["Computer tasks", "monitor", consoleRoutes.computers],
       ["Computers", "monitor", settingsHref("computers")],
     ] as const
   ).forEach(([title, icon, href]) =>
