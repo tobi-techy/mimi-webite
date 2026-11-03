@@ -86,6 +86,8 @@ export function CreditBoard() {
         (!query || `${l.shop.name} ${l.shop.area} ${l.recommendation}`.toLowerCase().includes(query)),
     );
   }, [lines, tab, q]);
+  /* the API has no credit score: show the column only when a line in the book really has one */
+  const showScore = useMemo(() => lines.some((l) => !l.shop.live), [lines]);
 
   return (
     <>
@@ -160,7 +162,7 @@ export function CreditBoard() {
                 </th>
                 <th scope="col">Used</th>
                 <th scope="col">Due</th>
-                <th scope="col">Score</th>
+                {showScore && <th scope="col">Score</th>}
                 <th scope="col">Recommendation</th>
                 <th scope="col">
                   <span className="sr-only">Actions</span>
@@ -188,16 +190,18 @@ export function CreditBoard() {
                     {l.due}
                     {l.late && !l.shop.live && " · overdue"}
                   </td>
-                  <td className="x-num">
-                    {l.shop.live ? (
-                      <span className="x-mu">—</span>
-                    ) : (
-                      <>
-                        <span className="x-ink">{l.shop.score}</span>
-                        <span className="x-mu">/100</span>
-                      </>
-                    )}
-                  </td>
+                  {showScore && (
+                    <td className="x-num">
+                      {l.shop.live ? (
+                        <span className="x-mu">—</span>
+                      ) : (
+                        <>
+                          <span className="x-ink">{l.shop.score}</span>
+                          <span className="x-mu">/100</span>
+                        </>
+                      )}
+                    </td>
+                  )}
                   <td className="x-mu">{set[l.shop.id] ? `Set to ${naira(set[l.shop.id]!.limit)} by you` : l.recommendation}</td>
                   <td className="r">
                     <ActionGroup

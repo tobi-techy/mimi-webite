@@ -55,6 +55,18 @@ export function ShopsTable() {
       .sort((a, b) => (sort === "Lowest owed first" ? a.owed - b.owed : b.owed - a.owed));
   }, [shops, q, route, status, sort]);
 
+  /* Show a column only when at least one shop in the book has a real value for it: the API has no
+     sell-through, score or payment date, so those columns would read as a wall of dashes. Computed
+     over the whole book, not the filtered rows, so filtering never changes the shape of the table. */
+  const show = useMemo(
+    () => ({
+      sellThrough: shops.some((s) => !s.live),
+      score: shops.some((s) => !s.live),
+      lastPayment: shops.some((s) => Boolean(s.lastPayment) && s.lastPayment !== "—"),
+    }),
+    [shops],
+  );
+
   return (
     <>
       <div className="x-ltools">
@@ -94,12 +106,12 @@ export function ShopsTable() {
             <tr>
               <th scope="col">Shop</th>
               <th scope="col">Owner</th>
-              <th scope="col">Sell-through 7d</th>
+              {show.sellThrough && <th scope="col">Sell-through 7d</th>}
               <th scope="col" className="r">
                 Outstanding
               </th>
-              <th scope="col">Score</th>
-              <th scope="col">Last payment</th>
+              {show.score && <th scope="col">Score</th>}
+              {show.lastPayment && <th scope="col">Last payment</th>}
               <th scope="col">Status</th>
             </tr>
           </thead>
@@ -121,28 +133,32 @@ export function ShopsTable() {
                   </Link>
                 </td>
                 <td>{s.owner}</td>
-                <td>
-                  {s.live ? (
-                    <span className="x-mu">—</span>
-                  ) : (
-                    <>
-                      <MiniBar percent={s.sellThrough} />
-                      <span className="x-num">{s.sellThrough}%</span>
-                    </>
-                  )}
-                </td>
+                {show.sellThrough && (
+                  <td>
+                    {s.live ? (
+                      <span className="x-mu">—</span>
+                    ) : (
+                      <>
+                        <MiniBar percent={s.sellThrough} />
+                        <span className="x-num">{s.sellThrough}%</span>
+                      </>
+                    )}
+                  </td>
+                )}
                 <td className="r x-ink">{naira(s.owed)}</td>
-                <td className="x-num">
-                  {s.live ? (
-                    <span className="x-mu">—</span>
-                  ) : (
-                    <>
-                      <span className="x-ink">{s.score}</span>
-                      <span className="x-mu">/100</span>
-                    </>
-                  )}
-                </td>
-                <td>{s.lastPayment}</td>
+                {show.score && (
+                  <td className="x-num">
+                    {s.live ? (
+                      <span className="x-mu">—</span>
+                    ) : (
+                      <>
+                        <span className="x-ink">{s.score}</span>
+                        <span className="x-mu">/100</span>
+                      </>
+                    )}
+                  </td>
+                )}
+                {show.lastPayment && <td>{s.lastPayment}</td>}
                 <td>
                   <Pill tone={shopStatus[s.status].tone}>{shopStatus[s.status].label}</Pill>
                 </td>
