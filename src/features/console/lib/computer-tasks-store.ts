@@ -118,8 +118,12 @@ export const taskStore = {
       return {
         ...prev,
         ...row,
+        /* an older list row must not push back the status, the step count, or why the task stopped */
         status: keepStatus ? prev.status : row.status,
         statusAt: keepStatus ? prev.statusAt : at,
+        stepCount: keepStatus ? prev.stepCount : row.stepCount,
+        stopReason: keepStatus ? prev.stopReason : row.stopReason,
+        note: keepStatus ? prev.note : row.note,
         /* keep whatever the detail read already gave, and the start page of a task asked for here */
         task: prev.task,
         error: prev.error,

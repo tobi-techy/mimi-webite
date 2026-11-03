@@ -18,6 +18,7 @@ import { useToast } from "@/features/console/hooks/use-toast";
 import {
   canStop,
   describeStop,
+  isFinished,
   kindLabel,
   liveViewLink,
   needsOwner,
@@ -120,7 +121,7 @@ export function TaskDetail({ id }: { id: string }) {
   const steps = stepsOf(task);
   const plan = planOf(task);
   const artifacts = normalizeArtifacts(task?.artifacts);
-  const status = task?.status ?? record.status;
+  const status = record.status ?? task?.status ?? null;
   const tone = taskTone(status);
   /* the service's own plain sentence for why it ended, and only then: a task that finished its work
      has nothing to explain, and the code it sends alongside is never the line a person reads */
@@ -136,7 +137,7 @@ export function TaskDetail({ id }: { id: string }) {
   /* the pill carries the short word already, so the fuller sentence shows only when it says more */
   const stateWord = taskStateWord(status);
   const pillWord = taskShortWord(status);
-  const live = liveViewLink(task);
+  const live = isFinished(status) ? null : liveViewLink(task);
 
   async function onApprove() {
     setProblem(null);

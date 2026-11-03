@@ -24,12 +24,23 @@ export function useTasks() {
  * The kinds the service takes, with its own labels. Read once per page load, kept in the API layer,
  * so nothing here decides what the kinds are.
  */
-export function useTaskKinds(): { kinds: TaskKindOption[]; problem: string | null; loading: boolean } {
+/**
+ * The kinds the service takes, with its own labels. Read once per page load, kept in the API layer,
+ * so nothing here decides what the kinds are. `retry` re-runs the read: a form that is dead after one
+ * failure, with reloading the page as the only way out, is worse than a button.
+ */
+export function useTaskKinds(): {
+  kinds: TaskKindOption[];
+  problem: string | null;
+  loading: boolean;
+  retry: () => void;
+} {
   const [state, setState] = useState<{ kinds: TaskKindOption[]; problem: string | null; loading: boolean }>({
     kinds: [],
     problem: null,
     loading: true,
   });
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let alive = true;
     const ctrl = new AbortController();
@@ -49,8 +60,15 @@ export function useTaskKinds(): { kinds: TaskKindOption[]; problem: string | nul
       alive = false;
       ctrl.abort();
     };
-  }, []);
-  return state;
+  }, [attempt]);
+  return {
+    ...state,
+    retry: () => {
+      /* back to the skeleton while the read runs again, so the button does not look dead */
+      setState({ kinds: [], problem: null, loading: true });
+      setAttempt((n) => n + 1);
+    },
+  };
 }
 
 /**

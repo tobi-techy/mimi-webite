@@ -88,7 +88,11 @@ export function NewTaskForm() {
           ) : kinds.length === 0 ? (
             <p className="x-af__h" role="status">
               {kindsState.problem ?? "The service has not listed any task kinds yet."} A task cannot be planned until
-              it does.
+              it does.{" "}
+              <Button variant="ghost" onClick={kindsState.retry}>
+                <Icon name="refresh-cw" />
+                Try again
+              </Button>
             </p>
           ) : (
             <div className="x-aseg x-ctkinds">

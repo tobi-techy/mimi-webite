@@ -80,6 +80,12 @@ const putMerged = (id: string, incoming: ApiComputerTask): void => {
  */
 let kindsCache: TaskKindOption[] | null = null;
 
+/**
+ * The order of the detail reads that have been applied, per task: a Refresh and the poll can be in
+ * flight together, and the older answer must not land on top of the newer one.
+ */
+const readOrder = new Map<string, number>();
+
 export type KindsResult = { ok: true; kinds: TaskKindOption[] } | { ok: false; message: string };
 
 export async function loadKinds(signal?: AbortSignal): Promise<KindsResult> {
@@ -140,14 +146,21 @@ export async function loadTask(id: string, signal?: AbortSignal, opts?: { quiet?
   if (!USES_API) return;
   if (!opts?.quiet) taskStore.loading(id);
   const epoch = taskStore.writeEpoch(id);
+  /* this read's place in the order: a read that started earlier must not land on top of a later one */
+  const order = taskStore.readStamp();
   try {
     const task = await authed((t) => mimiApi.computerTask(t, id, { signal }));
     /* an approve or a stop that landed while this read was in flight is newer than this answer */
     if (taskStore.writeEpoch(id) !== epoch) return;
+    /* a Refresh and a poll can be in flight together, and the older one can answer last */
+    if ((readOrder.get(id) ?? 0) > order) return;
+    readOrder.set(id, order);
     putMerged(id, task);
   } catch (e) {
     if (isAbort(e)) throw e;
     if (taskStore.writeEpoch(id) !== epoch) return;
+    /* a failure from an older read must not replace a newer answer that is already on screen */
+    if ((readOrder.get(id) ?? 0) > order) return;
     taskStore.fail(id, taskMessage(e, "This task could not be read. Try again."));
   }
 }
@@ -205,7 +218,10 @@ export async function approveTask(id: string): Promise<ActionResult> {
   }
 }
 
-/** Stops a task the service has not finished with: a running one, or one parked at a sign-in. */
+/**
+ * Stops a task the service has not finished with: a running one, one parked at a sign-in wall, or one
+ * that has not started yet (the screen calls that Discard, and the service accepts it).
+ */
 export async function stopTask(id: string): Promise<ActionResult> {
   if (!USES_API) return { ok: false, message: NOT_AVAILABLE };
   try {

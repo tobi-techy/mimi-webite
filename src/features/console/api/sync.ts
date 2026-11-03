@@ -10,6 +10,7 @@ import type { Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
 import { tourConversation, tourEcho } from "@/features/console/demo/tour-state";
 import { hideTourEcho } from "@/features/console/lib/tour-echo";
+import { taskStore } from "@/features/console/lib/computer-tasks-store";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
@@ -77,6 +78,8 @@ const keeps = (m: Message) => (m.kind === "photos" || m.kind === "voice" || m.ki
 
 export function resetCaches() {
   revokeLocal();
+  /* the computer tasks hold this session's rows, steps and files: a new session must not see them */
+  taskStore.reset();
   localMedia.clear();
   details.clear();
   approvals = [];

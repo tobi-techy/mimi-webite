@@ -85,6 +85,33 @@ test("a list read cannot push a status back to what a later detail read already 
   assert.equal(taskStore.find("a")?.status, "done");
 });
 
+test("an older list read cannot push back the steps, the reason or the sentence either", () => {
+  taskStore.reset();
+  taskStore.replaceAll([row("a", { status: "running", stepCount: 2 })]);
+  const startedAt = taskStore.readStamp();
+  /* the detail read lands first, and it knows the task stopped, why, and with how many steps */
+  taskStore.put("a", {
+    task_id: "a",
+    status: "stopped",
+    stop_reason: "stopped_by_owner",
+    note: "Stopped by the owner.",
+    steps: [{ index: 1 }, { index: 2 }, { index: 3 }],
+  });
+  /* then the older list answer lands, still saying running, two steps, no reason */
+  taskStore.replaceAll([row("a", { status: "running", stepCount: 2, stopReason: null, note: null })], startedAt);
+  const record = taskStore.find("a");
+  assert.equal(record?.status, "stopped");
+  assert.equal(record?.stepCount, 3);
+  assert.equal(record?.stopReason, "stopped_by_owner");
+  assert.equal(record?.note, "Stopped by the owner.");
+  /* a list read that genuinely carries newer fields still wins */
+  taskStore.replaceAll([row("a", { status: "stopped", stepCount: 4, stopReason: "stopped_runaway", note: "Stopped by the step budget." })]);
+  const after = taskStore.find("a");
+  assert.equal(after?.stepCount, 4);
+  assert.equal(after?.stopReason, "stopped_runaway");
+  assert.equal(after?.note, "Stopped by the step budget.");
+});
+
 test("a task asked for here is kept until the list carries it", () => {
   taskStore.reset();
   taskStore.replaceAll([row("a")]);
@@ -106,7 +133,10 @@ test("a task asked for here is kept until the list carries it", () => {
   assert.equal(taskStore.find("x"), undefined);
 });
 
-test("a write the console made on purpose is ordered after the read in flight", () => {
+/* what this checks is the counter the reads are ordered against, not the read itself: `loadTask` needs
+   a fetch and a live store, which this suite has neither of. The read's own ordering is checked in the
+   built export against the service (a Refresh and a poll in flight together). */
+test("the write counter counts the writes the console made on purpose", () => {
   taskStore.reset();
   taskStore.replaceAll([row("a")]);
   assert.equal(taskStore.writeEpoch("a"), 0);
