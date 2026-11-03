@@ -85,13 +85,20 @@ export function useComputerTask(id: string): { record: TaskRecord | undefined; l
   }, [id]);
 
   const status = record?.task?.status ?? record?.status ?? null;
-  const unfinished = !isFinished(status);
+  /*
+   * Poll while the service has not finished with the task, and stop as soon as a read fails. A task
+   * that is gone, or a service that is down, then shows the error and the way to try again, instead
+   * of asking the service every few seconds for the life of the tab; a finished task is never asked
+   * for again.
+   */
+  const unfinished = !isFinished(status) && record?.state !== "error";
   useEffect(() => {
     if (!id || !unfinished) return;
     const ctrl = new AbortController();
     const timer = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      void loadTask(id, ctrl.signal).catch(() => {});
+      /* quiet: nobody asked for this read, so it never blanks or blinks what is on screen */
+      void loadTask(id, ctrl.signal, { quiet: true }).catch(() => {});
     }, POLL_MS);
     return () => {
       clearInterval(timer);

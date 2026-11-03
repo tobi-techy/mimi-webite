@@ -148,16 +148,22 @@ export const STEP_UNREADABLE = "The service sent this step without words a perso
 export const PLAN_UNREADABLE = "The service sent this step of the plan without words a person can read.";
 
 /**
- * True when a step's own words are a machine token rather than a sentence: an underscore- or
- * hyphen-joined token such as `goto_url`, `GOTO_URL` or `Click_btn_2`. A token like that is a bug at
- * the source, so the two screens that show a step's words say so and keep the token off the screen,
- * which keeps the bug visible in the data and keeps gibberish off a distributor's screen. Anything
- * with a space in it is left alone: it is prose, and the console does not second-guess the wording.
+ * True when a step's own words are a machine token rather than a sentence: an underscore-joined token
+ * such as `goto_url`, in any case, or a lower-case hyphen-joined one such as `goto-url`.
+ *
+ * A token like that is a bug at the source, so the screens that show a step's words say so and keep
+ * the token off the screen. Prose is never second-guessed: anything with a space in it is left alone,
+ * a word with a capital in it keeps its hyphens (`Follow-up`, `Sign-in`), and a bare figure range
+ * (`5-10`) has no letter in it, so it is prose. A lower-case hyphenated word is caught, which is the
+ * narrow cost of catching `goto-url` at all.
  */
 export function looksLikeCode(value: string | null | undefined): boolean {
   const raw = (value ?? "").trim();
-  if (!raw || /\s/.test(raw)) return false;
-  return /^[a-z0-9]+(?:[_-][a-z0-9]+)+$/i.test(raw);
+  if (!raw || /\s/.test(raw) || !/[a-z]/i.test(raw)) return false;
+  /* every part lower case: goto_url, goto-url, read_order_list, click-2 */
+  if (/^[a-z0-9]+(?:[_-][a-z0-9]+)+$/.test(raw)) return true;
+  /* underscores in any case: GOTO_URL, Click_btn_2, Goto_Url */
+  return raw.includes("_") && /^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(raw);
 }
 
 /**

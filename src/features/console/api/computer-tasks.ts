@@ -129,10 +129,14 @@ export async function loadTasks(signal?: AbortSignal): Promise<void> {
  * A 404 here is about this task, not about the surface: the service answers for the route, it just
  * has no task by that id, so it reads as "that task is no longer on the service" and never as "the
  * service does not have computer tasks". Only the list read decides that.
+ *
+ * `quiet` is for a read nobody asked for, which is the poll on a running task: it leaves the screen
+ * alone, so a poll that fails does not blank the steps that are already on it or blink its own error
+ * line, and the next successful read puts them right.
  */
-export async function loadTask(id: string, signal?: AbortSignal): Promise<void> {
+export async function loadTask(id: string, signal?: AbortSignal, opts?: { quiet?: boolean }): Promise<void> {
   if (!USES_API) return;
-  taskStore.loading(id);
+  if (!opts?.quiet) taskStore.loading(id);
   const epoch = taskStore.writeEpoch(id);
   try {
     const task = await authed((t) => mimiApi.computerTask(t, id, { signal }));

@@ -165,6 +165,16 @@ test("a machine token never reaches a person, and the step says why it is blank"
   assert.equal(looksLikeCode("Read order list"), false);
   assert.equal(looksLikeCode("Refer to step_2 above"), false);
   assert.equal(looksLikeCode("step-2.png"), false);
+  /* a capital keeps its hyphens, and a figure range has no letter in it */
+  assert.equal(looksLikeCode("Follow-up"), false);
+  assert.equal(looksLikeCode("Sign-in"), false);
+  assert.equal(looksLikeCode("Cost-price"), false);
+  assert.equal(looksLikeCode("5-10"), false);
+  assert.equal(stepNote({ index: 1, note: "Follow-up" }), "Follow-up");
+  assert.deepEqual(planOf({ task_id: "t", status: "proposed", plan: ["Follow-up", "5-10"] }), [
+    "Follow-up",
+    "5-10",
+  ]);
   /* residual risk, named in the PR: a bare one-word token with no separator is passed through */
   assert.equal(looksLikeCode("extract"), false);
   assert.equal(stepSentence({ index: 1, action: "extract" }), "extract");
