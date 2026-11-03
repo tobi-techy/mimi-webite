@@ -63,6 +63,20 @@ test("the API's own totals win over the rows, so the book keeps one definition",
   assert.equal(age.bands.find((b) => b.id === "d1_30")!.money, 40_000, "the bands still come from the rows");
 });
 
+test("past-due money with no day count is held aside, never called young", () => {
+  const withDays = shop({ id: "a", owed: 100_000, overdue: 40_000, overdueDays: 10 });
+  const noDays = shop({ id: "b", owed: 200_000, overdue: 90_000 });
+  /* the API sends no `overdue_days` for this shop: the mapper then leaves the field off entirely */
+  const live: Record<string, unknown> = { ...noDays.live };
+  delete live.overdueDays;
+  const age = ageingOf([withDays, { ...noDays, live: live as typeof noDays.live }]);
+  assert.equal(age.overdue, 130_000);
+  assert.equal(age.debtors, 2, "a shop past due still carries money, aged or not");
+  assert.equal(age.undated, 90_000, "money the book sent with no day count is held aside");
+  assert.equal(age.oldest, 10, "an unknown age is not an age");
+  assert.deepEqual(Object.fromEntries(age.bands.map((b) => [b.id, b.money])), { d1_30: 40_000, d31_60: 0, d61_90: 0, d90: 0 });
+});
+
 test("the reason names the age, the count and the limit it broke", () => {
   assert.equal(
     reasonOf(shop({ owed: 2_000_000, overdue: 2_387_250, overdueDays: 133, open: 4, limit: 1_700_000 })),

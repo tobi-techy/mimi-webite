@@ -38,6 +38,7 @@ function StatusPill({ status }: { status: string }) {
 export function ReturnsView() {
   const { returns, loading, missing, failed } = useReturns();
   const [open, setOpen] = useState<string | null>(null);
+  const toggle = (id: string) => setOpen(open === id ? null : id);
 
   if (loading) return <SkeletonRows count={6} />;
   if (missing) return <NotYet />;
@@ -89,7 +90,15 @@ export function ReturnsView() {
               <Fragment key={r.id}>
                 <tr
                   className="is-link"
-                  onClick={() => setOpen(open === r.id ? null : r.id)}
+                  /* there is no per-return page to link to, so the row is the control: give it a
+                     tab stop and the two keys a button answers, or a keyboard user cannot open one */
+                  tabIndex={0}
+                  onClick={() => toggle(r.id)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    e.preventDefault();
+                    toggle(r.id);
+                  }}
                   aria-expanded={open === r.id}
                 >
                   <td className="x-ink">{r.shop}</td>

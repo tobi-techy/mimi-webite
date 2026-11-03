@@ -34,6 +34,11 @@ export type Ageing = {
   debtors: number;
   /** Days on the oldest unpaid invoice across the book. */
   oldest: number;
+  /**
+   * Past-due money the book sends with no day count. It is counted here, never bucketed: a nought
+   * would file it under "1 to 30 days" and the screen would call young money young without a fact.
+   */
+  undated: number;
   /** Overdue money by age, one row per band. */
   bands: AgeingRow[];
 };
@@ -61,16 +66,23 @@ export function ageingOf(
   let overdue = 0;
   let debtors = 0;
   let oldest = 0;
+  let undated = 0;
 
   for (const s of shops) {
     owed += s.owed;
     const late = s.live?.overdue ?? 0;
     if (late <= 0) continue;
-    const days = Math.max(0, s.live?.overdueDays ?? 0);
     overdue += late;
     debtors += 1;
-    oldest = Math.max(oldest, days);
-    const row = money.get(bandOf(days))!;
+    const days = s.live?.overdueDays;
+    if (days === undefined) {
+      /* the book sent money but no age: hold it aside rather than call it 1 to 30 days old */
+      undated += late;
+      continue;
+    }
+    const age = Math.max(0, Math.floor(days));
+    oldest = Math.max(oldest, age);
+    const row = money.get(bandOf(age))!;
     row.money += late;
     row.shops += 1;
   }
@@ -80,6 +92,7 @@ export function ageingOf(
     overdue: totals?.overdue ?? overdue,
     debtors,
     oldest,
+    undated,
     bands: AGEING_BANDS.map((b) => ({ id: b.id, label: b.label, ...money.get(b.id)! })),
   };
 }

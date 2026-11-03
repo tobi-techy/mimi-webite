@@ -176,7 +176,11 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
           naira(age.owed),
           naira(age.overdue),
           String(age.debtors),
-          age.oldest > 0 ? `${age.oldest} ${age.oldest === 1 ? "day" : "days"}` : "None",
+          age.oldest > 0
+            ? `${age.oldest} ${age.oldest === 1 ? "day" : "days"}`
+            : age.undated > 0
+              ? "Not given"
+              : "None",
         ]}
       />
 
@@ -205,6 +209,12 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
           </ul>
         ) : (
           <EmptyState>Nothing is past its due date right now</EmptyState>
+        )}
+        {age.undated > 0 && (
+          <p className="x-sub">
+            {naira(age.undated)} of this is past due with no day count on the book, so it is not in a
+            band above. The book is the only place ageing comes from.
+          </p>
         )}
       </div>
 
