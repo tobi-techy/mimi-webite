@@ -208,6 +208,8 @@ html:not([data-theme="dark"]) .mc-app .mf-ls__scrim { background: color-mix(in s
 /* the top pill ("Explore the demo" / "Getting started") sat inside the feed's 32px top fade and read washed out */
 .mc-app .mc-tv .mc-gs--feed { margin: 12px auto 0; color: var(--f-text, var(--ink)); }
 .mc-app .mc-tv .mc-gs--feed .mc-gs__k { color: var(--f-muted, var(--muted)); }
+/* 390px: the pill sized to its content and WebKit still cut "Play the demo" to "Play t…"; the title keeps its width */
+.mc-app .mc-tv .mc-gs--feed .mc-gs__t { flex: none; overflow: visible; }
 
 /* ---------- demo wiring (2 Nov 2026): card reasons, Undo, toast action, proof words ---------- */
 .mc-app .v2-dc__why { list-style: none; margin: 0 16px 12px; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 18px; color: var(--v2-t2); }
