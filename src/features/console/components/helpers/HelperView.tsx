@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { USES_API } from "@/features/console/api/config";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes } from "@/features/console/config";
@@ -71,6 +72,9 @@ export function HelperView({ name }: { name: RosterName }) {
           </div>
         </dl>
 
+        {/* routines and automations are sample data: the API build has no routes for them yet */}
+        {!USES_API && (
+          <>
         <h2 className="mc-hv__h">Routines</h2>
         {mine.length ? (
           <ul className="mc-hv__list" aria-label={`${name}'s routines`}>
@@ -124,6 +128,8 @@ export function HelperView({ name }: { name: RosterName }) {
           All automations
           <Icon name="chevron-right" />
         </Link>
+          </>
+        )}
 
         <h2 className="mc-hv__h">Tasks</h2>
         <ul className="mc-hv__list" aria-label={`${name}'s tasks`}>

@@ -18,7 +18,7 @@ test("no connections: not connected, and not connectable unless the API says its
   const v = toolkitView(zoho());
   assert.equal(v.state, "off");
   assert.equal(v.connectable, false, "an API without the connect field (today's demo server) gets no Connect");
-  assert.match(v.unavailable!, /Not available yet/);
+  assert.match(v.unavailable!, /can't connect it yet/);
   const off = toolkitView(zoho({ connect: { available: false, reason: "No Composio key on this server." } }));
   assert.equal(off.unavailable, "No Composio key on this server.");
   assert.equal(toolkitView(zoho({ connect: { available: true } })).connectable, true);

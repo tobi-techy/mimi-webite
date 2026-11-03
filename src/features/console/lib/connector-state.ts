@@ -30,7 +30,7 @@ export function toolkitView(t: ApiConnectorToolkit): ToolkitView {
   const connect = t.connect;
   /* an API without the `connect` field predates real connect flows: treat it as not available */
   const connectable = !!connect?.available;
-  const unavailable = connectable ? undefined : connect?.reason?.trim() || "Not available yet on this server.";
+  const unavailable = connectable ? undefined : connect?.reason?.trim() || "This server can't connect it yet.";
   return {
     toolkit: t.toolkit,
     label: t.label,

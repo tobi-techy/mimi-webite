@@ -1,6 +1,6 @@
 "use client";
 
-import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
+import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
 import { getLive, notify, setLive } from "@/features/console/api/live-store";
 import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
@@ -229,7 +229,8 @@ export async function loadShop(id: string, signal: AbortSignal): Promise<Shop | 
     setLive({ shopDetails: { ...getLive().shopDetails, [id]: shop } });
     return shop;
   } catch (e) {
-    if (!isAbort(e)) report(e);
+    /* a shop the API does not have is not announced: the drawer already says "Shop not found" */
+    if (!isAbort(e) && !missingRoute(e)) report(e);
     return null;
   }
 }

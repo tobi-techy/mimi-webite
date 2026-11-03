@@ -158,6 +158,8 @@ export function LiveConnectorsView() {
           <div className="x-ag__rows">
             {list.map((t) => {
               const read = t.connectionId ? reads[t.connectionId] : undefined;
+              /* the reason must not repeat the lead-in: the server's own words may already say it */
+              const why = (t.unavailable ?? "").replace(/^not available yet[.\s]*/i, "").trim();
               const line =
                 t.state === "connected"
                   ? `Connected${t.connectedAt ? ` since ${dateOf(t.connectedAt)}` : ""} · ${t.blurb}`
@@ -165,7 +167,9 @@ export function LiveConnectorsView() {
                     ? t.state === "revoked"
                       ? `Disconnected · ${t.blurb}`
                       : t.blurb
-                    : `Not available yet. ${t.unavailable}`;
+                    : why
+                      ? `Not available yet. ${why}`
+                      : "Not available yet.";
               return (
                 <div key={t.toolkit} className="x-app x-app--row x-app--live" aria-label={`${t.label}: ${line}`}>
                   <ConnectorLogo connector={logoOf(t)} size="s" />
