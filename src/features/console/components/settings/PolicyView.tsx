@@ -8,6 +8,8 @@ import type { ApiPolicyRule } from "@/features/console/api/types";
 import { Note } from "@/features/console/components/ui/Note";
 import { Row } from "@/features/console/components/ui/Row";
 import { policyGroups, samplePolicy } from "@/features/console/content/policy";
+import { SkeletonRows } from "@/features/console/components/live/Skeleton";
+import { EmptyState } from "@/features/console/components/ui/EmptyState";
 
 const helperWord = (h: string) => (h === "all" ? "Every helper" : h === "mimi" ? "Mimi" : `${h.charAt(0).toUpperCase()}${h.slice(1)}`);
 
@@ -17,26 +19,36 @@ const helperWord = (h: string) => (h === "all" ? "Every helper" : h === "mimi" ?
  */
 export function PolicyView() {
   const status = useLive((s) => s.status);
-  const [rules, setRules] = useState<ApiPolicyRule[] | null>(status === "off" || status === "fallback" ? samplePolicy : null);
+  const [rules, setRules] = useState<ApiPolicyRule[] | null>(status === "off" ? samplePolicy : null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (status !== "ready") return;
     const ctrl = new AbortController();
     authed((t) => mimiApi.policy(t, { signal: ctrl.signal }))
-      .then((p) => setRules(p.rules.length ? p.rules : samplePolicy))
+      .then((p) => setRules(p.rules))
       .catch(() => {
-        if (!ctrl.signal.aborted) setRules(samplePolicy);
+        /* no sample rules stand in for the API's: say it plainly */
+        if (!ctrl.signal.aborted) setFailed(true);
       });
     return () => ctrl.abort();
   }, [status]);
 
-  const shown = rules ?? samplePolicy;
+  const shown = rules ?? [];
+  const unreachable = failed || status === "fallback";
   return (
     <>
       <div className="x-shead">
         <h1 className="x-title">What Mimi may do</h1>
       </div>
       <p className="x-sub">Every step your helpers can take, and whether they do it on their own, ask you first, or never do it.</p>
+      {unreachable ? (
+        <EmptyState>Mimi&apos;s rules can&apos;t be read right now.</EmptyState>
+      ) : rules === null ? (
+        <SkeletonRows count={6} />
+      ) : !rules.length ? (
+        <EmptyState>No rules are set yet.</EmptyState>
+      ) : null}
       {policyGroups.map((g) => {
         const items = shown.filter((r) => (g.key === "never" ? r.locked || r.behaviour === "never" : !r.locked && r.behaviour === g.key));
         if (!items.length) return null;
@@ -50,7 +62,7 @@ export function PolicyView() {
           </section>
         );
       })}
-      <Note>These are read only in the demo. Money never moves without you, and a credit limit is always your call.</Note>
+      <Note>These are read only here for now. Money never moves without you, and a credit limit is always your call.</Note>
     </>
   );
 }

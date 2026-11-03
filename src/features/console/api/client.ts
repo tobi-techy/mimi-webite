@@ -3,7 +3,7 @@ import { errorKind, type ErrorKind } from "@/features/console/api/mappers";
 import type {
   ApiApprovalList,
   ApiConnect,
-  ApiConnectorList,
+  ApiConnectorCallback, ApiConnectorList, ApiConnectorRead,
   ApiCredit,
   ApiDecision,
   ApiDemoSession,
@@ -231,6 +231,12 @@ export const mimiApi = {
   undoApproval: (token: string, id: string) => call<ApiDecision>(`/v1/approvals/${q(id)}/undo`, { method: "POST", token }),
   connectors: (token: string, o: Sig = {}) => call<ApiConnectorList>("/v1/connectors", { token, ...o }),
   connect: (token: string, toolkit: string) => call<ApiConnect>(`/v1/connectors/${q(toolkit)}/connect`, { method: "POST", token, body: {} }),
+  connectorCallback: (token: string, p: { state: string; connected_account_id: string; status: string }) =>
+    call<ApiConnectorCallback>(
+      `/v1/connectors/callback?${new URLSearchParams({ state: p.state, connected_account_id: p.connected_account_id, ...(p.status ? { status: p.status } : {}) }).toString()}`,
+      { token, timeoutMs: 30_000 },
+    ),
+  connectorRead: (token: string, connectionId: string, o: Sig = {}) => call<ApiConnectorRead>(`/v1/connectors/${q(connectionId)}/read`, { token, timeoutMs: 30_000, ...o }),
   disconnect: (token: string, connectionId: string) => call<{ connection_id: string; status: string }>(`/v1/connectors/${q(connectionId)}`, { method: "DELETE", token }),
   policy: (token: string, o: Sig = {}) => call<ApiPolicy>("/v1/policy", { token, ...o }),
   /** A routine or webhook event (morning brief, bank credit). Deduped on event_id by the API. */

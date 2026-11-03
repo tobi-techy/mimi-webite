@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { USES_API } from "@/features/console/api/config";
 import { getLive, useLive } from "@/features/console/api/live-store";
 import { loadShop } from "@/features/console/api/sync";
 import { creditKpis, creditLines, creditRecommendations, type CreditLine, type CreditRecommendation } from "@/features/console/content/credit";
@@ -32,7 +33,9 @@ export function useShops(): { shops: readonly Shop[]; loading: boolean } {
   const status = useLive((s) => s.status);
   const live = useLive((s) => s.shops);
   if (status === "connecting") return { shops: NO_SHOPS, loading: true };
-  return { shops: status === "ready" && live ? live : sampleShops, loading: false };
+  /* the API build never shows sample shops: unreachable reads as empty, with the notice */
+  if (USES_API) return { shops: status === "ready" && live ? live : NO_SHOPS, loading: false };
+  return { shops: sampleShops, loading: false };
 }
 
 /** One API shop for the drawer: the list row at once, then its detail (aborted on close). */
@@ -56,6 +59,7 @@ export function useCreditBook(): { lines: readonly CreditLine[]; recs: readonly 
   const recs = useLive((s) => s.creditRecs);
   if (status === "connecting") return { lines: NO_LINES, recs: NO_RECS, live: true, loading: true };
   if (status === "ready" && lines && recs) return { lines, recs, live: true, loading: false };
+  if (USES_API) return { lines: NO_LINES, recs: NO_RECS, live: true, loading: false };
   return { lines: creditLines, recs: creditRecommendations, live: false, loading: false };
 }
 
@@ -65,7 +69,7 @@ type Kpi = { value: string; label: string };
 export function useCreditKpis(): readonly Kpi[] | null {
   const { shops, loading } = useShops();
   if (loading) return null;
-  if (!shops.some((s) => s.live)) return creditKpis;
+  if (!USES_API && !shops.some((s) => s.live)) return creditKpis;
   const sum = (f: (s: Shop) => number) => shops.reduce((n, s) => n + f(s), 0);
   return [
     { value: nairaShort(sum((s) => s.owed)), label: "Outstanding" },

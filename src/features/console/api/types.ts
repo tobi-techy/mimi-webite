@@ -232,7 +232,20 @@ export type ApiLimitChange = { shop_id: string; old_limit_ngn: number; new_limit
 export type ApiProofGrade = "verified" | "estimated" | "unverified";
 
 export type ApiConnectorConnection = { connection_id: string; status: string; region: string; connected_at: string; revoked_at: string | null };
-export type ApiConnectorToolkit = { toolkit: string; label: string; blurb: string; reads: string[]; writes: string[]; connections: ApiConnectorConnection[] };
+export type ApiConnectorToolkit = {
+  toolkit: string;
+  label: string;
+  blurb: string;
+  reads: string[];
+  writes: string[];
+  connections: ApiConnectorConnection[];
+  /** Whether this server can start a real connect flow for the toolkit (absent on older APIs: not available). */
+  connect?: { available: boolean; reason?: string };
+};
+/** GET /v1/connectors/callback: the connection saved after consent. */
+export type ApiConnectorCallback = { connection_id: string; status: string; next?: string };
+/** GET /v1/connectors/{id}/read: a live read from the connected account, proving Mimi can see it. */
+export type ApiConnectorRead = { connection_id: string; toolkit: string; read_at: string; summary: string; items: { label: string; detail?: string }[] };
 export type ApiConnectorList = { connectors: ApiConnectorToolkit[] };
 export type ApiConnect = { redirect_url: string; state: string };
 

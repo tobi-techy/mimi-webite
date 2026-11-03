@@ -175,7 +175,7 @@ export type Message =
   /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
   | { id: string; kind: "event"; text: string; at: number; /** A send the API refused (the demo allowance): reads as a stop, not a quiet aside. */ tone?: "stop" }
   /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
-  | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
+  | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon; /** API turn this line belongs to (shop tasks). */ turn?: string }
   /**
    * A helper's reasoning: while `live` a shimmering "Thinking…" that streams the text; then a
    * collapsed "Thought for 4s" line that opens to the reasoning in muted markdown.

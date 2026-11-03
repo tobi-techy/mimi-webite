@@ -1,5 +1,6 @@
 import type { HelperName } from "@/features/console/demo/types";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
+import { USES_API } from "@/features/console/api/config";
 import { consoleRoutes, shopHref } from "@/features/console/config";
 import { settingsHref, settingsNav, findSettingsSection } from "@/features/console/content/settings";
 import { shops } from "@/features/console/content/shops";
@@ -42,7 +43,10 @@ export const groupHeading: Record<PaletteGroup, string> = {
 };
 
 function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
-  const items: PaletteItem[] = lookBack === "All" ? [...live] : live.slice(0, LOOK_BACK_DAYS[lookBack] > 30 ? live.length : 12);
+  const items: PaletteItem[] =
+    lookBack === "All" ? [...live] : live.slice(0, LOOK_BACK_DAYS[lookBack] > 30 ? live.length : 12);
+  /* the API build lists only what is real: its threads, its pages, its settings (no sample shops or demo actions) */
+  if (USES_API) return [...items, ...apiPages()];
   shops.forEach((s) =>
     items.push({
       id: `s-${s.id}`,
@@ -148,6 +152,42 @@ function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
     },
   );
   return items;
+}
+
+function apiPages(): PaletteItem[] {
+  const pages = (
+    [
+      ["Threads", "messages-square", consoleRoutes.threads],
+      ["Waiting on you", "check", consoleRoutes.needs],
+      ["Shops", "store", consoleRoutes.shops],
+      ["Credit", "landmark", consoleRoutes.credit],
+    ] as const
+  ).map(([title, icon, href]): PaletteItem => ({
+    id: `p-${title}`,
+    group: "Pages",
+    icon,
+    title,
+    meta: "Page",
+    href,
+  }));
+  const sets = settingsNav.flatMap((g) =>
+    g.ids.flatMap((id): PaletteItem[] => {
+      const s = findSettingsSection(id);
+      return s
+        ? [
+            {
+              id: `set-${id}`,
+              group: "Settings",
+              icon: s.icon,
+              title: s.title,
+              meta: `Settings · ${g.title}`,
+              href: settingsHref(id),
+            },
+          ]
+        : [];
+    }),
+  );
+  return [...pages, ...sets];
 }
 
 /** What the palette lists for a query, tab and look-back window, grouped in display order. */

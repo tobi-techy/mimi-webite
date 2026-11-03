@@ -166,7 +166,8 @@ export function mapThreadSummary(t: ApiThreadSummary, now: number): Conversation
     working: state === "run",
     ago: agoLabel(at, now),
     created: true,
-    preview: nairaSign(t.last_text) || (t.messages === 0 ? "No messages yet" : t.title),
+    /* a shop's words never show: its thread previews as the task it is */
+    preview: t.kind !== "owner" ? `Task from ${t.shop_name || "a shop"}` : nairaSign(t.last_text) || (t.messages === 0 ? "No messages yet" : t.title),
     messages: at !== null ? [{ id: `api-d:${t.thread_id}`, kind: "date", label: dateLine(at, now) }] : [],
     api: { threadId: t.thread_id, kind: t.kind, shopId: t.shop_id, shopName: t.shop_name },
   };
@@ -458,6 +459,25 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
   return { id, kind: "text", from, text: briefLines(text), at };
 }
 
+/**
+ * A message in a shop's or rep's thread, as a line in the helper's inbox: the shop's words never
+ * show. The first inbound message of a turn reads "Task from Mama Sola Stores"; a reply the helper
+ * sent reads "Collector replied to Mama Sola Stores". Exported for tests.
+ */
+export function taskLine(m: ApiMessage, from: Roster, shopName: string, tasked: Set<string>): Message | null {
+  const at = parseApiTime(m.at) ?? 0;
+  const turn = m.turn_id ?? undefined;
+  const who = shopName || "a shop";
+  if (m.direction === "in") {
+    const key = turn ?? m.message_id;
+    if (tasked.has(key)) return null;
+    tasked.add(key);
+    return { id: `api-t:${m.message_id}`, kind: "system", text: `Task from ${who}`, at, icon: "message-square", ...(turn ? { turn } : {}) };
+  }
+  if (!outShown(m)) return null;
+  return { id: `api-m:${m.message_id}`, kind: "system", text: `${from} replied to ${who}`, at, icon: "check", ...(turn ? { turn } : {}) };
+}
+
 /** A reply that also went as a voice note: the note itself, played through the API on tap. */
 function replyVoice(m: ApiMessage, from: Roster): Message | null {
   if (!m.voice || m.direction !== "out" || !outShown(m)) return null;
@@ -660,10 +680,14 @@ export function mapThread(
     if (runningTurns.has(turn)) for (const s of steps) out.push(mapStep(s, fromOf(turn)));
     else out.push(foldSteps(turn, steps, fromOf(turn)));
   };
+  /* a shop's (or rep's) own conversation never shows in the console (Tobi, 3 Nov 2026): each of
+     its turns is a task in the responsible helper's inbox, so its messages read as task lines */
+  const external = d.thread.kind !== "owner";
+  const tasked = new Set<string>();
   d.messages.forEach((m, i) => {
     const turn = m.turn_id ?? "";
     if (m.direction === "out" && turn) emitSteps(turn);
-    const raw = mapMessage(m, fromOf(m.turn_id), shopName, local);
+    const raw = external ? taskLine(m, fromOf(m.turn_id), shopName, tasked) : mapMessage(m, fromOf(m.turn_id), shopName, local);
     /* each line keeps its turn: the console files it in the chat of the helper who took the turn */
     const mapped = raw && turn && (raw.kind === "text" || raw.kind === "ask") ? { ...raw, turn } : raw;
     /* the same reply stored twice for one turn (a helper's answer and its relay) shows once */
@@ -672,7 +696,7 @@ export function mapThread(
     if (twice) return;
     if (mapped) out.push(mapped);
     if (mapped?.kind === "text" && m.direction === "out" && turn) lastReply.set(turn, out.length - 1);
-    const spoken = replyVoice(m, fromOf(m.turn_id));
+    const spoken = external ? null : replyVoice(m, fromOf(m.turn_id));
     if (spoken) out.push(spoken);
     /* a turn with no reply yet: its steps go right after its last inbound message */
     const next = d.messages[i + 1];
@@ -911,7 +935,7 @@ export function friendlyMessage(kind: ErrorKind, detail = ""): string {
   const d = detail.toLowerCase();
   switch (kind) {
     case "unreachable":
-      return "Mimi can't be reached right now, so you're seeing sample data.";
+      return "Mimi can't be reached right now.";
     case "expired":
       return "Your demo session ended, so Mimi started a fresh copy for you.";
     case "unauthorized":

@@ -168,7 +168,8 @@ export function rosterRow(
     /* every helper has her own chat: in the live demo it is the owner's shared thread seen as hers,
        so her row always opens it (`with=`), even before she has said anything */
     const ownerThread = s.conversations.find((c) => c.api?.kind === "owner");
-    const home = (act.slug ? s.conversations.find((c) => c.slug === act.slug) : undefined) ?? ownerThread;
+    /* her inbox is always her side of the owner's thread (shop tasks are filed into it there) */
+    const home = ownerThread ?? (act.slug ? s.conversations.find((c) => c.slug === act.slug) : undefined);
     const shared = name !== "Mimi" && !!home && home.helper !== name;
     const where = shared ? home : thread;
     /* her cards waiting on the owner, in her own threads or the shared one */

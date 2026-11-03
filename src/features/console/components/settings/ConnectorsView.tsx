@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadLiveConnectors } from "@/features/console/api/connectors";
-import { useLive } from "@/features/console/api/live-store";
+import { useCallback, useMemo, useState } from "react";
+import { USES_API } from "@/features/console/api/config";
+import { LiveConnectorsView } from "@/features/console/components/settings/LiveConnectorsView";
 import { ConnectorLogo } from "@/features/console/components/settings/ConnectorLogo";
 import { ConnectorModal } from "@/features/console/components/settings/ConnectorModal";
 import { ConnectorTable } from "@/features/console/components/settings/ConnectorTable";
@@ -49,8 +49,13 @@ function AppCard({ c, on, onOpen }: { c: Connector; on: boolean; onOpen: (c: Con
   );
 }
 
-/** Settings > Connected tools: an Apps-style grid (Needs action first, then by category) or the full table. */
+/** Settings > Connected tools. The API build reads the API (LiveConnectorsView); the sample build shows sample tools. */
 export function ConnectorsView() {
+  return USES_API ? <LiveConnectorsView /> : <SampleConnectorsView />;
+}
+
+/** Sample build only: an Apps-style grid (Needs action first, then by category) or the full table. */
+function SampleConnectorsView() {
   const say = useToast();
   const connected = useConnected();
   const [q, setQ] = useState("");
@@ -58,15 +63,6 @@ export function ConnectorsView() {
   const [sort, setSort] = useState<Sort>("Connected first");
   const [open, setOpen] = useState<Connector | null>(null);
   const close = useCallback(() => setOpen(null), []);
-  const ready = useLive((s) => s.status === "ready");
-
-  /* live demo: Zoho Books and Google Sheets read their state from the API */
-  useEffect(() => {
-    if (!ready) return;
-    const ctrl = new AbortController();
-    void loadLiveConnectors(ctrl.signal);
-    return () => ctrl.abort();
-  }, [ready]);
 
   const query = q.trim().toLowerCase();
   const matches = useCallback(

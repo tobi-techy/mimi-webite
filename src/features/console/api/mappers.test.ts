@@ -221,17 +221,19 @@ const detail: ApiThreadDetail = {
   ],
 };
 
-test("mapThread orders shop message, folded work, reply, then the approval card", () => {
+test("mapThread files a shop thread as a task: task line, folded work, reply line, then the approval card", () => {
   const c = mapThread(detail, [approval], NOW);
   const kinds = c.messages.map((m) => m.kind);
-  assert.deepEqual(kinds, ["date", "system", "thought", "text", "card"]);
+  assert.deepEqual(kinds, ["date", "system", "thought", "system", "card"]);
   const [, shopMsg, work, reply, card] = c.messages;
-  assert.ok(shopMsg?.kind === "system" && shopMsg.text.startsWith("Mama Sola Provisions: "));
+  /* the shop's own words never show in the console (Tobi, 3 Nov 2026) */
+  assert.ok(shopMsg?.kind === "system" && shopMsg.text === "Task from Mama Sola Provisions");
+  assert.ok(!JSON.stringify(c.messages).includes("I don pay 50k"));
   assert.ok(work?.kind === "thought" && work.from === "Proof" && work.secs === 1 && work.text === "- Checked the screenshot against the bank feed");
-  assert.ok(reply?.kind === "text" && reply.from === "Proof");
+  assert.ok(reply?.kind === "system" && reply.text === "Proof replied to Mama Sola Provisions");
   assert.ok(card?.kind === "card" && card.id === "apr:apr_1" && card.card.status === "needs" && card.card.kind === "flag");
-  /* the drafted reply waits in the card, not as a sent bubble */
-  assert.equal(c.messages.filter((m) => m.kind === "text").length, 1);
+  /* the drafted reply waits in the card, not as a line */
+  assert.equal(c.messages.filter((m) => m.kind === "system").length, 2);
   assert.equal(c.state, "needs");
 });
 
@@ -355,8 +357,10 @@ const ownerMsg = (over: Partial<ApiThreadDetail["messages"][number]>): ApiThread
 });
 
 test("a reply that went as a voice note gets a playable note under its text, fetched by message id", () => {
-  const spoken = { ...detail.messages[1]!, channel: "shop_whatsapp", voice: true };
-  const c = mapThread({ ...detail, messages: [detail.messages[0]!, spoken] }, [], NOW);
+  const spoken = { ...detail.messages[1]!, channel: "owner_console", voice: true };
+  /* a voice note to a shop is part of the shop's conversation: it never shows */
+  assert.equal(mapThread({ ...detail, messages: [detail.messages[0]!, spoken] }, [], NOW).messages.filter((m) => m.kind === "voice").length, 0);
+  const c = mapThread({ ...detail, thread: ownerThread, messages: [detail.messages[0]!, spoken] }, [], NOW);
   const i = c.messages.findIndex((m) => m.kind === "text");
   const note = c.messages[i + 1];
   assert.ok(note?.kind === "voice" && note.from === "Proof");

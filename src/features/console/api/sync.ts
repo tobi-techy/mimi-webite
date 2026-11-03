@@ -7,9 +7,7 @@ import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, ma
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
-import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
-import { tourConversation, tourEcho } from "@/features/console/demo/tour-state";
-import { hideTourEcho } from "@/features/console/lib/tour-echo";
+import { getDemo, isApiBacked, setApiConversations, setDemo } from "@/features/console/demo/store";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
@@ -181,20 +179,8 @@ function publish() {
     return stamp(c, now);
   });
   firstPaint = false;
-  /* the demo tour (five scenes) is the console's own: it rides along with the API's threads */
-  const tour = tourConversation();
-  if (!tour) {
-    setApiConversations(convs);
-    return syncTyping(typing);
-  }
-  /* the tour drives the visitor's book, so the API echoes it into the owner thread: hide the echo */
-  const echo = tourEcho(() => convs.find((c) => c.api?.kind === "owner")?.messages.map((m) => m.id) ?? []);
-  const shown = convs.map((c) => (c.api?.kind === "owner" ? { ...c, messages: hideTourEcho(c.messages, echo) } : c));
-  setApiConversations([...shown, tour]);
-  /* while it plays, the tour's own typing dots are its to clear, and the owner thread's echo types nothing */
-  if (echo.active && getDemo().typing?.slug === tour.slug) return;
-  const t = typing as { slug: string; who: Conversation["helper"] } | null;
-  syncTyping(echo.active && t?.slug !== tour.slug && t?.who === "Mimi" ? null : t);
+  setApiConversations(convs);
+  syncTyping(typing);
 }
 
 function syncTyping(typing: { slug: string; who: Conversation["helper"] } | null) {
@@ -329,6 +315,7 @@ export async function refresh(withBook = false): Promise<void> {
 }
 
 let started = false;
+let watching = false;
 
 /** Called once by the console shell. Does nothing in the sample and live (signed-out) builds. */
 export async function startLive(): Promise<void> {
@@ -346,14 +333,25 @@ export async function startLive(): Promise<void> {
       setLive({ status: "ready", since: Date.now() });
       report(err);
     } else {
-      restoreSampleConversations();
+      /* no sample data stands in: the console says Mimi can't be reached and offers Retry */
       setLive({ status: "fallback" });
       notify(err.kind, friendlyMessage(err.kind === "other" ? "unreachable" : err.kind, err.detail));
     }
   }
-  document.addEventListener("visibilitychange", () => {
-    if (!hidden() && getLive().status === "ready") void refresh();
-    else schedule();
-  });
+  if (!watching) {
+    watching = true;
+    document.addEventListener("visibilitychange", () => {
+      if (!hidden() && getLive().status === "ready") void refresh();
+      else schedule();
+    });
+  }
   schedule();
+}
+
+/** Mimi could not be reached on first load: try again (the Retry button). */
+export async function retryLive(): Promise<void> {
+  if (!USES_API || getLive().status !== "fallback") return;
+  started = false;
+  setLive({ status: "connecting", notice: null });
+  await startLive();
 }

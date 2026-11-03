@@ -2,6 +2,7 @@
 
 import { getLive } from "@/features/console/api/live-store";
 import { creditLines, creditRecommendations, type CreditLine, type CreditRecommendation } from "@/features/console/content/credit";
+import { USES_API } from "@/features/console/api/config";
 import { shops as sampleShops, type Shop } from "@/features/console/content/shops";
 import { approveCard } from "@/features/console/demo/engine";
 import type { Message } from "@/features/console/demo/types";
@@ -39,6 +40,7 @@ const parseRec = (line?: CreditLine): number | undefined => {
 function book(): { lines: readonly CreditLine[]; recs: readonly CreditRecommendation[]; shops: readonly Shop[] } {
   const l = getLive();
   if (l.status === "ready" && l.creditLines && l.creditRecs) return { lines: l.creditLines, recs: l.creditRecs, shops: l.shops ?? [] };
+  if (USES_API) return { lines: l.creditLines ?? [], recs: l.creditRecs ?? [], shops: l.shops ?? [] };
   return { lines: creditLines, recs: creditRecommendations, shops: sampleShops };
 }
 

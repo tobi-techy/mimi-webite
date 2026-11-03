@@ -42,7 +42,6 @@ import { splitReply, typingMs } from "@/features/console/lib/thread-view";
 import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 import { consoleRoutes, threadHref } from "@/features/console/config";
-import { endTour, isTourCard, startTour, tourChip, tourDecide, tourUndo } from "@/features/console/demo/tour";
 
 /**
  * The demo engine: keyword-matched scripts that make helpers type, answer, build cards, drive the
@@ -341,7 +340,6 @@ let chipBusy = false;
  * camera), sends it, then runs the chip's scripted step. The only sound is the tap.
  */
 export async function tapChip(slug: string, reply: Reply): Promise<void> {
-  if (isTourCard(slug)) return tourChip(reply);
   if (chipBusy || getDemo().typing?.slug === slug) return;
   chipBusy = true;
   const ep = epoch;
@@ -373,12 +371,6 @@ export async function tapChip(slug: string, reply: Reply): Promise<void> {
 
 /** The owner types and sends a message in a thread; the right helper answers. */
 export function sendMessage(slug: string, text: string, opts: { assign?: string; to?: Worker } = {}) {
-  /* live demo: typing during the tour ends it and talks to the real Mimi on the owner thread */
-  if (isTourCard(slug) && apiActive()) {
-    const owner = getDemo().conversations.find((c) => c.api && c.helper === "Mimi" && c.slug !== slug);
-    endTour();
-    if (owner) return sendMessage(owner.slug, text, opts);
-  }
   if (isApiThread(slug)) {
     sfx("console", "tap");
     return void liveSend(slug, text, opts);
@@ -1342,7 +1334,6 @@ export function answerAsk(slug: string, messageId: string, text: string, via: "m
 
 /** Approve a card (from its thread, the plan sheet or the Needs you pile: one shared store). */
 export function approveCard(slug: string, messageId: string, quiet = false) {
-  if (isTourCard(slug)) return tourDecide(messageId, true);
   if (isApiCard(messageId)) return void liveDecide(slug, messageId, true);
   const ep = epoch;
   const c = findConversation(getDemo(), slug);
@@ -1379,7 +1370,6 @@ async function approvePending(slug: string, kind: DecisionCard["kind"] | undefin
 }
 
 export function declineCard(slug: string, messageId: string) {
-  if (isTourCard(slug)) return tourDecide(messageId, false);
   if (isApiCard(messageId)) return void liveDecide(slug, messageId, false);
   sfx("console", "tap");
   const c = findConversation(getDemo(), slug);
@@ -1731,8 +1721,8 @@ const STORY_ASK = "Chase everyone over ₦50k this week. Polite, but firm past a
  * (a presenter tapping, or the guided demo tapping for them).
  */
 export function stageStory(playing = false) {
-  /* the live demo has no sample story thread: the five-scene tour is its guided demo */
-  if (apiActive()) return startTour();
+  /* API-backed console: there is no sample story to stage */
+  if (apiActive()) return;
   resetDemo();
   patchConversation(DEMO_SLUG, (c) => ({
     ...c,
@@ -1782,16 +1772,9 @@ async function tapStep(slug: string, step: string, ep: number): Promise<boolean>
   return alive(ep);
 }
 
-/** Auto-plays the collections story through the same chips a presenter taps (~70s). */
-/** Plays the five-scene demo in Mimi's chat (live demo and sample data alike). */
+/** Auto-plays the collections story through the same chips a presenter taps (~70s). Sample build only. */
 export async function playDemo(go: (href: string) => void) {
-  startTour();
-  go(consoleRoutes.home);
-}
-
-/** The older collections story, auto-played through its chips (sample data only). */
-export async function playCollectionsStory(go: (href: string) => void) {
-  if (apiActive()) return playDemo(go);
+  if (apiActive()) return;
   stageStory(true);
   const ep = epoch;
   const slug = DEMO_SLUG;
@@ -1860,9 +1843,8 @@ export function fileInvoice(slug: string) {
   })();
 }
 
-/** Undo under a done card: the tour's own, or an API Zoho record or limit change. */
+/** Undo under a done card: an API Zoho record or limit change. */
 export function undoCard(slug: string, messageId: string) {
-  if (isTourCard(slug)) return tourUndo(messageId);
   if (isApiCard(messageId)) return void liveUndo(slug, messageId);
 }
 
