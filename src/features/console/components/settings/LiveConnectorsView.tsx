@@ -84,7 +84,6 @@ export function LiveConnectorsView() {
     callbackDone.current = true;
     window.history.replaceState(null, "", window.location.pathname);
     if (p.status && !/success|active/i.test(p.status)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNote("The tool didn't finish connecting, so nothing changed.");
       return;
     }
