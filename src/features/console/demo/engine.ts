@@ -42,7 +42,7 @@ import { splitReply, typingMs } from "@/features/console/lib/thread-view";
 import { runningIn } from "@/features/console/demo/roster";
 import { scopeLabel, triggerLabel, type Automation } from "@/features/console/content/automations";
 import { consoleRoutes, threadHref } from "@/features/console/config";
-import { isTourCard, startTour, tourChip, tourDecide, tourUndo } from "@/features/console/demo/tour";
+import { endTour, isTourCard, startTour, tourChip, tourDecide, tourUndo } from "@/features/console/demo/tour";
 
 /**
  * The demo engine: keyword-matched scripts that make helpers type, answer, build cards, drive the
@@ -373,6 +373,12 @@ export async function tapChip(slug: string, reply: Reply): Promise<void> {
 
 /** The owner types and sends a message in a thread; the right helper answers. */
 export function sendMessage(slug: string, text: string, opts: { assign?: string; to?: Worker } = {}) {
+  /* live demo: typing during the tour ends it and talks to the real Mimi on the owner thread */
+  if (isTourCard(slug) && apiActive()) {
+    const owner = getDemo().conversations.find((c) => c.api && c.helper === "Mimi" && c.slug !== slug);
+    endTour();
+    if (owner) return sendMessage(owner.slug, text, opts);
+  }
   if (isApiThread(slug)) {
     sfx("console", "tap");
     return void liveSend(slug, text, opts);

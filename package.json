@@ -14,7 +14,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:console": "node --test --experimental-strip-types --no-warnings=ExperimentalWarning src/features/console/api/mappers.test.ts src/features/console/lib/safe-href.test.ts src/features/console/api/attachments.test.ts src/features/console/lib/plain-text.test.ts src/features/console/lib/reactions.test.ts src/features/console/lib/thread-view.test.ts src/features/console/styles/sidebar-scroll.test.ts src/features/console/api/handoffs.test.ts src/features/console/lib/helper-activity.test.ts src/features/console/lib/chat-view.test.ts",
+    "test:console": "node --test --experimental-strip-types --no-warnings=ExperimentalWarning src/features/console/api/mappers.test.ts src/features/console/lib/safe-href.test.ts src/features/console/api/attachments.test.ts src/features/console/lib/plain-text.test.ts src/features/console/lib/reactions.test.ts src/features/console/lib/thread-view.test.ts src/features/console/styles/sidebar-scroll.test.ts src/features/console/api/handoffs.test.ts src/features/console/lib/helper-activity.test.ts src/features/console/lib/chat-view.test.ts src/features/console/lib/tour-figures.test.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "optimize:images": "node scripts/optimize-images.mjs",

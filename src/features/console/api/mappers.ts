@@ -231,7 +231,8 @@ export function zohoCard(p: ZohoPayload, status: CardStatus, opts: { undo?: Deci
     why: "The bank confirmed it",
     title: `Record ${naira(amount)} from ${shop} in Zoho Books`,
     sub: status === "needs" ? "The bank confirmed this payment. Nothing is written to Zoho until you approve." : "Payment the bank confirmed",
-    rows: [{ label: p.invoice_number ? `Against invoice ${p.invoice_number}` : "Against the shop's oldest open invoice", amount, proof: "verified" }],
+    /* the invoice number and Zoho reference are book keys: never shown (owner reads the shop and ₦) */
+    rows: [{ label: "Against their open invoice", amount, proof: "verified" }],
     noTotal: true,
     primary: "Record in Zoho",
     secondary: "Decline",
@@ -320,7 +321,7 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
   const who = shopName || "Your business";
   const decided = parseApiTime(a.decided_at);
   const rows: DecisionCard["rows"] = [{ label: who, amount, note: helper === "Mimi" ? "Mimi" : helper }];
-  if (a.draft?.text) rows.push({ label: "Draft", note: short(a.draft.text, 90) });
+  if (a.draft?.text) rows.push({ label: "Draft", note: short(hideKeys(a.draft.text), 90) });
   const subject = typeof a.payload?.subject === "string" ? a.payload.subject : "";
   const body = typeof a.payload?.body === "string" ? a.payload.body : a.draft?.text ?? "";
   const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.brand === "string" ? a.payload.brand : "";
@@ -330,7 +331,7 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
     shop: shopName || undefined,
     amount,
     why: a.note || undefined,
-    title: short((a.preview || a.tool || "Approval").split("\n")[0] ?? "Approval", 80),
+    title: short(hideKeys((a.preview || a.tool || "Approval").split("\n")[0] ?? "Approval"), 80),
     sub: `${who} · ${status === "needs" ? "nothing sent yet" : status === "sent" ? "approved" : "declined"}`,
     rows,
     email: kind === "brand" && subject ? { to: to || "Brand", subject, body } : undefined,
@@ -379,7 +380,7 @@ function mapStep(s: ApiStep, from: Roster): Message {
     at,
     variant: variant === "handoff" ? "tool" : variant,
     icon: stepIcon(s),
-    text: short(s.short || s.tool || s.type, 72),
+    text: short(hideKeys(s.short || s.tool || s.type), 72),
     state: variant === "error" ? "failed" : "done",
     meta: tierNote || undefined,
     tool: s.tool || undefined,
@@ -391,7 +392,7 @@ function mapStep(s: ApiStep, from: Roster): Message {
 /** A finished turn's work: one collapsed "Thought for Ns" line that opens to the list of steps. */
 export function foldSteps(turn: string, steps: ApiStep[], from: Roster): Message {
   const ms = steps.reduce((n, s) => n + (s.duration_ms || 0), 0);
-  const text = steps.map((s) => `- ${short(s.short || s.tool || s.type, 90).replace(/[*_`=\[\]]/g, "")}`).join("\n");
+  const text = steps.map((s) => `- ${short(hideKeys(s.short || s.tool || s.type), 90).replace(/[*_`=\[\]]/g, "")}`).join("\n");
   return { id: `api-w:${turn}`, kind: "thought", from: from === "Mimi" ? "Mimi" : from, at: parseApiTime(steps[0]?.at) ?? 0, text, secs: Math.max(1, Math.round(ms / 1000)) };
 }
 
@@ -408,6 +409,17 @@ function ownerMedia(m: ApiMessage, id: string, at: number): Message | null {
     return { id, kind: "voice", from: "me", at, seconds: 0, caption: "Your voice note", transcript: caption || undefined, audio: { from: "media", id: apiId }, apiId };
   if (/doc/.test(m.kind)) return { id, kind: "file", from: "me", at, name: caption || "Document", mime: "application/pdf", size: 0, remote: apiId, apiId };
   return null;
+}
+
+/**
+ * Whether an outgoing message went out. Text to a shop shows only once it is `ready` (handed to
+ * WhatsApp): a draft waiting on approval, or one declined, superseded or withdrawn, never shows on
+ * the shop side. Owner-side text hides drafts and declined ones the same way.
+ */
+export function outShown(m: Pick<ApiMessage, "direction" | "channel" | "status">): boolean {
+  if (m.direction !== "out") return true;
+  if (m.channel === "shop_whatsapp") return m.status === "ready";
+  return !/^(pending_approval|draft|rejected|superseded|withdrawn)$/.test(m.status);
 }
 
 function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: ReadonlyMap<string, Message>): Message | null {
@@ -435,8 +447,8 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
     return { id, kind: "system", text: `${who}: “${m.text}”`, at, icon: "message-square" };
   }
   /* a drafted reply that waits in approvals shows as its card, not as a sent bubble */
-  if (m.status === "pending_approval" || m.status === "draft") return null;
-  const text = nairaSign(m.text);
+  if (!outShown(m)) return null;
+  const text = hideKeys(nairaSign(m.text));
   /* a helper asking the owner: shown in her chat and, as "Needs you", in Mimi's. A paused job's
      note reads as model and tool numbers, so it is asked again in plain words (Keep going / Stop) */
   const pause = plainPause(text);
@@ -448,7 +460,7 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
 
 /** A reply that also went as a voice note: the note itself, played through the API on tap. */
 function replyVoice(m: ApiMessage, from: Roster): Message | null {
-  if (!m.voice || m.direction !== "out" || m.status === "pending_approval" || m.status === "draft") return null;
+  if (!m.voice || m.direction !== "out" || !outShown(m)) return null;
   return { id: `api-v:${m.message_id}`, kind: "voice", from, at: parseApiTime(m.at) ?? 0, seconds: 0, caption: "Voice note", audio: { from: "voice", id: m.message_id } };
 }
 
@@ -825,6 +837,37 @@ export function mapCreditRecs(c: ApiCredit): CreditRecommendation[] {
  * Helpers sometimes write naira as a plain "N" ("N2,387,250", "N50k"). The console always shows
  * the naira sign: an "N" right before a figure, not inside a word, becomes "₦".
  */
+/**
+ * User-facing text never shows the book's internal keys: Zoho references, fake Zoho ids, payment,
+ * delivery and order ids, invoice numbers (they read like database keys to an owner).
+ */
+const KEYS: [RegExp, string][] = [
+  /* "Recorded … in Zoho Books against INV-56-9034." */
+  [/\s+against\s+INV-[\w-]+/gi, ""],
+  [/\b(?:on|for|of)\s+(?:invoice\s+)?INV-[\w-]+/gi, ""],
+  [/\binvoice\s+INV-[\w-]+/gi, "their invoice"],
+  [/\bINV-[\w-]+/g, "their invoice"],
+  /* the Zoho reference and the fake Zoho id */
+  [/\s*\(?\bref(?:erence)?\s*:?\s*mimi-[\w:.-]+\)?/gi, ""],
+  [/\bmimi-[a-z_]+:[\w.-]+/gi, ""],
+  [/\s*\(?\bzfake_[0-9a-f]+\)?/gi, ""],
+  /* book ids in step lines ("the receipt for dlv-56-9034") */
+  [/\s+(?:for|to|on)\s+(?:dlv|pay(?:-ss)?|ord|prf)-[\w-]+/gi, ""],
+  [/\b(?:dlv|pay-ss|pay|ord|prf)-[\w-]+/gi, ""],
+];
+
+export function hideKeys(text: string): string {
+  if (!text) return text;
+  let out = text;
+  for (const [re, to] of KEYS) out = out.replace(re, to);
+  return out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([.,;:])/g, "$1")
+    .replace(/\(\s*\)/g, "")
+    .trim();
+}
+
+
 export function nairaSign(text: string): string {
   if (!text) return text;
   return text.replace(/(^|[^A-Za-z0-9_₦])N(?=\d)/g, "$1₦");

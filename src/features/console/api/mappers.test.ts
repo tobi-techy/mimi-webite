@@ -463,3 +463,13 @@ test("morning brief: one overdue shop per line; other text unchanged", () => {
   );
   assert.equal(briefLines("Good morning, nothing is overdue."), "Good morning, nothing is overdue.");
 });
+
+test("outShown: a shop sees only ready replies; drafts and declined ones never show", async () => {
+  const { outShown } = await import("./mappers.ts");
+  const shop = (status: string) => ({ direction: "out", channel: "shop_whatsapp", status });
+  assert.equal(outShown(shop("ready")), true);
+  for (const s of ["pending_approval", "draft", "rejected", "superseded", "queued", ""]) assert.equal(outShown(shop(s)), false, s);
+  assert.equal(outShown({ direction: "out", channel: "owner_console", status: "ready" }), true);
+  assert.equal(outShown({ direction: "out", channel: "owner_console", status: "rejected" }), false);
+  assert.equal(outShown({ direction: "in", channel: "", status: "received" }), true);
+});
