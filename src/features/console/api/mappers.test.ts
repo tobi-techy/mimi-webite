@@ -535,6 +535,8 @@ test("a credit with nothing to set it against is held on the account, never call
   )!;
   assert.equal(done.doneText, "Held on the account");
   assert.ok(done.rows.some((r) => r.label === "Held on the account" && r.amount === 12000));
+  /* and no nought row claiming it went against an invoice */
+  assert.equal(done.rows.some((r) => r.label.includes("oldest open invoice")), false);
 });
 
 test("no Undo button unless the API says the credit can still be taken back", () => {

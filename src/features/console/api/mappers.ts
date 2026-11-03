@@ -1054,7 +1054,9 @@ export function returnCreditCard(
         ? "The depot checked what came back. Nothing is credited to the shop until you approve."
         : "Goods that came back",
     rows: [
-      ...(rows.length ? rows : [{ label: "Against their oldest open invoice", amount: appliedNow, note: undefined }]),
+      /* the invoice rows above drop noughts; so must the fallback, or the card would claim
+         "Against their oldest open invoice ₦0" beside "Held on the account ₦12,000" */
+      ...(rows.length || appliedNow === 0 ? rows : [{ label: "Against their oldest open invoice", amount: appliedNow, note: undefined }]),
       ...(onAccountNow > 0 ? [{ label: "Held on the account", amount: onAccountNow, note: "Nothing to set it against" }] : []),
     ],
     reasons: str(p.reason) ? [nairaSign(str(p.reason))] : undefined,

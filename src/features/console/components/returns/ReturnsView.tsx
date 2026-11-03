@@ -6,7 +6,10 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import { Pill } from "@/features/console/components/ui/Pill";
 import { Table } from "@/features/console/components/ui/Table";
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
+import { refresh } from "@/features/console/api/sync";
 import { useReturns } from "@/features/console/api/hooks";
+import { Button } from "@/features/console/components/ui/Button";
+import { Note } from "@/features/console/components/ui/Note";
 import { cameBack, conditionWords, dayOf, dispositionWords, isOpenReturn, personOf, returnedPct, statusView, type ShopReturn } from "@/features/console/content/returns";
 import { naira } from "@/features/console/lib/format";
 
@@ -29,14 +32,27 @@ function StatusPill({ status }: { status: string }) {
  * approval card, so it never needs a second kind of decision here.
  *
  * Until this server has GET /v1/returns the screen says so in plain words. It never shows an empty
- * list, which would read as "no returns" and would not be true.
+ * list, which would read as "no returns" and would not be true, and a read that failed says that
+ * instead of borrowing the not-connected wording, with the same Try again the book pages offer.
  */
 export function ReturnsView() {
-  const { returns, loading, missing } = useReturns();
+  const { returns, loading, missing, failed } = useReturns();
   const [open, setOpen] = useState<string | null>(null);
 
   if (loading) return <SkeletonRows count={6} />;
   if (missing) return <NotYet />;
+  if (failed)
+    return (
+      <>
+        <EmptyState>Mimi couldn&apos;t read the returns ledger just now.</EmptyState>
+        <Note>
+          <span>Nothing is wrong with the ledger. It was not read, so nothing is shown.</span>
+          <Button size="sm" variant="ghost" onClick={() => void refresh(true)}>
+            Try again
+          </Button>
+        </Note>
+      </>
+    );
   if (returns.length === 0) return <EmptyState>No returns yet</EmptyState>;
 
   const rows = [...returns].sort(

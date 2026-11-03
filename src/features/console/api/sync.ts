@@ -2,7 +2,7 @@
 
 import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
-import { getLive, notify, setLive } from "@/features/console/api/live-store";
+import { getLive, notify, setLive, type LedgerRead } from "@/features/console/api/live-store";
 import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
@@ -236,19 +236,28 @@ async function refreshBook(t: string, signal?: AbortSignal) {
  * never announced as an error.
  */
 async function refreshLedger(t: string, signal?: AbortSignal) {
+  /* each read records why it has no data: no such route ("missing") or a read that failed ("error") */
+  const verdict = (e: unknown): LedgerRead => (missingRoute(e) ? "missing" : "error");
+  const ledger = (key: "returns" | "exposure", read: LedgerRead) => setLive({ ledger: { ...getLive().ledger, [key]: read } });
   await Promise.all([
     (async () => {
       try {
         setLive({ returns: mapReturns(await mimiApi.returns(t, { signal })) });
+        ledger("returns", "unread");
       } catch (e) {
-        if (!isAbort(e) && !missingRoute(e)) report(e);
+        if (isAbort(e)) return;
+        ledger("returns", verdict(e));
+        if (!missingRoute(e)) report(e);
       }
     })(),
     (async () => {
       try {
         setLive({ exposure: mapExposure(await mimiApi.exposure(t, { signal })) });
+        ledger("exposure", "unread");
       } catch (e) {
-        if (!isAbort(e) && !missingRoute(e)) report(e);
+        if (isAbort(e)) return;
+        ledger("exposure", verdict(e));
+        if (!missingRoute(e)) report(e);
       }
     })(),
   ]);
@@ -292,11 +301,13 @@ export function republish(): void {
 /* ---------- polling ---------- */
 
 let timer: ReturnType<typeof setTimeout> | undefined;
+let busy = false;
 let again = false;
 /** A queued pass set `again`: remember a book request that arrived while a read was in flight. */
 let againBook = false;
-/** The pass in flight, so a second caller waits for a real outcome instead of a false success. */
-let passInFlight: Promise<boolean> | null = null;
+/** A caller that arrived during a pass waits on the pass that runs next, the one that reads the book. */
+let queuedPass: Promise<boolean> | null = null;
+let settleQueued: ((ok: boolean) => void) | null = null;
 
 const hidden = () => typeof document !== "undefined" && document.hidden;
 const active = () => openTurns.size > 0 || [...pending.values()].some((l) => l.some((m) => !keeps(m))) || threads.some((t) => t.status === "running");
@@ -307,27 +318,45 @@ function schedule() {
   if (active() && !hidden()) timer = setTimeout(() => void refresh(), FAST_MS);
 }
 
+/** Starts one pass, and when a caller arrived during it, the pass they asked for straight after. */
+function startPass(withBook: boolean): Promise<boolean> {
+  busy = true;
+  return runPass(withBook).finally(() => {
+    busy = false;
+    if (again) {
+      again = false;
+      const queued = withBook || againBook;
+      againBook = false;
+      const next = startPass(queued);
+      const settle = settleQueued;
+      settleQueued = null;
+      queuedPass = null;
+      /* the caller riding the queue gets the queued pass's own outcome, not this pass's */
+      if (settle) void next.then(settle);
+    } else schedule();
+  });
+}
+
 /**
  * Re-reads threads and approvals (and the book when asked), then polls again only if work is
- * running. Resolves true only when the read really ran and succeeded, so a caller that announces
- * "refreshed" never claims it after a failure. A call that arrives while a read is in flight rides
- * along with it (and queues one more pass, keeping its book request): nothing is dropped.
+ * running. Resolves true only when the pass that ran for this call really reached the end: a
+ * caller that arrives while a pass is in flight waits on the pass that runs next, keeping its
+ * book request, so it never reports a read that did not happen.
  */
 export function refresh(withBook = false): Promise<boolean> {
-  if (passInFlight) {
+  if (busy) {
     again = true;
     if (withBook) againBook = true;
-    return passInFlight;
+    queuedPass ??= new Promise<boolean>((settle) => {
+      settleQueued = settle;
+    });
+    return queuedPass;
   }
-  const p = runRefresh(withBook).finally(() => {
-    if (passInFlight === p) passInFlight = null;
-  });
-  passInFlight = p;
-  return p;
+  return startPass(withBook);
 }
 
 /** One pass. `ok` is true only when it reached the end without an error. */
-async function runRefresh(withBook: boolean): Promise<boolean> {
+async function runPass(withBook: boolean): Promise<boolean> {
   let capCheck = false;
   let ok = false;
   try {
@@ -358,13 +387,6 @@ async function runRefresh(withBook: boolean): Promise<boolean> {
     });
   } catch (e) {
     report(e);
-  } finally {
-    if (again) {
-      again = false;
-      const queued = withBook || againBook;
-      againBook = false;
-      void refresh(queued);
-    } else schedule();
   }
   return ok;
 }

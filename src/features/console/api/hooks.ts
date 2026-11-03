@@ -117,11 +117,17 @@ export function useBookTotals(): { owed: number; overdue: number } | null {
  * The returns ledger. `missing` is true when this server has no returns route yet, which the screen
  * shows as "not available yet": an empty list would read as "no returns", and that would be a lie.
  */
-export function useReturns(): { returns: readonly ShopReturn[]; loading: boolean; missing: boolean } {
+export function useReturns(): { returns: readonly ShopReturn[]; loading: boolean; missing: boolean; failed: boolean } {
   const status = useLive((s) => s.status);
   const returns = useLive((s) => s.returns);
-  if (status === "connecting") return { returns: NO_RETURNS, loading: true, missing: false };
-  return { returns: returns ?? NO_RETURNS, loading: false, missing: returns === null };
+  const read = useLive((s) => s.ledger.returns);
+  if (status === "connecting") return { returns: NO_RETURNS, loading: true, missing: false, failed: false };
+  return { returns: returns ?? NO_RETURNS, loading: false, missing: read === "missing", failed: read === "error" };
+}
+
+/** The exposure read failed (not "no such route"): Money at risk says so rather than staying silent. */
+export function useExposureFailed(): boolean {
+  return useLive((s) => USES_API && s.ledger.exposure === "error");
 }
 
 /** Credit exposure from the API, with its own ageing buckets. Null when this server has no route. */

@@ -61,7 +61,10 @@ function Kpis({ values, labels = TILES }: { values: Array<string | null>; labels
 function FromApi({ e }: { e: Exposure }) {
   const { total } = e;
   const readable = e.bands.some((b) => total.band[b.key] !== null);
-  const rows = [...e.shops].sort((a, b) => b.overdue - a.overdue || b.owed - a.owed);
+  /* one set of shops behind the tile, the section heading and the rows: they can never disagree */
+  const rows = e.shops
+    .filter((s) => s.owed > 0 || s.overdue > 0)
+    .sort((a, b) => b.overdue - a.overdue || b.owed - a.owed);
 
   return (
     <>
@@ -69,7 +72,7 @@ function FromApi({ e }: { e: Exposure }) {
         values={[
           naira(total.owed),
           naira(total.overdue),
-          String(e.shops.filter((s) => s.overdue > 0).length),
+          String(rows.length),
           total.oldest > 0 ? `${total.oldest} ${total.oldest === 1 ? "day" : "days"}` : "None",
         ]}
       />
@@ -109,7 +112,7 @@ function FromApi({ e }: { e: Exposure }) {
         <div className="x-gh">
           <Icon name="store" />
           <h2>Shops carrying it</h2>
-          <span className="x-num">{e.shops.length}</span>
+          <span className="x-num">{rows.length}</span>
         </div>
         {rows.length === 0 ? (
           <EmptyState>No shop owes anything right now</EmptyState>
