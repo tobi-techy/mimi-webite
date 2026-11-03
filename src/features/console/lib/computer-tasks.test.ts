@@ -26,6 +26,7 @@ import {
   stepSentence,
   stepsOf,
   stepUrl,
+  STOP_UNSAID,
   taskShortWord,
   taskStateWord,
   taskTitle,
@@ -63,7 +64,9 @@ test("the short words used by the filter tabs", () => {
 
 test("waiting and running are read from the status word", () => {
   assert.equal(needsOwner("proposed"), true);
-  assert.equal(needsOwner("queued"), true);
+  /* the service's vocabulary has no `queued`: an unknown word is shown as itself, not guessed at */
+  assert.equal(needsOwner("queued"), false);
+  assert.equal(taskTone("queued"), "unknown");
   assert.equal(needsOwner("running"), false);
   assert.equal(isRunning("running"), true);
   assert.equal(isRunning("done"), false);
@@ -362,9 +365,93 @@ test("files are read defensively: a label, a safe link, or nothing", () => {
   assert.deepEqual(normalizeArtifacts(null), []);
 });
 
-test("a stop reason is tidied but never rewritten", () => {
-  assert.equal(describeStop("  hit a login\npage  "), "hit a login page");
-  assert.equal(describeStop(null), "");
+test("the stop line is the service's own sentence, never its code", () => {
+  /* the two fields the service sends together: a code and the sentence for a person */
+  assert.equal(
+    describeStop({ stop_reason: "stopped_by_owner", note: "Stopped by the owner." }),
+    "Stopped by the owner.",
+  );
+  assert.equal(
+    describeStop({ stop_reason: "off_domain", note: "Stopped: the browser left the domain you approved. Nothing after that was read or kept." }),
+    "Stopped: the browser left the domain you approved. Nothing after that was read or kept.",
+  );
+  /* the sentence is passed through as written: the service's own notes carry their own framing */
+  assert.equal(describeStop({ note: "  Stopped by the owner.\n " }), "Stopped by the owner.");
+  /* every code the service can send: none of them ever reaches the screen */
+  for (const code of [
+    "off_domain",
+    "forbidden_page",
+    "login_wall",
+    "budget_steps",
+    "budget_seconds",
+    "stopped_by_owner",
+    "engine_error",
+    "unsupported_step",
+  ]) {
+    const line = describeStop({ stop_reason: code });
+    assert.equal(line, STOP_UNSAID, `${code} reached the screen`);
+    assert.equal(line.includes(code), false, `${code} reached the screen`);
+    /* and a code that arrives in the sentence field instead is refused too */
+    assert.equal(describeStop({ note: code }), STOP_UNSAID, `${code} reached the screen through note`);
+  }
+  assert.equal(describeStop({ note: "", stop_reason: "" }), STOP_UNSAID);
+  assert.equal(describeStop(null), STOP_UNSAID);
+  assert.equal(describeStop(undefined), STOP_UNSAID);
+  /* a service that stopped naming a reason at all is still said plainly */
+  assert.equal(STOP_UNSAID, "The service did not say why this task stopped.");
+});
+
+test("a task the budgets ended reads as stopped, not as still going", () => {
+  assert.equal(taskTone("stopped_runaway"), "stopped");
+  assert.equal(taskStateWord("stopped_runaway"), "Stopped");
+  assert.equal(taskShortWord("stopped_runaway"), "Stopped");
+  assert.equal(isRunning("stopped_runaway"), false);
+  assert.equal(isFinished("stopped_runaway"), true);
+  assert.equal(canStop("stopped_runaway"), false);
+  assert.equal(
+    liveViewLink({ task_id: "t", status: "stopped_runaway", live_view_url: "https://live.example/x" }),
+    null,
+  );
+  /* a status of that family the service adds later reads the same way rather than as "in progress" */
+  for (const word of ["stopped_runaway", "STOPPED_RUNAWAY", "stopped-budget", "stopped_future_reason"]) {
+    assert.equal(taskTone(word), "stopped", word);
+    assert.equal(isFinished(word), true, word);
+    assert.equal(canStop(word), false, word);
+  }
+  /* and the words that are not stopped stay where they were */
+  assert.equal(taskTone("proposed"), "proposed");
+  assert.equal(taskTone("running"), "running");
+  assert.equal(taskTone("awaiting_owner"), "paused");
+  assert.equal(taskTone("queued"), "unknown");
+});
+
+test("a plan line is the service's own words, from either shape, and never its code", () => {
+  /* the service's own object: note is the line written for the owner, action its plain verb words */
+  assert.deepEqual(
+    planOf({
+      task_id: "t",
+      status: "proposed",
+      plan: [
+        { action: "Open the page", code: "goto", url: "https://x.example", note: "Open the internet banking site" },
+        { action: "Read what the page shows", code: "extract", note: "Read the prices and promos shown on the page" },
+      ],
+    }),
+    ["Open the internet banking site", "Read the prices and promos shown on the page"],
+  );
+  /* no note: the plain words for the verb, still never the code */
+  assert.deepEqual(
+    planOf({ task_id: "t", status: "proposed", plan: [{ action: "Scroll the page", code: "scroll" }] }),
+    ["Scroll the page"],
+  );
+  /* a bare string is still read, and an empty line is left out rather than shown blank */
+  assert.deepEqual(planOf({ task_id: "t", status: "proposed", plan: ["Open the site", "  ", ""] }), ["Open the site"]);
+  /* a line the service sent as a machine token is said so, and the plan keeps its shape */
+  assert.deepEqual(
+    planOf({ task_id: "t", status: "proposed", plan: [{ action: "read_price_list", code: "extract" }, "Follow-up"] }),
+    [PLAN_UNREADABLE, "Follow-up"],
+  );
+  assert.deepEqual(planOf({ task_id: "t", status: "proposed", plan: [] }, ["Open the site"]), ["Open the site"]);
+  assert.deepEqual(planOf(null, ["Open the site"]), ["Open the site"]);
 });
 
 test("the asked time is Lagos time", () => {

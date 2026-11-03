@@ -49,6 +49,7 @@ function rowFromSummary(s: ApiComputerTaskSummary): TaskRow | null {
     createdAt: parseApiTime(s.created_at ?? null),
     stepCount: typeof s.step_count === "number" ? s.step_count : null,
     stopReason: typeof s.stop_reason === "string" ? s.stop_reason : null,
+    note: typeof s.note === "string" ? s.note : null,
   };
 }
 
@@ -61,6 +62,7 @@ function mergeTask(existing: ApiComputerTask | null, incoming: ApiComputerTask):
     steps: incoming.steps ?? existing?.steps,
     artifacts: incoming.artifacts ?? existing?.artifacts,
     stop_reason: incoming.stop_reason ?? existing?.stop_reason,
+    note: incoming.note ?? existing?.note,
     /* the signed live link dies with the session: a null from the service is taken as the answer,
        while a response that leaves the field out keeps whatever the last one said */
     live_view_url: "live_view_url" in incoming ? incoming.live_view_url ?? null : existing?.live_view_url ?? null,
@@ -171,8 +173,10 @@ export async function createTask(input: ApiComputerTaskIn): Promise<{ ok: true; 
         status: typeof task.status === "string" ? task.status : null,
         /* the service did not send a creation time, so the Asked column stays empty until it does */
         createdAt: null,
-        stepCount: Array.isArray(task.steps) ? task.steps.length : null,
+        /* the proposal carries the plan, not a step log: the plan's length is what it will run */
+        stepCount: Array.isArray(task.plan) ? task.plan.length : null,
         stopReason: typeof task.stop_reason === "string" ? task.stop_reason : null,
+        note: typeof task.note === "string" ? task.note : null,
       },
       { local: true },
     );

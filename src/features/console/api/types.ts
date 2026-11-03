@@ -382,17 +382,37 @@ export type ApiComputerTaskStep = {
 /** A file the task produced. Read defensively: the field names are not fixed yet. */
 export type ApiComputerTaskArtifact = Record<string, unknown> | string;
 
+/**
+ * One line of a task's plan. The service sends the plain words in `action` and its own machine verb
+ * in `code`; the console renders `action` or `note` and never `code`.
+ */
+export type ApiComputerPlanStep = {
+  action?: string | null;
+  code?: string | null;
+  url?: string | null;
+  note?: string | null;
+  screenshot?: string | null;
+};
+
+/** A plan line: the service's own object, or a bare string (accepted, never assumed). */
+export type ApiComputerPlanLine = ApiComputerPlanStep | string;
+
 /** GET /v1/computer/tasks/{id}. */
 export type ApiComputerTask = {
   task_id: string;
   status: string;
-  /** One of the kinds the owner named (see lib/computer-tasks.ts). */
+  /** One of the kinds the service lists (see lib/computer-tasks.ts). */
   kind?: string | null;
-  /** The POST response carries the plan; a later GET may not, so it is optional here. */
-  plan?: string[];
+  /** The plan, from the POST response or a later GET. */
+  plan?: ApiComputerPlanLine[];
   steps?: ApiComputerTaskStep[];
   artifacts?: ApiComputerTaskArtifact[];
+  /**
+   * The service's own code for why it stopped. It is a code, never a sentence, so it is never shown.
+   */
   stop_reason?: string | null;
+  /** Why it stopped, in the service's own plain words. This is what the stop line reads. */
+  note?: string | null;
   /** A signed link to watch the browser live. The service fills it only while the task runs. */
   live_view_url?: string | null;
 };
@@ -411,8 +431,12 @@ export type ApiComputerTaskSummary = {
   domain?: string | null;
   status?: string | null;
   created_at?: string | null;
+  /** The plan, which is what the list counts as its steps. */
+  plan?: ApiComputerPlanLine[];
+  /** Sent by an older answer; the service's list row carries the plan instead. */
   step_count?: number | null;
   stop_reason?: string | null;
+  note?: string | null;
 };
 
 /** GET /v1/computer/tasks. */

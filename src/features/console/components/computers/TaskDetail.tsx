@@ -120,8 +120,11 @@ export function TaskDetail({ id }: { id: string }) {
   const steps = stepsOf(task);
   const plan = planOf(task);
   const artifacts = normalizeArtifacts(task?.artifacts);
-  const stopped = describeStop(task?.stop_reason ?? record.stopReason);
   const status = task?.status ?? record.status;
+  const tone = taskTone(status);
+  /* the service's own plain sentence for why it ended, and only then: a task that finished its work
+     has nothing to explain, and the code it sends alongside is never the line a person reads */
+  const stopped = tone === "stopped" || tone === "failed" ? describeStop(task ?? { note: record.note, stop_reason: record.stopReason }) : "";
   const kind = record.kind ?? task?.kind ?? null;
   const waiting = needsOwner(status);
   const signIn = needsSignIn(status);
@@ -212,7 +215,7 @@ export function TaskDetail({ id }: { id: string }) {
       {!signIn && stopped && (
         <p className="x-ctwarn" role="status">
           <Icon name="circle-pause" />
-          Stopped: {stopped}
+          {stopped}
         </p>
       )}
       {signIn && (

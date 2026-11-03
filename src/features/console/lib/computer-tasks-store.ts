@@ -18,7 +18,13 @@ export type TaskRecord = {
   /** Epoch ms of `created_at`, or null when the API did not send a readable one. */
   createdAt: number | null;
   stepCount: number | null;
+  /**
+   * The service's own code for why it stopped (`stopped_by_owner`, `off_domain`). Never shown: it
+   * chooses nothing on screen either, it is kept so a record does not lose what the service said.
+   */
   stopReason: string | null;
+  /** Why it stopped, in the service's own plain words. This is the line a person reads. */
+  note: string | null;
   /** The detail read (step log, files), or null before the detail route has answered. */
   task: ApiComputerTask | null;
   state: "idle" | "loading" | "ready" | "error";
@@ -36,7 +42,7 @@ export type TaskRecord = {
 /** What a row from the list carries. */
 export type TaskRow = Pick<
   TaskRecord,
-  "id" | "goal" | "kind" | "domain" | "status" | "createdAt" | "stepCount" | "stopReason"
+  "id" | "goal" | "kind" | "domain" | "status" | "createdAt" | "stepCount" | "stopReason" | "note"
 >;
 
 /** Whether the service answers at all. `missing` means the routes are not there yet. */
@@ -156,6 +162,7 @@ export const taskStore = {
       statusAt: task?.status ? stamp() : r.statusAt,
       stepCount: Array.isArray(task?.steps) ? task.steps.length : r.stepCount,
       stopReason: task?.stop_reason ?? r.stopReason,
+      note: task?.note ?? r.note,
     }));
   },
   fail(id: string, message: string): void {

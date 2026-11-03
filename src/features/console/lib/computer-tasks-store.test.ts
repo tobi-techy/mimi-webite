@@ -11,6 +11,7 @@ const row = (id: string, over: Partial<TaskRow> = {}): TaskRow => ({
   createdAt: null,
   stepCount: 0,
   stopReason: null,
+  note: null,
   ...over,
 });
 

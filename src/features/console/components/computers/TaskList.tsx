@@ -53,8 +53,10 @@ function TaskWhere({ record }: { record: TaskRecord }) {
 export function TaskList() {
   const { records, availability, loaded, listError } = useTasks();
   const { kinds, problem: kindsProblem } = useTaskKinds();
-  /* with no labels to read, the kind column would be blank on every row: it is left out and said so */
-  const showKind = kinds.length > 0;
+  /* the kind column only appears when a row actually names a kind: the labels alone do not fill it,
+     because the service's list row does not carry the kind of a task */
+  const rowsNameKind = records.some((r) => !!r.kind);
+  const showKind = kinds.length > 0 && rowsNameKind;
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const query = q.trim().toLowerCase();
@@ -104,7 +106,9 @@ export function TaskList() {
           {!showKind && records.length > 0 && (
             <p className="x-ctnote x-ctnote--flat" role="status">
               <Icon name="triangle-alert" />
-              {kindsProblem ?? "The task kinds could not be read right now."} The kind of each task is not shown.
+              {kindsProblem
+                ? `${kindsProblem} The kind of each task is not shown.`
+                : "The service does not name each task's kind in the list, so the kind of each task is not shown."}
             </p>
           )}
           {records.length > 0 && (

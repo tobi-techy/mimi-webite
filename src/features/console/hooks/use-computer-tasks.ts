@@ -77,6 +77,7 @@ export function useComputerTask(id: string): { record: TaskRecord | undefined; l
           createdAt: null,
           stepCount: null,
           stopReason: null,
+          note: null,
         });
       /* always: the detail route may be answering even where the list route is not published */
       await loadTask(id, ctrl.signal);

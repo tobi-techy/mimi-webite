@@ -3,25 +3,38 @@
  * so `npm run test:console` runs them in node with no DOM. Nothing here invents data: a field the
  * API has not sent stays empty and the screens say so.
  */
-import type { ApiComputerTask, ApiComputerTaskArtifact, ApiComputerTaskStep } from "../api/types";
+import type {
+  ApiComputerPlanLine,
+  ApiComputerTask,
+  ApiComputerTaskArtifact,
+  ApiComputerTaskStep,
+} from "../api/types";
 import { toPlainText } from "./plain-text.ts";
 import { safeHref } from "./safe-href.ts";
 
 /** How one task reads at a glance. `unknown` keeps a status word the console does not know yet. */
 export type TaskTone = "proposed" | "running" | "paused" | "done" | "stopped" | "failed" | "unknown";
 
+/**
+ * The service's own status words, folded to a tone. Its vocabulary is closed: proposed, running,
+ * awaiting_owner, done, stopped, stopped_runaway, failed. There is no `queued` status in it, so one
+ * is not guessed at here: `queued` is an internal queue word elsewhere in the API and never arrives
+ * in a task, and a word this map has never seen reads as `unknown` rather than as an approval.
+ */
 const TONES: Record<string, TaskTone> = {
   proposed: "proposed",
-  queued: "proposed",
   running: "running",
   /* parked at a sign-in wall: it is neither waiting for approval nor still running */
   awaiting_owner: "paused",
   done: "done",
+  stopped: "stopped",
+  /* the budgets ended it: it stopped for good, so it is not "in progress" and has nothing to stop */
+  stopped_runaway: "stopped",
+  failed: "failed",
+  /* kept from earlier answers, harmless: none of these is in the service's vocabulary either */
   finished: "done",
   completed: "done",
-  stopped: "stopped",
   cancelled: "stopped",
-  failed: "failed",
   error: "failed",
 };
 
@@ -33,7 +46,10 @@ const FINISHED_TONES: readonly TaskTone[] = ["done", "stopped", "failed"];
 
 /** The tone for a status word from the API. */
 export function taskTone(status: string | null | undefined): TaskTone {
-  return TONES[fold(status)] ?? "unknown";
+  const word = fold(status);
+  /* a status the service adds later of the same family (stopped_x) reads as stopped, not as unknown */
+  if (word.startsWith("stopped")) return "stopped";
+  return TONES[word] ?? "unknown";
 }
 
 const WORDS: Record<TaskTone, string> = {
@@ -258,18 +274,33 @@ export function stepsOf(task: ApiComputerTask | null | undefined): ApiComputerTa
   return steps.filter((s): s is ApiComputerTaskStep => !!s && typeof s === "object");
 }
 
-/** The plan the service proposed (from the POST response; a later GET may not carry it). */
-export function planOf(task: ApiComputerTask | null | undefined, fallback: readonly string[] = []): string[] {
+/**
+ * The plan the service proposed, one line per step, in its own words.
+ *
+ * A plan line is the service's own object: `note` is the line written for the owner ("Read the prices
+ * and promos shown on the page"), `action` is its plain words for the verb ("Read what the page
+ * shows"), and `code` is the machine verb ("extract"), which is never shown. The line prefers `note`
+ * and falls back to `action`. A bare string is accepted, so a simpler answer still reads. A line that
+ * arrives as a machine token is said so rather than shown, and the plan keeps its shape and order.
+ */
+export function planOf(
+  task: ApiComputerTask | null | undefined,
+  fallback: readonly string[] = [],
+): string[] {
   const plan = task?.plan;
   if (!Array.isArray(plan)) return [...fallback];
-  /* a plan line the service sent as a machine token is said so, so the plan keeps its shape */
   const lines = plan
-    .filter((l): l is string => typeof l === "string" && l.trim().length > 0)
-    .map((l) => {
-      const text = toPlainText(l).trim();
-      return looksLikeCode(text) ? PLAN_UNREADABLE : text;
-    });
+    .map(planLine)
+    .filter((l): l is string => l !== null);
   return lines.length ? lines : [...fallback];
+}
+
+/** One plan line as a person reads it, or null when there is nothing to read. */
+function planLine(line: ApiComputerPlanLine | null | undefined): string | null {
+  const raw = typeof line === "string" ? line : (line?.note || line?.action || "");
+  const text = toPlainText(raw).trim();
+  if (!text) return null;
+  return looksLikeCode(text) ? PLAN_UNREADABLE : text;
 }
 
 /** A task with no goal of its own reads by its pace, never by a made-up label. */
@@ -393,10 +424,27 @@ export function normalizeArtifacts(artifacts: ApiComputerTaskArtifact[] | null |
   return out;
 }
 
-/** Why a task stopped, in plain words, or "" when the API has not said. */
-export function describeStop(reason: string | null | undefined): string {
-  const text = (reason ?? "").replace(/\s+/g, " ").trim();
-  return text;
+/** What the console says when the service ended a task without giving a plain sentence for it. */
+export const STOP_UNSAID = "The service did not say why this task stopped.";
+
+/**
+ * Why a task stopped, in the service's own plain words.
+ *
+ * The service sends two things: a code (`stop_reason`, one of stopped_by_owner, off_domain,
+ * forbidden_page, login_wall, budget_steps, budget_seconds, engine_error, unsupported_step) and the
+ * sentence a person is meant to read (`note`, for example "Stopped by the owner." or "Stopped: the
+ * browser left the domain you approved."). Only the sentence is ever shown here: the code selects
+ * nothing on screen, and a code arriving in `note` is refused too, by the same machine-token guard
+ * the step log uses. When there is no sentence at all, the console says so in its own words rather
+ * than falling back to the code. The sentence is passed through exactly as written, because the
+ * service's own notes already say "Stopped: ..." where that is what happened.
+ */
+export function describeStop(
+  task: { note?: string | null; stop_reason?: string | null } | null | undefined,
+): string {
+  const note = toPlainText(task?.note ?? "").replace(/\s+/g, " ").trim();
+  if (note && !looksLikeCode(note)) return note;
+  return STOP_UNSAID;
 }
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
