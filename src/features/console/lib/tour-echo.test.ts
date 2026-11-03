@@ -12,7 +12,11 @@ const msgs = [
 ];
 
 test("while the tour plays, only the owner thread from before it started shows", () => {
-  const out = hideTourEcho(msgs, { active: true, baseline: new Set(["api-m:old"]), approvals: new Set(["a1"]) });
+  const out = hideTourEcho(msgs, {
+    active: true,
+    baseline: new Set(["api-m:old"]),
+    approvals: new Set(["a1"]),
+  });
   assert.deepEqual(
     out.map((m) => m.id),
     ["d1", "api-m:old", "api-m:in:mine"],
@@ -20,7 +24,11 @@ test("while the tour plays, only the owner thread from before it started shows",
 });
 
 test("the tour's own Zoho card never shows twice, even once the tour has finished", () => {
-  const out = hideTourEcho(msgs, { active: false, baseline: new Set(["api-m:old"]), approvals: new Set(["a1"]) });
+  const out = hideTourEcho(msgs, {
+    active: false,
+    baseline: new Set(["api-m:old"]),
+    approvals: new Set(["a1"]),
+  });
   assert.deepEqual(
     out.map((m) => m.id),
     ["d1", "api-m:old", "api-m:brief", "api-m:recorded", "api-m:in:mine"],
@@ -28,7 +36,11 @@ test("the tour's own Zoho card never shows twice, even once the tour has finishe
 });
 
 test("a card for an approval the tour does not own still shows after the tour", () => {
-  const out = hideTourEcho([{ id: "apr:other", kind: "card" }], { active: false, baseline: null, approvals: new Set(["a1"]) });
+  const out = hideTourEcho([{ id: "apr:other", kind: "card" }], {
+    active: false,
+    baseline: null,
+    approvals: new Set(["a1"]),
+  });
   assert.equal(out.length, 1);
 });
 

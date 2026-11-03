@@ -28,7 +28,11 @@ export function resetTourEcho(): void {
 export const ownTourApproval = (id: string): void => void approvals.add(id);
 
 /** The sync calls this with the owner thread's message ids on every publish; the first after a reset is the baseline. */
-export function tourEcho(ownerIds: () => string[]): { active: boolean; baseline: ReadonlySet<string> | null; approvals: ReadonlySet<string> } {
+export function tourEcho(ownerIds: () => string[]): {
+  active: boolean;
+  baseline: ReadonlySet<string> | null;
+  approvals: ReadonlySet<string>;
+} {
   if (wantBaseline) {
     baseline = new Set(ownerIds());
     wantBaseline = false;
