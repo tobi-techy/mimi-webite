@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { loadKinds, loadTask, loadTasks } from "@/features/console/api/computer-tasks";
-import { holdsSession } from "@/features/console/lib/computer-tasks";
+import { isFinished } from "@/features/console/lib/computer-tasks";
 import { taskStore, type TaskRecord, type TasksAvailability } from "@/features/console/lib/computer-tasks-store";
 import type { TaskKindOption } from "@/features/console/lib/computer-tasks";
 
-/** How often a task with a session open is re-read, in ms. Stops once the task is done or stopped. */
+/** How often a task the service has not finished with is re-read, in ms. Stops once it is done. */
 const POLL_MS = 4_000;
 
 /** The tasks the service is showing, read once on mount. */
@@ -78,14 +78,16 @@ export function useComputerTask(id: string): { record: TaskRecord | undefined; l
           stepCount: null,
           stopReason: null,
         });
-      if (taskStore.get().availability !== "missing") await loadTask(id, ctrl.signal);
+      /* always: the detail route may be answering even where the list route is not published */
+      await loadTask(id, ctrl.signal);
     })().catch(() => {});
     return () => ctrl.abort();
   }, [id]);
 
-  const running = holdsSession(record?.task?.status ?? record?.status);
+  const status = record?.task?.status ?? record?.status ?? null;
+  const unfinished = !isFinished(status);
   useEffect(() => {
-    if (!id || !running) return;
+    if (!id || !unfinished) return;
     const ctrl = new AbortController();
     const timer = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
@@ -95,7 +97,7 @@ export function useComputerTask(id: string): { record: TaskRecord | undefined; l
       clearInterval(timer);
       ctrl.abort();
     };
-  }, [id, running]);
+  }, [id, unfinished]);
 
   return { record, loading: !!record && !record.task && record.state !== "error", availability: state.availability };
 }

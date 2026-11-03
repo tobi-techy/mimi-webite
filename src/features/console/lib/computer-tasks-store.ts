@@ -24,6 +24,13 @@ export type TaskRecord = {
   state: "idle" | "loading" | "ready" | "error";
   /** A plain-word reason the detail read failed, or null. */
   error: string | null;
+  /**
+   * When the current `status` was learned (see `stamp`): a list read older than a detail read keeps
+   * the detail read's status, so a task approved elsewhere does not go back to Waiting on refresh.
+   */
+  statusAt: number;
+  /** True when this console asked for the task and the list has not carried it yet. */
+  local: boolean;
 };
 
 /** What a row from the list carries. */
@@ -49,6 +56,16 @@ const EMPTY: TasksState = { records: [], availability: "unknown", loaded: false,
 let state: TasksState = EMPTY;
 const listeners = new Set<() => void>();
 
+/**
+ * One counter for everything the console learns, so two answers about the same task can be ordered:
+ * a read that started before a later answer arrived must not overwrite it.
+ */
+let tick = 0;
+const stamp = (): number => ++tick;
+
+/** How many times the console has written to one task on purpose (approve, stop), for the same reason. */
+const writes = new Map<string, number>();
+
 function emit() {
   for (const l of listeners) l();
 }
@@ -68,6 +85,8 @@ const blank = (row: TaskRow): TaskRecord => ({
   task: null,
   state: "idle",
   error: null,
+  statusAt: stamp(),
+  local: false,
 });
 
 export const taskStore = {
@@ -77,29 +96,49 @@ export const taskStore = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
-  /** The list read: the API is the source of truth, so its rows replace what is held. */
-  replaceAll(rows: TaskRow[]): void {
+  /**
+   * The list read: the API is the source of truth, so its rows replace what is held. `startedAt` is
+   * the stamp from `readStamp` when the read went out, so a detail read that landed while it was in
+   * flight is not overwritten by the older list row.
+   */
+  replaceAll(rows: TaskRow[], startedAt?: number): void {
+    const at = startedAt ?? stamp();
     const before = new Map(state.records.map((r) => [r.id, r]));
     const records = rows.map((row) => {
       const prev = before.get(row.id);
       if (!prev) return blank(row);
+      /* a detail read that landed after this list read started knows more than the list row does */
+      const keepStatus = prev.statusAt > at;
       return {
         ...prev,
         ...row,
+        status: keepStatus ? prev.status : row.status,
+        statusAt: keepStatus ? prev.statusAt : at,
         /* keep whatever the detail read already gave, and the start page of a task asked for here */
         task: prev.task,
         error: prev.error,
         state: prev.state === "idle" && prev.task ? ("ready" as const) : prev.state,
+        /* the list carried it, so it is no longer only this console's copy */
+        local: false,
       };
     });
-    set({ records });
+    /* a task asked for here is kept until the list carries it: the POST's plan and start page are
+       not in a list row, and dropping them would throw away what the owner was just shown */
+    const carried = new Set(rows.map((r) => r.id));
+    const kept = state.records.filter((r) => r.local && !carried.has(r.id));
+    set({ records: kept.length ? [...kept, ...records] : records });
   },
-  /** Adds one task the console knows about but the list has not carried yet (a fresh create). */
-  remember(row: TaskRow): void {
+  /**
+   * Adds one task the console knows about but the list has not carried yet. `local` marks a task this
+   * console asked for, which the list is allowed to lag behind.
+   */
+  remember(row: TaskRow, opts: { local?: boolean } = {}): void {
     if (state.records.some((r) => r.id === row.id)) return;
-    set({ records: [blank(row), ...state.records] });
+    set({ records: [{ ...blank(row), local: !!opts.local }, ...state.records] });
   },
   find: (id: string): TaskRecord | undefined => state.records.find((r) => r.id === id),
+  /** A stamp for a read that is about to go out, so a later answer can be ordered against it. */
+  readStamp: (): number => stamp(),
   /** The start page of a task asked for here (not part of the API's list row). */
   setUrl(id: string, url: string): void {
     patchRecord(id, (r) => ({ ...r, url }));
@@ -114,12 +153,23 @@ export const taskStore = {
       state: "ready",
       error: null,
       status: task?.status ?? r.status,
+      statusAt: task?.status ? stamp() : r.statusAt,
       stepCount: Array.isArray(task?.steps) ? task.steps.length : r.stepCount,
       stopReason: task?.stop_reason ?? r.stopReason,
     }));
   },
   fail(id: string, message: string): void {
     patchRecord(id, (r) => ({ ...r, state: "error", error: message }));
+  },
+  /**
+   * A write the console made on purpose (approve, stop). A read that started before it must not
+   * write its older answer on top once it lands.
+   */
+  markWrite(id: string): void {
+    writes.set(id, (writes.get(id) ?? 0) + 1);
+  },
+  writeEpoch(id: string): number {
+    return writes.get(id) ?? 0;
   },
   availability(value: TasksAvailability): void {
     if (state.availability !== value) set({ availability: value });
@@ -132,6 +182,7 @@ export const taskStore = {
   },
   reset(): void {
     state = EMPTY;
+    writes.clear();
     emit();
   },
 };

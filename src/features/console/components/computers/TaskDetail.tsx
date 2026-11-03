@@ -16,8 +16,8 @@ import { consoleRoutes } from "@/features/console/config";
 import { useComputerTask, useTaskKinds } from "@/features/console/hooks/use-computer-tasks";
 import { useToast } from "@/features/console/hooks/use-toast";
 import {
+  canStop,
   describeStop,
-  isRunning,
   kindLabel,
   liveViewLink,
   needsOwner,
@@ -27,9 +27,11 @@ import {
   stepNote,
   stepSentence,
   stepsOf,
+  stepUrl,
   taskStateWord,
   taskShortWord,
   taskTitle,
+  taskTone,
 } from "@/features/console/lib/computer-tasks";
 
 function Crumbs({ title }: { title: string }) {
@@ -83,7 +85,10 @@ export function TaskDetail({ id }: { id: string }) {
     </>
   );
 
-  if (!USES_API || availability === "missing") return unavailable;
+  if (!USES_API) return unavailable;
+  /* the surface is not published: only the list read says so, and only after this task's own read
+     has come back empty, so a service with just the detail route still shows the task */
+  if (availability === "missing" && !record?.task && record?.state === "error") return unavailable;
   if (!record || loading) {
     return (
       <>
@@ -119,9 +124,12 @@ export function TaskDetail({ id }: { id: string }) {
   const status = task?.status ?? record.status;
   const kind = record.kind ?? task?.kind ?? null;
   const waiting = needsOwner(status);
-  const running = isRunning(status);
   const signIn = needsSignIn(status);
   const kindWord = kindLabel(kind, kinds);
+  /* a way out of every task the service has not finished with, including one parked at a sign-in and
+     one that has not started yet */
+  const stoppable = canStop(status);
+  const notStarted = taskTone(status) === "proposed";
   /* the pill carries the short word already, so the fuller sentence shows only when it says more */
   const stateWord = taskStateWord(status);
   const pillWord = taskShortWord(status);
@@ -150,7 +158,7 @@ export function TaskDetail({ id }: { id: string }) {
       say(res.message);
       return;
     }
-    say("Task stopped.");
+    say(notStarted ? "Task discarded. It will not run." : "Task stopped.");
   }
 
   return (
@@ -177,9 +185,9 @@ export function TaskDetail({ id }: { id: string }) {
               {busy === "approve" ? "Approving" : "Approve and run"}
             </Button>
           )}
-          {running && (
+          {stoppable && (
             <Button onClick={() => void onStop()} disabled={busy !== null}>
-              {busy === "stop" ? "Stopping" : "Stop"}
+              {busy === "stop" ? (notStarted ? "Discarding" : "Stopping") : notStarted ? "Discard" : "Stop"}
             </Button>
           )}
           <Button variant="ghost" onClick={() => void loadTask(id)} disabled={busy !== null}>
@@ -195,6 +203,12 @@ export function TaskDetail({ id }: { id: string }) {
           {problem}
         </p>
       )}
+      {record.error && (
+        <p className="x-ctwarn" role="status">
+          <Icon name="triangle-alert" />
+          {record.error}
+        </p>
+      )}
       {!signIn && stopped && (
         <p className="x-ctwarn" role="status">
           <Icon name="circle-pause" />
@@ -205,7 +219,7 @@ export function TaskDetail({ id }: { id: string }) {
         <p className="x-ctnote">
           <Icon name="monitor" />
           Stopped at a sign-in. It is waiting for you and it kept its browser open, so you can sign in from the live
-          view below.
+          view below, when the service is offering one.
         </p>
       )}
       {waiting && (
@@ -223,7 +237,7 @@ export function TaskDetail({ id }: { id: string }) {
           </h2>
           <p className="x-ctnote x-ctnote--flat">
             <Icon name="camera" />
-            Each step keeps the screenshot the computer took at that moment.
+            Each step keeps the screenshot the computer took at that moment, where the service took one.
           </p>
           {live ? (
             <p className="x-ctnote x-ctnote--flat">
@@ -250,6 +264,7 @@ export function TaskDetail({ id }: { id: string }) {
                   <div className="x-ctstep__n x-num">{step.index}</div>
                   <div className="x-ctstep__b">
                     <p className="x-ctstep__a">{stepSentence(step)}</p>
+                    {stepUrl(step) && <p className="x-ctstep__u x-num">{stepUrl(step)}</p>}
                     {stepNote(step) && <p className="x-ctstep__nt">{stepNote(step)}</p>}
                     <TaskScreenshot taskId={id} source={step.screenshot} alt={`Screenshot of step ${step.index}`} />
                   </div>

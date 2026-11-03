@@ -3,9 +3,10 @@ import { test } from "node:test";
 import {
   askedLabel,
   artifactUrl,
+  canStop,
   deriveDomain,
   describeStop,
-  holdsSession,
+  isFinished,
   isHttpUrl,
   isListedKind,
   isRunning,
@@ -15,13 +16,16 @@ import {
   needsOwner,
   needsSignIn,
   normalizeArtifacts,
+  PLAN_UNREADABLE,
   planOf,
   readKinds,
   screenshotRequest,
   STEP_NO_SENTENCE,
+  STEP_UNREADABLE,
   stepNote,
   stepSentence,
   stepsOf,
+  stepUrl,
   taskShortWord,
   taskStateWord,
   taskTitle,
@@ -91,7 +95,12 @@ test("the new-task form says what to fix, in plain words", () => {
   assert.equal(validateNewTask({ ...ok, goal: "ab" }), "Say what the task should do, in a little more detail.");
   assert.equal(validateNewTask({ ...ok, goal: "a".repeat(2001) }), "Keep the goal under 2000 characters.");
   assert.equal(validateNewTask({ ...ok, url: "" }), "Add the website the task should start on.");
-  assert.equal(validateNewTask({ ...ok, url: "ibank.providusbank.com" }), "Use a full web address, starting with https://.");
+  assert.equal(
+    validateNewTask({ ...ok, url: "ibank.providusbank.com" }),
+    "Use a full web address, starting with http:// or https://.",
+  );
+  /* both schemes are taken, and the form says so */
+  assert.equal(validateNewTask({ ...ok, url: "http://ibank.providusbank.com" }), null);
   assert.equal(validateNewTask(ok), null);
 });
 
@@ -102,11 +111,14 @@ test("a live view link is shown whenever the service hands one over, and never w
   /* the state that exists so the owner can sign in keeps its session and its link: the link must show */
   assert.equal(liveViewLink({ task_id: "t1", status: "awaiting_owner", live_view_url: link }), link);
   assert.equal(liveViewLink({ task_id: "t1", status: "awaiting-owner", live_view_url: link }), link);
-  /* other statuses are shown too when the service still offers a link; it is the service's call */
+  /* other live statuses are shown too when the service still offers a link; it is the service's call */
   assert.equal(liveViewLink({ task_id: "t1", status: "proposed", live_view_url: link }), link);
-  /* the link is gone once the session closes */
+  /* a finished task is never offered the link, even when a merged answer still carries one */
+  assert.equal(liveViewLink({ task_id: "t1", status: "done", live_view_url: link }), null);
+  assert.equal(liveViewLink({ task_id: "t1", status: "stopped", live_view_url: link }), null);
+  assert.equal(liveViewLink({ task_id: "t1", status: "cancelled", live_view_url: link }), null);
+  assert.equal(liveViewLink({ task_id: "t1", status: "failed", live_view_url: link }), null);
   assert.equal(liveViewLink({ task_id: "t1", status: "done", live_view_url: null }), null);
-  assert.equal(liveViewLink({ task_id: "t1", status: "stopped", live_view_url: null }), null);
   /* nothing to link to, or nothing safe to link to */
   assert.equal(liveViewLink({ task_id: "t1", status: "running" }), null);
   assert.equal(liveViewLink({ task_id: "t1", status: "running", live_view_url: null }), null);
@@ -125,22 +137,60 @@ test("a step reads in its own words, never in an invented one", () => {
 });
 
 test("a machine token never reaches a person, and the step says why it is blank", () => {
-  for (const token of ["goto_url", "read_order_list", "sign_in_with_saved_session", "click_btn_2", "`extract_data`"]) {
+  for (const token of [
+    "goto_url",
+    "read_order_list",
+    "sign_in_with_saved_session",
+    "click_btn_2",
+    "`extract_data`",
+    "GOTO_URL",
+    "Goto_Url",
+    "goto-url",
+    "Click_btn_2",
+  ]) {
     const line = stepSentence({ index: 1, action: token });
-    assert.equal(line, STEP_NO_SENTENCE);
+    assert.equal(line, STEP_UNREADABLE, `token ${token} was not caught`);
     assert.ok(!line.includes(token.replace(/`/g, "")), `the token ${token} was rendered`);
   }
+  /* the two blank cases are told apart: nothing sent, versus something unreadable */
+  assert.notEqual(STEP_UNREADABLE, STEP_NO_SENTENCE);
   assert.equal(looksLikeCode("goto_url"), true);
-  assert.equal(looksLikeCode("sign_in_with_saved_session"), true);
-  assert.equal(looksLikeCode("`extract_data`".replace(/`/g, "")), true);
+  assert.equal(looksLikeCode("GOTO_URL"), true);
+  assert.equal(looksLikeCode("goto-url"), true);
+  assert.equal(looksLikeCode("Click_btn_2"), true);
+  assert.equal(looksLikeCode("extract_data"), true);
   /* prose is never second-guessed, whatever it is made of */
   assert.equal(looksLikeCode("Opened the supplier portal"), false);
   assert.equal(looksLikeCode("Opened the supplier_portal page"), false);
   assert.equal(looksLikeCode("Read order list"), false);
   assert.equal(looksLikeCode("Refer to step_2 above"), false);
   assert.equal(looksLikeCode("step-2.png"), false);
+  /* residual risk, named in the PR: a bare one-word token with no separator is passed through */
+  assert.equal(looksLikeCode("extract"), false);
+  assert.equal(stepSentence({ index: 1, action: "extract" }), "extract");
   assert.equal(looksLikeCode(""), false);
   assert.equal(looksLikeCode(null), false);
+});
+
+test("a plan line that is a token is said so, and the plan keeps its shape", () => {
+  assert.deepEqual(planOf({ task_id: "t", status: "proposed", plan: ["Open the portal", "read_price_list"] }), [
+    "Open the portal",
+    PLAN_UNREADABLE,
+  ]);
+  assert.deepEqual(planOf({ task_id: "t", status: "proposed", plan: ["Open the portal"] }), ["Open the portal"]);
+  assert.deepEqual(planOf(null, ["Kept line"]), ["Kept line"]);
+  assert.ok(!PLAN_UNREADABLE.includes("read_price_list"));
+});
+
+test("a step's page is shown only as a full web address, and never reshaped", () => {
+  assert.equal(stepUrl({ index: 1, url: "https://web.whatsapp.com/" }), "https://web.whatsapp.com/");
+  assert.equal(stepUrl({ index: 2, url: "http://portal.example/orders" }), "http://portal.example/orders");
+  /* a bare host or a token is not turned into an address */
+  assert.equal(stepUrl({ index: 3, url: "web.whatsapp.com" }), "");
+  assert.equal(stepUrl({ index: 4, url: "goto_url" }), "");
+  assert.equal(stepUrl({ index: 5, url: "javascript:alert(1)" }), "");
+  assert.equal(stepUrl({ index: 6 }), "");
+  assert.equal(stepUrl(null), "");
 });
 
 test("a step note is the service's own words, and a token is left out of it too", () => {
@@ -161,7 +211,6 @@ test("the kinds come from the service, and nothing is invented for one it does n
       { kind: "gov_form", label: "Form or filing" },
       { kind: "generic", label: "Something else" },
       { kind: "" },
-      "nonsense",
       null,
     ],
   });
@@ -180,6 +229,11 @@ test("the kinds come from the service, and nothing is invented for one it does n
   assert.equal(kindLabel("", kinds), "");
   /* an entry with no label keeps its kind, and reads as nothing */
   assert.deepEqual(readKinds({ kinds: [{ kind: "odd" }] }), [{ kind: "odd", label: "" }]);
+  /* a service that lists its kinds as bare strings is read too, rather than going dead */
+  assert.deepEqual(readKinds({ kinds: ["bank_statement", "order_list", ""] }), [
+    { kind: "bank_statement", label: "" },
+    { kind: "order_list", label: "" },
+  ]);
   assert.deepEqual(readKinds({}), []);
   assert.deepEqual(readKinds(null), []);
 });
@@ -194,11 +248,25 @@ test("a task parked at a sign-in is waiting on the owner, not on an approval", (
   assert.equal(needsOwner("proposed"), true);
   assert.equal(taskShortWord("awaiting_owner"), "Waiting");
   assert.equal(taskStateWord("awaiting_owner"), "Waiting for you to sign in");
-  /* the screen keeps re-reading both states: the service keeps moving in each */
-  assert.equal(holdsSession("running"), true);
-  assert.equal(holdsSession("awaiting_owner"), true);
-  assert.equal(holdsSession("done"), false);
-  assert.equal(holdsSession("stopped"), false);
+});
+
+test("there is a way out of every task the service has not finished with", () => {
+  /* running, parked at a sign-in, and not started yet all keep an action */
+  assert.equal(canStop("running"), true);
+  assert.equal(canStop("awaiting_owner"), true);
+  assert.equal(canStop("proposed"), true);
+  assert.equal(canStop("queued"), true);
+  /* an unknown status word means the console cannot be sure it is over, so it keeps the way out */
+  assert.equal(canStop("bedazzling"), true);
+  assert.equal(canStop(null), true);
+  /* finished tasks have nothing left to stop */
+  assert.equal(canStop("done"), false);
+  assert.equal(canStop("stopped"), false);
+  assert.equal(canStop("cancelled"), false);
+  assert.equal(canStop("failed"), false);
+  assert.equal(isFinished("done"), true);
+  assert.equal(isFinished("awaiting_owner"), false);
+  assert.equal(isFinished("running"), false);
 });
 
 test("steps and plan carry only what the API sent", () => {
@@ -233,10 +301,10 @@ test("a screenshot is only read when the console can fetch it safely", () => {
     url: "https://api.example/shot.png",
     auth: true,
   });
-  assert.deepEqual(screenshotRequest("https://cdn.example/shot.png", api, "t1"), {
-    url: "https://cdn.example/shot.png",
-    auth: false,
-  });
+  /* a picture on another host is not attempted: the shipped console's CSP would block the fetch and
+     the step would read "could not be shown" anyway */
+  assert.equal(screenshotRequest("https://cdn.example/shot.png", api, "t1"), null);
+  assert.equal(screenshotRequest("https://api.example/shot.png", "", "t1"), null);
   assert.equal(screenshotRequest("http://api.example/shot.png", api, "t1"), null);
   assert.equal(screenshotRequest("//cdn.example/shot.png", api, "t1"), null);
   assert.equal(screenshotRequest("data:image/png;base64,AAAA", api, "t1"), null);

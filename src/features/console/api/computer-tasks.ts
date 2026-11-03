@@ -19,6 +19,9 @@ import { taskStore, type TaskRow } from "@/features/console/lib/computer-tasks-s
 /** The words every screen uses when the service does not have this route (yet). */
 export const NOT_AVAILABLE = "Computer tasks are not available yet.";
 
+/** The words for the kinds route alone, so it never borrows the whole surface's sentence. */
+export const KINDS_NOT_AVAILABLE = "The service has not published its list of task kinds yet.";
+
 export type ActionResult = { ok: true } | { ok: false; message: string };
 
 /** A failure in plain words. Never a status code, never a raw error. */
@@ -83,11 +86,11 @@ export async function loadKinds(signal?: AbortSignal): Promise<KindsResult> {
   try {
     const payload = await authed((t) => mimiApi.computerKinds(t, { signal }));
     const kinds = readKinds(payload);
-    if (kinds.length === 0) return { ok: false, message: "The service has not listed any task kinds yet." };
+    if (kinds.length === 0) return { ok: false, message: KINDS_NOT_AVAILABLE };
     kindsCache = kinds;
     return { ok: true, kinds };
   } catch (e) {
-    if (missingRoute(e)) return { ok: false, message: NOT_AVAILABLE };
+    if (missingRoute(e)) return { ok: false, message: KINDS_NOT_AVAILABLE };
     return { ok: false, message: taskMessage(e, "The task kinds could not be read right now.") };
   }
 }
@@ -100,11 +103,15 @@ export async function loadTasks(signal?: AbortSignal): Promise<void> {
     return;
   }
   try {
+    const startedAt = taskStore.readStamp();
     const list = await authed((t) => mimiApi.computerTasks(t, { signal }));
-    const rows = (Array.isArray(list?.tasks) ? list.tasks : [])
-      .map(rowFromSummary)
-      .filter((r): r is TaskRow => r !== null);
-    taskStore.replaceAll(rows);
+    if (!Array.isArray(list?.tasks)) {
+      /* a 200 the console cannot read: keep the rows already held rather than clearing the screen */
+      taskStore.listError("The computer service sent a task list the console could not read.");
+      return;
+    }
+    const rows = list.tasks.map(rowFromSummary).filter((r): r is TaskRow => r !== null);
+    taskStore.replaceAll(rows, startedAt);
     taskStore.availability("ready");
     taskStore.listError(null);
   } catch (e) {
@@ -116,21 +123,25 @@ export async function loadTasks(signal?: AbortSignal): Promise<void> {
   }
 }
 
-/** Reads one task: its step log, screenshots and files. */
+/**
+ * Reads one task: its step log, screenshots and files.
+ *
+ * A 404 here is about this task, not about the surface: the service answers for the route, it just
+ * has no task by that id, so it reads as "that task is no longer on the service" and never as "the
+ * service does not have computer tasks". Only the list read decides that.
+ */
 export async function loadTask(id: string, signal?: AbortSignal): Promise<void> {
-  if (!USES_API) {
-    taskStore.availability("missing");
-    return;
-  }
+  if (!USES_API) return;
   taskStore.loading(id);
+  const epoch = taskStore.writeEpoch(id);
   try {
     const task = await authed((t) => mimiApi.computerTask(t, id, { signal }));
+    /* an approve or a stop that landed while this read was in flight is newer than this answer */
+    if (taskStore.writeEpoch(id) !== epoch) return;
     putMerged(id, task);
-    taskStore.availability("ready");
-    taskStore.listError(null);
   } catch (e) {
     if (isAbort(e)) throw e;
-    if (missingRoute(e)) taskStore.availability("missing");
+    if (taskStore.writeEpoch(id) !== epoch) return;
     taskStore.fail(id, taskMessage(e, "This task could not be read. Try again."));
   }
 }
@@ -147,27 +158,27 @@ export async function createTask(input: ApiComputerTaskIn): Promise<{ ok: true; 
     if (typeof id !== "string" || !id) {
       return { ok: false, message: "The service did not say which task it started. Check the list in a moment." };
     }
-    taskStore.remember({
-      id,
-      goal: input.goal,
-      kind: input.kind,
-      domain: input.domain,
-      status: typeof task.status === "string" ? task.status : null,
-      createdAt: Date.now(),
-      stepCount: Array.isArray(task.steps) ? task.steps.length : null,
-      stopReason: typeof task.stop_reason === "string" ? task.stop_reason : null,
-    });
+    taskStore.remember(
+      {
+        id,
+        goal: input.goal,
+        kind: input.kind,
+        domain: input.domain,
+        status: typeof task.status === "string" ? task.status : null,
+        /* the service did not send a creation time, so the Asked column stays empty until it does */
+        createdAt: null,
+        stepCount: Array.isArray(task.steps) ? task.steps.length : null,
+        stopReason: typeof task.stop_reason === "string" ? task.stop_reason : null,
+      },
+      { local: true },
+    );
     taskStore.setUrl(id, input.url);
     putMerged(id, task);
-    taskStore.availability("ready");
     taskStore.listError(null);
     return { ok: true, id };
   } catch (e) {
     if (isAbort(e)) throw e;
-    if (missingRoute(e)) {
-      taskStore.availability("missing");
-      return { ok: false, message: NOT_AVAILABLE };
-    }
+    if (missingRoute(e)) return { ok: false, message: NOT_AVAILABLE };
     return { ok: false, message: taskMessage(e, "The task could not be started. Try again.") };
   }
 }
@@ -177,33 +188,25 @@ export async function approveTask(id: string): Promise<ActionResult> {
   if (!USES_API) return { ok: false, message: NOT_AVAILABLE };
   try {
     const task = await authed((t) => mimiApi.approveComputerTask(t, id));
+    taskStore.markWrite(id);
     putMerged(id, task);
-    taskStore.availability("ready");
     return { ok: true };
   } catch (e) {
     if (isAbort(e)) throw e;
-    if (missingRoute(e)) {
-      taskStore.availability("missing");
-      return { ok: false, message: NOT_AVAILABLE };
-    }
     return { ok: false, message: taskMessage(e, "That task could not be approved. Try again.") };
   }
 }
 
-/** Stops a running task. */
+/** Stops a task the service has not finished with: a running one, or one parked at a sign-in. */
 export async function stopTask(id: string): Promise<ActionResult> {
   if (!USES_API) return { ok: false, message: NOT_AVAILABLE };
   try {
     const task = await authed((t) => mimiApi.stopComputerTask(t, id));
+    taskStore.markWrite(id);
     putMerged(id, task);
-    taskStore.availability("ready");
     return { ok: true };
   } catch (e) {
     if (isAbort(e)) throw e;
-    if (missingRoute(e)) {
-      taskStore.availability("missing");
-      return { ok: false, message: NOT_AVAILABLE };
-    }
     return { ok: false, message: taskMessage(e, "That task could not be stopped. Try again.") };
   }
 }

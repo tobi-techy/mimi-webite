@@ -28,6 +28,9 @@ const TONES: Record<string, TaskTone> = {
 /** A status word folded to one shape (lower case, spaces and dashes as underscores). */
 const fold = (status: string | null | undefined): string => (status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
 
+/** The tones the service has finished with: nothing more to wait for, and nothing left to stop. */
+const FINISHED_TONES: readonly TaskTone[] = ["done", "stopped", "failed"];
+
 /** The tone for a status word from the API. */
 export function taskTone(status: string | null | undefined): TaskTone {
   return TONES[fold(status)] ?? "unknown";
@@ -83,14 +86,15 @@ export const needsSignIn = (status: string | null | undefined): boolean => taskT
 /** True while the task is on the computer right now. */
 export const isRunning = (status: string | null | undefined): boolean => taskTone(status) === "running";
 
+/** True when the service has finished with the task: nothing more will happen without a new task. */
+export const isFinished = (status: string | null | undefined): boolean => FINISHED_TONES.includes(taskTone(status));
+
 /**
- * True while the task still holds a session on the computer: running, or parked at a sign-in waiting
- * for the owner. Its step log is worth re-reading in both, because the service keeps moving.
+ * True when the owner can still get rid of a task: the service has not finished with it. That covers
+ * a task waiting on an approval, a task parked at a sign-in, and a running one, so there is always a
+ * way out. Once a task is done, stopped or failed, there is nothing left to stop.
  */
-export const holdsSession = (status: string | null | undefined): boolean => {
-  const tone = taskTone(status);
-  return tone === "running" || tone === "paused";
-};
+export const canStop = (status: string | null | undefined): boolean => !isFinished(status);
 
 /** A full web address (the only kind the console will hand to the service). */
 export function isHttpUrl(value: string): boolean {
@@ -129,7 +133,7 @@ export function validateNewTask(input: { kind: string; goal: string; url: string
   if (goal.length > MAX_GOAL) return `Keep the goal under ${MAX_GOAL} characters.`;
   const url = input.url.trim();
   if (!url) return "Add the website the task should start on.";
-  if (!isHttpUrl(url)) return "Use a full web address, starting with https://.";
+  if (!isHttpUrl(url)) return "Use a full web address, starting with http:// or https://.";
   if (!deriveDomain(url)) return "That web address has no site name. Check it and try again.";
   return null;
 }
@@ -137,29 +141,36 @@ export function validateNewTask(input: { kind: string; goal: string; url: string
 /** What a step reads as when the service sent no sentence of its own. */
 export const STEP_NO_SENTENCE = "The service did not send a sentence for this step.";
 
+/** What a step reads as when the service sent words, but a machine token instead of a sentence. */
+export const STEP_UNREADABLE = "The service sent this step without words a person can read, so it is left out here.";
+
+/** The same, for one line of the plan the service proposed. */
+export const PLAN_UNREADABLE = "The service sent this step of the plan without words a person can read.";
+
 /**
- * True when a step's own words are a machine token rather than a sentence: an underscore-joined
- * lowercase code such as `goto_url`. A token like that is a bug at the source, so the screen shows
- * the "no sentence" line and never the token, which keeps the bug visible in the data and keeps
- * gibberish off a distributor's screen. Anything with a space in it is left alone: it is prose, and
- * the console does not second-guess the service's wording.
+ * True when a step's own words are a machine token rather than a sentence: an underscore- or
+ * hyphen-joined token such as `goto_url`, `GOTO_URL` or `Click_btn_2`. A token like that is a bug at
+ * the source, so the two screens that show a step's words say so and keep the token off the screen,
+ * which keeps the bug visible in the data and keeps gibberish off a distributor's screen. Anything
+ * with a space in it is left alone: it is prose, and the console does not second-guess the wording.
  */
 export function looksLikeCode(value: string | null | undefined): boolean {
   const raw = (value ?? "").trim();
   if (!raw || /\s/.test(raw)) return false;
-  return /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(raw);
+  return /^[a-z0-9]+(?:[_-][a-z0-9]+)+$/i.test(raw);
 }
 
 /**
  * One step's sentence, in the step's own words: the distributor reads this to understand what Mimi
- * did, so the console never rewrites it and never turns a code into a made-up description. When the
- * service sends nothing readable, or sends a machine token, that is said plainly rather than dressed
- * up, and the token itself is kept off the screen.
+ * did, so the console never rewrites it and never turns a code into a made-up description. A step the
+ * service sent no words for, and a step whose words are a machine token, each get their own plainly
+ * worded line, and the token itself stays off the screen.
  */
 export function stepSentence(step: ApiComputerTaskStep | null | undefined): string {
   const raw = typeof step?.action === "string" ? step.action : "";
   const text = toPlainText(raw).trim();
-  return text && !looksLikeCode(text) ? text : STEP_NO_SENTENCE;
+  if (!text) return STEP_NO_SENTENCE;
+  return looksLikeCode(text) ? STEP_UNREADABLE : text;
 }
 
 /** One step's note in the service's own words, or "" when it sent none or sent a machine token. */
@@ -170,17 +181,30 @@ export function stepNote(step: ApiComputerTaskStep | null | undefined): string {
 }
 
 /**
+ * The page a step was on, when the service sent a full web address. Gated, never reshaped: a bare
+ * host is not turned into one, because a step's view of where it was is the service's to state.
+ */
+export function stepUrl(step: ApiComputerTaskStep | null | undefined): string {
+  const raw = (typeof step?.url === "string" ? step.url : "").trim();
+  return isHttpUrl(raw) ? raw : "";
+}
+
+/**
  * What a task is for. The list and its labels come from the service (`GET /v1/computer/kinds`), which
  * is the single source, so the console and the API cannot drift apart. Nothing is hardcoded here.
  */
 export type TaskKindOption = { kind: string; label: string };
 
-/** Reads the kinds the service publishes, keeping only the entries that carry a string kind. */
+/** Reads the kinds the service publishes: an entry with a kind and a label, or a bare kind. */
 export function readKinds(payload: { kinds?: unknown } | null | undefined): TaskKindOption[] {
   const raw = payload?.kinds;
   if (!Array.isArray(raw)) return [];
   const out: TaskKindOption[] = [];
   for (const entry of raw) {
+    if (typeof entry === "string") {
+      if (entry.trim()) out.push({ kind: entry.trim(), label: "" });
+      continue;
+    }
     if (!entry || typeof entry !== "object") continue;
     const kind = (entry as { kind?: unknown }).kind;
     const label = (entry as { label?: unknown }).label;
@@ -210,12 +234,13 @@ export function isListedKind(kind: string | null | undefined, kinds: TaskKindOpt
 
 /**
  * A signed link to watch the task's browser. The service mints it mid-run and lets it lapse when the
- * session closes, so the console shows the link whenever the service hands one over, whatever the
- * task's status: a task parked at a sign-in keeps its session and its link on purpose, because that
- * is the state where the owner has to sign in, and hiding the link there is exactly the wrong move.
- * Nothing is guessed at: no link from the service, no link on the screen.
+ * session closes, so the link is shown whenever the service hands one over, whatever the status: a
+ * task parked at a sign-in keeps its session and its link on purpose, because that is the state where
+ * the owner has to sign in. Once the service has finished with a task the link is never shown, even
+ * if a merged answer still carries one, because the session behind it is gone.
  */
 export function liveViewLink(task: ApiComputerTask | null | undefined): string | null {
+  if (FINISHED_TONES.includes(taskTone(task?.status))) return null;
   const href = safeHref(task?.live_view_url ?? "");
   return href && /^https:\/\//i.test(href) ? href : null;
 }
@@ -231,7 +256,13 @@ export function stepsOf(task: ApiComputerTask | null | undefined): ApiComputerTa
 export function planOf(task: ApiComputerTask | null | undefined, fallback: readonly string[] = []): string[] {
   const plan = task?.plan;
   if (!Array.isArray(plan)) return [...fallback];
-  const lines = plan.filter((l): l is string => typeof l === "string" && l.trim().length > 0);
+  /* a plan line the service sent as a machine token is said so, so the plan keeps its shape */
+  const lines = plan
+    .filter((l): l is string => typeof l === "string" && l.trim().length > 0)
+    .map((l) => {
+      const text = toPlainText(l).trim();
+      return looksLikeCode(text) ? PLAN_UNREADABLE : text;
+    });
   return lines.length ? lines : [...fallback];
 }
 
@@ -260,7 +291,11 @@ export function screenshotRequest(
   if (!raw || raw.startsWith("//")) return null;
   if (/^(data|blob):/i.test(raw)) return null;
   const base = apiUrl.trim().replace(/\/+$/, "");
-  if (/^https:\/\//i.test(raw)) return { url: raw, auth: sameOrigin(raw, base) };
+  if (/^https:\/\//i.test(raw)) {
+    /* only the API's own origin: the shipped console's CSP allows its own origin and the API's, and
+       a picture the browser would block is shown as "could not be shown" instead of being attempted */
+    return base && sameOrigin(raw, base) ? { url: raw, auth: true } : null;
+  }
   if (/^http:\/\//i.test(raw)) return null;
   if (raw.startsWith("/")) return base ? { url: `${base}${raw}`, auth: true } : null;
   const artifact = artifactUrl(base, taskId, raw);

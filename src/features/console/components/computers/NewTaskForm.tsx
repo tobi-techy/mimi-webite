@@ -140,7 +140,7 @@ export function NewTaskForm() {
             placeholder="https://ibank.providusbank.com"
           />
           <p className="x-af__h">
-            {domain ? `Site: ${domain}` : "The page the browser should open first, starting with https://."}
+            {domain ? `Site: ${domain}` : "The page the browser should open first, starting with https:// or http://."}
           </p>
         </div>
 

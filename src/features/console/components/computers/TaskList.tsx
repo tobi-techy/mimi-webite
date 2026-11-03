@@ -21,8 +21,8 @@ import type { TaskRecord } from "@/features/console/lib/computer-tasks-store";
 
 type Filter = "all" | "waiting" | "running" | "finished";
 
-/** The newest status the console has for a row: the detail read wins over the list's summary. */
-const statusOf = (r: TaskRecord): string | null => r.task?.status ?? r.status;
+/** The newest status the console has for a row: the store keeps `status` in step with the detail read. */
+const statusOf = (r: TaskRecord): string | null => r.status ?? r.task?.status ?? null;
 
 /** The kind of task, from the list row or the detail read. */
 const kindOf = (r: TaskRecord): string | null => r.kind ?? r.task?.kind ?? null;
@@ -125,7 +125,8 @@ export function TaskList() {
           )}
 
           {records.length === 0 ? (
-            <EmptyState>No computer tasks yet. Start one and it will show up here.</EmptyState>
+            /* a list read that failed is not an empty list: it is said as a failure, above */
+            listError ? null : <EmptyState>No computer tasks yet. Start one and it will show up here.</EmptyState>
           ) : shown.length === 0 ? (
             <EmptyState>No tasks match the current filters</EmptyState>
           ) : (
