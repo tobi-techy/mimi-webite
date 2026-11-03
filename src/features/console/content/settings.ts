@@ -20,6 +20,7 @@ export type SettingsSectionId =
   | "general"
   | "appearance"
   | "connectors"
+  | "policy"
   | "computers"
   | "support"
   | "organization"
@@ -127,6 +128,7 @@ export const settingsSections: readonly SettingsSection[] = [
   },
   { id: "appearance", title: "Appearance", icon: "palette", groups: [] },
   { id: "connectors", title: "Connected tools", icon: "plug", groups: [] },
+  { id: "policy", title: "What Mimi may do", icon: "shield-check", groups: [] },
   {
     id: "computers",
     title: "Computers",

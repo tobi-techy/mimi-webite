@@ -86,9 +86,9 @@ export const connectors: readonly Connector[] = [
   {
     key: "zoho",
     name: "Zoho Books",
-    description: "Post verified payments against Zoho invoices",
+    description: "Record bank-confirmed payments against Zoho invoices, after your yes",
     category: "Accounting",
-    connected: false,
+    connected: true,
     logo: logo("zoho"),
   },
   {

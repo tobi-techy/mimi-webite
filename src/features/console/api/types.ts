@@ -207,7 +207,50 @@ export type ApiApproval = {
   note: string;
   supersedes: string | null;
   superseded_by: string | null;
+  /** Demo wiring: `zoho_payment`, `credit_over_limit`, or the tool name for older items. */
+  kind?: string;
+  /** True only for a pending `credit_over_limit` (the order is held over the limit). */
+  blocked?: boolean;
+  /** What ran on approve: a Zoho record or a limit change, with whether it can still be undone. */
+  result?: ApiApprovalResult | null;
 };
+
+export type ApiApprovalResult = {
+  zoho_payment_id?: string;
+  change_id?: string;
+  old_limit_ngn?: number;
+  new_limit_ngn?: number;
+  undo_available?: boolean;
+  undone_at?: string;
+  demo?: boolean;
+};
+
+/** POST /v1/credit/{shop_id}/limit and POST /v1/credit/changes/{change_id}/undo. */
+export type ApiLimitChange = { shop_id: string; old_limit_ngn: number; new_limit_ngn: number; change_id: string; undone?: boolean };
+
+/** How sure a payment is, in the demo's words (`proof_grade`). */
+export type ApiProofGrade = "verified" | "estimated" | "unverified";
+
+export type ApiConnectorConnection = { connection_id: string; status: string; region: string; connected_at: string; revoked_at: string | null };
+export type ApiConnectorToolkit = { toolkit: string; label: string; blurb: string; reads: string[]; writes: string[]; connections: ApiConnectorConnection[] };
+export type ApiConnectorList = { connectors: ApiConnectorToolkit[] };
+export type ApiConnect = { redirect_url: string; state: string };
+
+export type ApiPolicyRule = {
+  action_type: string;
+  helper: string;
+  label: string;
+  /** act | act_if_preapproved | ask | hand_off, or never for a built-in stop. */
+  behaviour: string;
+  default: string;
+  locked: boolean;
+  allowed: string[];
+  changed_by: string;
+  changed_at: string;
+};
+export type ApiPolicy = { rules: ApiPolicyRule[]; editable: boolean; changes: { action_type: string; from: string; to: string; by: string; at: string }[] };
+
+export type ApiEventIn = { event_id: string; kind: "routine" | "webhook"; name: string; shop_id?: string; amount_ngn?: number };
 
 export type ApiApprovalList = { approvals: ApiApproval[]; total: number };
 export type ApiDecision = { approval: ApiApproval; follow_up: ApiTurn | null };
@@ -229,6 +272,10 @@ export type ApiShop = {
   overdue_naira: string;
   open_invoices: number;
   simulated: boolean;
+  overdue_ngn?: number;
+  overdue_days?: number;
+  credit_limit_ngn?: number;
+  outstanding_ngn?: number;
 };
 
 export type ApiShopList = { shops: ApiShop[] };
@@ -251,6 +298,11 @@ export type ApiPayment = {
   method: string;
   status: string;
   bank_confirmed: boolean;
+  amount_ngn?: number;
+  proof_level?: string;
+  proof_grade?: ApiProofGrade | string;
+  overdue_days?: number;
+  overdue_ngn?: number;
 };
 
 export type ApiDispute = { dispute_id: string; delivery_id: string; sku: string; missing: number; text: string; status: string };
@@ -272,6 +324,10 @@ export type ApiCreditLimit = {
   outstanding_kobo: number;
   available_kobo: number;
   used_pct: number;
+  credit_limit_ngn?: number;
+  outstanding_ngn?: number;
+  overdue_ngn?: number;
+  overdue_days?: number;
 };
 
 export type ApiCreditRequest = {

@@ -1,6 +1,7 @@
 import { ComputersGrid } from "@/features/console/components/computers/ComputersGrid";
 import { AppearanceView } from "@/features/console/components/settings/AppearanceView";
 import { ConnectorsView } from "@/features/console/components/settings/ConnectorsView";
+import { PolicyView } from "@/features/console/components/settings/PolicyView";
 import { ProvidersTable } from "@/features/console/components/settings/ProvidersTable";
 import { SettingControl } from "@/features/console/components/settings/SettingControl";
 import { ConsoleView } from "@/features/console/components/shell/ConsoleView";
@@ -19,6 +20,8 @@ export function SettingsSectionView({ section }: { section: SettingsSection }) {
       <Page className="x-set">
         {section.id === "connectors" ? (
           <ConnectorsView />
+        ) : section.id === "policy" ? (
+          <PolicyView />
         ) : section.id === "usage" ? (
           <UsageDashboard />
         ) : section.id === "appearance" ? (

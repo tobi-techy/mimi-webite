@@ -4,12 +4,16 @@ import { Avatar } from "@/features/console/components/ui/Avatar";
 import { Button, ButtonLink } from "@/features/console/components/ui/Button";
 import { openLimitFor } from "@/features/console/components/credit/limit-entry";
 import { limitOf, useLimits } from "@/features/console/lib/credit-limits";
-import { Pill } from "@/features/console/components/ui/Pill";
+import { Pill, type PillTone } from "@/features/console/components/ui/Pill";
+import { proofWords, type ProofGrade } from "@/features/console/lib/proof";
 import { consoleRoutes } from "@/features/console/config";
 import type { Shop } from "@/features/console/content/shops";
 import { naira, nairaShort } from "@/features/console/lib/format";
 
 const TITLE_ID = "shop-title";
+
+/** Bank-confirmed reads green, a likely screenshot amber, anything unchecked quiet grey. */
+const gradeTone: Record<ProofGrade, PillTone> = { verified: "green", estimated: "amber", unverified: "muted" };
 
 /**
  * A shop from the MIMI-AGENT API: only what the API knows (owed, overdue, limit, open invoices,
@@ -80,7 +84,10 @@ export function LiveShopDetail({ shop, live }: { shop: Shop; live: NonNullable<S
             <span>
               <span className="x-num">{naira(p.amount)}</span> <span className="x-of">· {p.date}</span>
             </span>
-            {p.verified ? <Pill tone="green">Verified</Pill> : <Pill tone="muted">Self-reported</Pill>}
+            {(() => {
+              const grade = p.proof ?? (p.verified ? "verified" : "unverified");
+              return <Pill tone={gradeTone[grade]}>{proofWords[grade]}</Pill>;
+            })()}
           </li>
         ))}
       </ul>

@@ -8,6 +8,8 @@ import { newSession, sessionToken, writeSession } from "@/features/console/api/s
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
+import { tourConversation, tourEcho } from "@/features/console/demo/tour-state";
+import { hideTourEcho } from "@/features/console/lib/tour-echo";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
@@ -52,6 +54,8 @@ const turnExtras = new Map<string, TurnExtras>();
  * helper's chat while its turn is still being routed (and after, when the owner picked her).
  */
 export const sentFrom = new Map<string, Worker>();
+/** Zoho records and limit changes the owner undid from this tab (approval or change ids). */
+export const undone = new Set<string>();
 /** Turns sent from this console that have not finished: turn id to thread id. */
 export const openTurns = new Map<string, string>();
 /** Message ids already on screen, and when each new one arrived (drives the reveal). */
@@ -84,6 +88,7 @@ export function resetCaches() {
   turnExtras.clear();
   openTurns.clear();
   sentFrom.clear();
+  undone.clear();
   seen.clear();
   arrived.clear();
   firstPaint = true;
@@ -156,7 +161,7 @@ function publish() {
   let typing: { slug: string; who: Conversation["helper"] } | null = null;
   const convs = threads.map((t) => {
     const d = details.get(t.thread_id)?.detail;
-    let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id), localMedia, turnExtras) : mapThreadSummary(t, now);
+    let c = d ? mapThread(d, approvals, now, pending.get(t.thread_id), localMedia, turnExtras, undone) : mapThreadSummary(t, now);
     if (sentFrom.size)
       c = {
         ...c,
@@ -176,7 +181,23 @@ function publish() {
     return stamp(c, now);
   });
   firstPaint = false;
-  setApiConversations(convs);
+  /* the demo tour (five scenes) is the console's own: it rides along with the API's threads */
+  const tour = tourConversation();
+  if (!tour) {
+    setApiConversations(convs);
+    return syncTyping(typing);
+  }
+  /* the tour drives the visitor's book, so the API echoes it into the owner thread: hide the echo */
+  const echo = tourEcho(() => convs.find((c) => c.api?.kind === "owner")?.messages.map((m) => m.id) ?? []);
+  const shown = convs.map((c) => (c.api?.kind === "owner" ? { ...c, messages: hideTourEcho(c.messages, echo) } : c));
+  setApiConversations([...shown, tour]);
+  /* while it plays, the tour's own typing dots are its to clear, and the owner thread's echo types nothing */
+  if (echo.active && getDemo().typing?.slug === tour.slug) return;
+  const t = typing as { slug: string; who: Conversation["helper"] } | null;
+  syncTyping(echo.active && t?.slug !== tour.slug && t?.who === "Mimi" ? null : t);
+}
+
+function syncTyping(typing: { slug: string; who: Conversation["helper"] } | null) {
   const was = getDemo().typing;
   if (was?.slug !== (typing as { slug: string } | null)?.slug || (was && !typing)) setDemo((s) => ({ ...s, typing }));
 }
@@ -241,6 +262,11 @@ export async function checkCap(t: string): Promise<void> {
   } catch {
     /* the allowance check is a hint; the API still refuses a turn past it */
   }
+}
+
+/** Re-publishes what is already read (the tour changed): no network. */
+export function republish(): void {
+  if (threads.length) publish();
 }
 
 /* ---------- polling ---------- */

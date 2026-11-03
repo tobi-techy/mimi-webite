@@ -39,7 +39,7 @@ export type CardStatus = "needs" | "sending" | "sent" | "declined";
 
 /** A plan or approval card: reminder plan, order draft, credit change, restock, brand draft, flagged payment. */
 export type DecisionCard = {
-  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match";
+  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match" | "zoho" | "limit";
   /** Risk tier label; cards that wait on the owner are Approve. */
   tier?: RiskTier;
   /** Brand emails: the draft itself (stays a draft until the owner taps Send). */
@@ -64,6 +64,19 @@ export type DecisionCard = {
   sentAt?: string;
   /** Text shown once sent ("Sent to 4 shops on WhatsApp"). */
   doneText: string;
+  /** Plain reasons under the title (an order over its limit: why Credit suggests a new one). */
+  reasons?: string[];
+  /** Button words when Approve / Discard would be vague ("Approve new limit" / "Keep limit"). */
+  labels?: { primary: string; secondary: string };
+  /** No total line (the title already carries the amount). */
+  noTotal?: boolean;
+  /** Pill and line once declined ("Limit kept"). */
+  declinedText?: string;
+  /**
+   * What was done can still be taken back (a Zoho record, a new limit): Undo under the done line.
+   * `done` once undone (the line then says `text`). `changeId` is a limit change on the API.
+   */
+  undo?: { state: "ready" | "busy" | "done"; text?: string; changeId?: string };
 };
 
 /** The six classic tapbacks; any other reaction is a single emoji (iOS 18 style). */
@@ -123,6 +136,8 @@ export type Message =
       foot: string;
       footSub: string;
       verdict: Verdict;
+      /** The verdict in other plain words ("Likely", "Confirmed by bank"). */
+      verdictLabel?: string;
     } & Reactable)
   | ({ id: string; kind: "photos"; from: Speaker; at: number; label: string; photos: string[]; open?: boolean } & Sent & Reactable)
   | ({

@@ -208,3 +208,26 @@ html:not([data-theme="dark"]) .mc-app .mf-ls__scrim { background: color-mix(in s
 /* the top pill ("Explore the demo" / "Getting started") sat inside the feed's 32px top fade and read washed out */
 .mc-app .mc-tv .mc-gs--feed { margin: 12px auto 0; color: var(--f-text, var(--ink)); }
 .mc-app .mc-tv .mc-gs--feed .mc-gs__k { color: var(--f-muted, var(--muted)); }
+/* it sits in the header's 258px title column: let it use the screen width, centred, not that column */
+.mc-app .mc-tv .mc-gs--feed { flex: none; white-space: nowrap; width: max-content; max-width: calc(100vw - 32px); justify-self: center; }
+.mc-app .mc-tv .mc-gs--feed .mc-gs__t { flex: none; overflow: visible; }
+.mc-app .mc-tv .mc-gs--feed .mc-gs__k { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- demo wiring (2 Nov 2026): card reasons, Undo, toast action, proof words ---------- */
+.mc-app .v2-dc__why { list-style: none; margin: 0 16px 12px; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 18px; color: var(--v2-t2); }
+.mc-app .v2-dc__why li { position: relative; padding-left: 14px; }
+.mc-app .v2-dc__why li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--v2-t3); }
+.mc-app .v2-dc__done > span { flex: 1; min-width: 0; }
+.mc-app .v2-dc__undo {
+  flex: none; height: 28px; padding: 0 12px; border: 1px solid var(--v2-line-2); border-radius: 3px; background: transparent;
+  color: var(--v2-t1); font: 500 13px/1 var(--font-geist-sans), system-ui, sans-serif; cursor: pointer; transition: background-color .12s var(--mech);
+}
+.mc-app .v2-dc__undo:hover { background: var(--v2-fill); }
+.mc-app .v2-dc__undo:disabled { opacity: .6; cursor: default; }
+@media (max-width: 899px) { .mc-app .v2-dc__undo { height: 36px; } }
+.x-toast.has-act.is-on { pointer-events: auto; }
+.x-toast__act { margin-left: 4px; padding: 2px 8px; border: 0; border-radius: 3px; background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; font: 500 13px/20px var(--font-geist-sans), system-ui, sans-serif; cursor: pointer; }
+.x-toast__act:hover { background: color-mix(in srgb, currentColor 22%, transparent); }
+.mc-app button.mc-gs { background: transparent; font: inherit; font-size: 13px; cursor: pointer; }
+.mc-app button.mc-gs:hover { background: var(--tint); }
+.mc-app .mc-empty-thread__acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }

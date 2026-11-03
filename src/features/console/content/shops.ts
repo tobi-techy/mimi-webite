@@ -1,3 +1,4 @@
+import type { ProofGrade } from "@/features/console/lib/proof";
 export type ShopStatus = "g" | "w" | "o";
 /** Sample routes; shops from the API are grouped by their rep instead ("Rep 1"). */
 export type Route = "Oshodi" | "Mushin" | "Ikeja" | (string & {});
@@ -9,6 +10,8 @@ export type Route = "Oshodi" | "Mushin" | "Ikeja" | (string & {});
 export type LiveShopExtra = {
   creditLimit: number;
   overdue: number;
+  /** Days since the oldest overdue invoice fell due (newer APIs). */
+  overdueDays?: number;
   openInvoices: number;
   shopType: string;
   threadId?: string;
@@ -17,7 +20,14 @@ export type LiveShopExtra = {
 };
 
 /** `via` is how it came in ("GTBank transfer", "Moniepoint POS"): where it landed when verified, where the shop says it sent from when self-reported. The API has no bank yet. */
-export type ShopPayment = { date: string; amount: number; verified: boolean; via?: string };
+export type ShopPayment = {
+  date: string;
+  amount: number;
+  verified: boolean;
+  via?: string;
+  /** How sure the payment is (API proof_grade); sample rows fall back to `verified`. */
+  proof?: ProofGrade;
+};
 
 export type Shop = {
   id: string;

@@ -8,6 +8,7 @@
  */
 import type { CreditLine, CreditRecommendation } from "../content/credit";
 import type { LiveShopExtra, Shop, ShopStatus } from "../content/shops";
+import type { ProofGrade } from "../lib/proof";
 import type { AnswerBlock, CardStatus, Conversation, DecisionCard, Folder, HelperName, Message, Reply, TableCell, ThreadState } from "../demo/types";
 import type {
   ApiApproval,
@@ -195,17 +196,132 @@ const cardStatusOf = (s: string): CardStatus | null =>
 
 const short = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
+/**
+ * The morning brief comes as one paragraph ("Good morning. Top overdue: A is 133 days overdue on
+ * ₦2,387,250; B is …. In all ₦7,231,000 is overdue across 14 shops."): one shop per line reads
+ * faster. Any other text is returned as it is.
+ */
+export function briefLines(text: string): string {
+  const m = /^(Good morning[^.]*\.)\s*Top overdue:\s*([^]*?)\.\s*(In all [^]*)$/i.exec(text.trim());
+  if (!m || text.includes("\n")) return text;
+  const items = m[2]!.split(/;\s*/).map((x) => x.trim().replace(/\.$/, "")).filter(Boolean);
+  if (items.length < 2) return text;
+  return `${m[1]}\n\nTop overdue:\n${items.map((x) => `• ${x}`).join("\n")}\n\n${m[3]!.trim()}`;
+}
+
+const flatText = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+
+/* ---------- demo wiring: Zoho write and an order over its limit (shared with the demo tour) ---------- */
+
+export type ZohoPayload = { shop_name: string; amount_ngn: number; invoice_number?: string; reference_number?: string };
+export type OverLimitPayload = { shop_name: string; order_ngn: number; limit_ngn: number; owed_ngn?: number; suggested_limit_ngn: number; reasons?: string[] };
+
+const str = (v: unknown) => (typeof v === "string" ? v : "");
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/** "Record ₦500,000 from Mama Sola in Zoho Books": after approve, "Recorded in Zoho" with Undo. */
+export function zohoCard(p: ZohoPayload, status: CardStatus, opts: { undo?: DecisionCard["undo"]; sentAt?: string } = {}): DecisionCard {
+  const amount = Math.round(p.amount_ngn);
+  const shop = nairaSign(p.shop_name) || "A shop";
+  return {
+    kind: "zoho",
+    tier: "Approve",
+    shop,
+    amount,
+    why: "The bank confirmed it",
+    title: `Record ${naira(amount)} from ${shop} in Zoho Books`,
+    sub: status === "needs" ? "The bank confirmed this payment. Nothing is written to Zoho until you approve." : "Payment the bank confirmed",
+    /* the invoice number and Zoho reference are book keys: never shown (owner reads the shop and ₦) */
+    rows: [{ label: "Against their open invoice", amount, proof: "verified" }],
+    noTotal: true,
+    primary: "Record in Zoho",
+    secondary: "Decline",
+    labels: { primary: "Record in Zoho", secondary: "Not now" },
+    status,
+    sentAt: opts.sentAt,
+    doneText: "Recorded in Zoho",
+    declinedText: "Not recorded",
+    undo: opts.undo,
+  };
+}
+
+/** An order that would take a shop over its limit: held, with Credit's suggested limit and reasons. */
+export function overLimitCard(p: OverLimitPayload, status: CardStatus, opts: { undo?: DecisionCard["undo"]; sentAt?: string; newLimit?: number } = {}): DecisionCard {
+  const shop = nairaSign(p.shop_name) || "A shop";
+  const to = Math.round(opts.newLimit ?? p.suggested_limit_ngn);
+  return {
+    kind: "limit",
+    tier: "Approve",
+    shop,
+    amount: Math.round(p.order_ngn),
+    why: `Order over its ${naira(p.limit_ngn)} limit`,
+    title: `Order held · ${shop}`,
+    sub:
+      status === "needs"
+        ? `A ${naira(p.order_ngn)} order would take ${shop} over its limit. Credit suggests ${naira(p.suggested_limit_ngn)}.`
+        : `${naira(p.order_ngn)} order`,
+    rows: [
+      { label: "Limit now", amount: Math.round(p.limit_ngn) },
+      { label: "Suggested limit", amount: Math.round(p.suggested_limit_ngn) },
+    ],
+    reasons: (p.reasons ?? []).map((r) => nairaSign(r)).filter(Boolean).slice(0, 4),
+    noTotal: true,
+    primary: "Approve new limit",
+    secondary: "Decline",
+    labels: { primary: "Approve new limit", secondary: "Keep limit" },
+    status,
+    sentAt: opts.sentAt,
+    doneText: `Limit now ${naira(to)}`,
+    declinedText: "Limit kept",
+    undo: opts.undo,
+  };
+}
+
+/** The demo-wiring card for an approval, when its kind is one (null for every other approval). */
+function wiredCard(a: ApiApproval, status: CardStatus, sentAt: string | undefined, undone: ReadonlySet<string>): DecisionCard | null {
+  const kind = a.kind || str(a.payload?.kind);
+  const r = a.result ?? null;
+  if (kind === "zoho_payment") {
+    const undo: DecisionCard["undo"] =
+      status !== "sent" ? undefined : r?.undone_at || undone.has(a.approval_id) ? { state: "done", text: "Taken back out of Zoho" } : r?.undo_available ? { state: "ready" } : undefined;
+    return zohoCard(
+      { shop_name: str(a.payload?.shop_name), amount_ngn: num(a.payload?.amount_ngn), invoice_number: str(a.payload?.invoice_number) || undefined },
+      status,
+      { undo, sentAt },
+    );
+  }
+  if (kind === "credit_over_limit") {
+    const changeId = r?.change_id;
+    const undo: DecisionCard["undo"] =
+      status !== "sent" || !changeId ? undefined : undone.has(changeId) ? { state: "done", text: `Limit back to ${naira(num(r?.old_limit_ngn) || num(a.payload?.limit_ngn))}` } : r?.undo_available !== false ? { state: "ready", changeId } : undefined;
+    return overLimitCard(
+      {
+        shop_name: str(a.payload?.shop_name),
+        order_ngn: num(a.payload?.order_ngn),
+        limit_ngn: num(a.payload?.limit_ngn),
+        suggested_limit_ngn: num(a.payload?.suggested_limit_ngn),
+        reasons: Array.isArray(a.payload?.reasons) ? (a.payload.reasons as unknown[]).map(str) : [],
+      },
+      status,
+      { undo, sentAt, newLimit: num(r?.new_limit_ngn) || undefined },
+    );
+  }
+  return null;
+}
+
 /** One approval as a decision card (Approve / Discard). Superseded and withdrawn ones are left out. */
-export function mapApprovalCard(a: ApiApproval, shopName: string): DecisionCard | null {
+export function mapApprovalCard(a: ApiApproval, shopName: string, undone: ReadonlySet<string> = new Set()): DecisionCard | null {
   const status = cardStatusOf(a.status);
   if (!status) return null;
+  const wired = wiredCard(a, status, parseApiTime(a.decided_at) !== null ? clockLabel(parseApiTime(a.decided_at)!) : undefined, undone);
+  if (wired) return wired;
   const kind = cardKindOf(a.tool || a.intent_kind);
   const amount = payloadAmount(a.payload);
   const helper = helperOf(a.helper);
   const who = shopName || "Your business";
   const decided = parseApiTime(a.decided_at);
   const rows: DecisionCard["rows"] = [{ label: who, amount, note: helper === "Mimi" ? "Mimi" : helper }];
-  if (a.draft?.text) rows.push({ label: "Draft", note: short(a.draft.text, 90) });
+  if (a.draft?.text) rows.push({ label: "Draft", note: short(hideKeys(a.draft.text), 90) });
   const subject = typeof a.payload?.subject === "string" ? a.payload.subject : "";
   const body = typeof a.payload?.body === "string" ? a.payload.body : a.draft?.text ?? "";
   const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.brand === "string" ? a.payload.brand : "";
@@ -215,7 +331,7 @@ export function mapApprovalCard(a: ApiApproval, shopName: string): DecisionCard 
     shop: shopName || undefined,
     amount,
     why: a.note || undefined,
-    title: short((a.preview || a.tool || "Approval").split("\n")[0] ?? "Approval", 80),
+    title: short(hideKeys((a.preview || a.tool || "Approval").split("\n")[0] ?? "Approval"), 80),
     sub: `${who} · ${status === "needs" ? "nothing sent yet" : status === "sent" ? "approved" : "declined"}`,
     rows,
     email: kind === "brand" && subject ? { to: to || "Brand", subject, body } : undefined,
@@ -264,7 +380,7 @@ function mapStep(s: ApiStep, from: Roster): Message {
     at,
     variant: variant === "handoff" ? "tool" : variant,
     icon: stepIcon(s),
-    text: short(s.short || s.tool || s.type, 72),
+    text: short(hideKeys(s.short || s.tool || s.type), 72),
     state: variant === "error" ? "failed" : "done",
     meta: tierNote || undefined,
     tool: s.tool || undefined,
@@ -276,7 +392,7 @@ function mapStep(s: ApiStep, from: Roster): Message {
 /** A finished turn's work: one collapsed "Thought for Ns" line that opens to the list of steps. */
 export function foldSteps(turn: string, steps: ApiStep[], from: Roster): Message {
   const ms = steps.reduce((n, s) => n + (s.duration_ms || 0), 0);
-  const text = steps.map((s) => `- ${short(s.short || s.tool || s.type, 90).replace(/[*_`=\[\]]/g, "")}`).join("\n");
+  const text = steps.map((s) => `- ${short(hideKeys(s.short || s.tool || s.type), 90).replace(/[*_`=\[\]]/g, "")}`).join("\n");
   return { id: `api-w:${turn}`, kind: "thought", from: from === "Mimi" ? "Mimi" : from, at: parseApiTime(steps[0]?.at) ?? 0, text, secs: Math.max(1, Math.round(ms / 1000)) };
 }
 
@@ -293,6 +409,17 @@ function ownerMedia(m: ApiMessage, id: string, at: number): Message | null {
     return { id, kind: "voice", from: "me", at, seconds: 0, caption: "Your voice note", transcript: caption || undefined, audio: { from: "media", id: apiId }, apiId };
   if (/doc/.test(m.kind)) return { id, kind: "file", from: "me", at, name: caption || "Document", mime: "application/pdf", size: 0, remote: apiId, apiId };
   return null;
+}
+
+/**
+ * Whether an outgoing message went out. Text to a shop shows only once it is `ready` (handed to
+ * WhatsApp): a draft waiting on approval, or one declined, superseded or withdrawn, never shows on
+ * the shop side. Owner-side text hides drafts and declined ones the same way.
+ */
+export function outShown(m: Pick<ApiMessage, "direction" | "channel" | "status">): boolean {
+  if (m.direction !== "out") return true;
+  if (m.channel === "shop_whatsapp") return m.status === "ready";
+  return !/^(pending_approval|draft|rejected|superseded|withdrawn)$/.test(m.status);
 }
 
 function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: ReadonlyMap<string, Message>): Message | null {
@@ -320,20 +447,20 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
     return { id, kind: "system", text: `${who}: “${m.text}”`, at, icon: "message-square" };
   }
   /* a drafted reply that waits in approvals shows as its card, not as a sent bubble */
-  if (m.status === "pending_approval" || m.status === "draft") return null;
-  const text = nairaSign(m.text);
+  if (!outShown(m)) return null;
+  const text = hideKeys(nairaSign(m.text));
   /* a helper asking the owner: shown in her chat and, as "Needs you", in Mimi's. A paused job's
      note reads as model and tool numbers, so it is asked again in plain words (Keep going / Stop) */
   const pause = plainPause(text);
   if (from !== "Mimi" && (pause || m.kind === "question"))
     return { id, kind: "ask", from, at, question: pause?.question ?? text, ...(pause ? { options: pause.options } : {}) };
   if (pause) return { id, kind: "text", from, text: pause.question, at };
-  return { id, kind: "text", from, text, at };
+  return { id, kind: "text", from, text: briefLines(text), at };
 }
 
 /** A reply that also went as a voice note: the note itself, played through the API on tap. */
 function replyVoice(m: ApiMessage, from: Roster): Message | null {
-  if (!m.voice || m.direction !== "out" || m.status === "pending_approval" || m.status === "draft") return null;
+  if (!m.voice || m.direction !== "out" || !outShown(m)) return null;
   return { id: `api-v:${m.message_id}`, kind: "voice", from, at: parseApiTime(m.at) ?? 0, seconds: 0, caption: "Voice note", audio: { from: "voice", id: m.message_id } };
 }
 
@@ -475,6 +602,8 @@ export function mapThread(
   local?: ReadonlyMap<string, Message>,
   /** Handoffs contract: cards and chips of turns this tab followed, by turn id. */
   extras?: ReadonlyMap<string, TurnExtras>,
+  /** Zoho records and limit changes undone from this tab (approval or change ids). */
+  undone: ReadonlySet<string> = new Set(),
 ): Conversation {
   const base = mapThreadSummary(d.thread, now);
   const shopName = d.thread.shop_name;
@@ -519,6 +648,7 @@ export function mapThread(
   /* each turn's last reply bubble: a card from the handoffs contract joins it */
   const lastReply = new Map<string, number>();
   const emitted = new Set<string>();
+  const saidIn = new Map<string, Set<string>>();
   const emitSteps = (turn: string) => {
     if (emitted.has(turn)) return;
     emitted.add(turn);
@@ -536,6 +666,10 @@ export function mapThread(
     const raw = mapMessage(m, fromOf(m.turn_id), shopName, local);
     /* each line keeps its turn: the console files it in the chat of the helper who took the turn */
     const mapped = raw && turn && (raw.kind === "text" || raw.kind === "ask") ? { ...raw, turn } : raw;
+    /* the same reply stored twice for one turn (a helper's answer and its relay) shows once */
+    const twice = mapped?.kind === "text" && m.direction === "out" && turn && saidIn.get(turn)?.has(flatText(mapped.text));
+    if (mapped?.kind === "text" && m.direction === "out" && turn) saidIn.set(turn, (saidIn.get(turn) ?? new Set()).add(flatText(mapped.text)));
+    if (twice) return;
     if (mapped) out.push(mapped);
     if (mapped?.kind === "text" && m.direction === "out" && turn) lastReply.set(turn, out.length - 1);
     const spoken = replyVoice(m, fromOf(m.turn_id));
@@ -559,7 +693,7 @@ export function mapThread(
 
   for (const a of approvals) {
     if (a.thread_id !== d.thread.thread_id) continue;
-    const card = mapApprovalCard(a, shopName);
+    const card = mapApprovalCard(a, shopName, undone);
     if (!card) continue;
     out.push({ id: `apr:${a.approval_id}`, kind: "card", from: helperOf(a.helper), at: parseApiTime(a.created_at) ?? 0, card, ...(a.turn_id ? { turn: a.turn_id } : {}) });
   }
@@ -594,6 +728,17 @@ export function liveActivity(d: ApiThreadDetail): string | null {
 
 /* ---------- shops ---------- */
 
+/** How sure a payment is (API proof_grade; the stored proof_level or bank_confirmed on older APIs). */
+export function gradeOf(p: { proof_grade?: string; proof_level?: string; bank_confirmed?: boolean }): ProofGrade {
+  const g = (p.proof_grade ?? "").toLowerCase();
+  if (g === "verified" || g === "estimated" || g === "unverified") return g;
+  const l = (p.proof_level ?? "").toLowerCase();
+  if (l === "verified") return "verified";
+  if (l === "likely") return "estimated";
+  if (l === "estimated") return "unverified";
+  return p.bank_confirmed ? "verified" : "unverified";
+}
+
 export function shopStatusOf(s: Pick<ApiShop, "overdue_kobo" | "outstanding_kobo" | "credit_limit_kobo">): ShopStatus {
   if (s.overdue_kobo > 0) return "o";
   if (s.credit_limit_kobo > 0 && s.outstanding_kobo > s.credit_limit_kobo * 0.8) return "w";
@@ -606,12 +751,14 @@ export const routeOf = (rep: string): string => (rep ? rep.replace(/^rep-?/i, "R
 export function mapShop(s: ApiShop, detail?: ApiShopDetail): Shop {
   const payments = (detail?.payments ?? []).map((p) => ({
     date: shortDate(p.paid_on),
-    amount: koboToNaira(p.amount_kobo || p.claimed_kobo),
-    verified: p.bank_confirmed,
+    amount: p.amount_ngn ?? koboToNaira(p.amount_kobo || p.claimed_kobo),
+    verified: gradeOf(p) === "verified",
+    proof: gradeOf(p),
   }));
   const live: LiveShopExtra = {
     creditLimit: koboToNaira(s.credit_limit_kobo),
-    overdue: koboToNaira(s.overdue_kobo),
+    overdue: s.overdue_ngn ?? koboToNaira(s.overdue_kobo),
+    ...(s.overdue_days !== undefined ? { overdueDays: s.overdue_days } : {}),
     openInvoices: s.open_invoices,
     shopType: s.shop_type,
     threadId: detail?.thread_id,
@@ -690,6 +837,37 @@ export function mapCreditRecs(c: ApiCredit): CreditRecommendation[] {
  * Helpers sometimes write naira as a plain "N" ("N2,387,250", "N50k"). The console always shows
  * the naira sign: an "N" right before a figure, not inside a word, becomes "₦".
  */
+/**
+ * User-facing text never shows the book's internal keys: Zoho references, fake Zoho ids, payment,
+ * delivery and order ids, invoice numbers (they read like database keys to an owner).
+ */
+const KEYS: [RegExp, string][] = [
+  /* "Recorded … in Zoho Books against INV-56-9034." */
+  [/\s+against\s+INV-[\w-]+/gi, ""],
+  [/\b(?:on|for|of)\s+(?:invoice\s+)?INV-[\w-]+/gi, ""],
+  [/\binvoice\s+INV-[\w-]+/gi, "their invoice"],
+  [/\bINV-[\w-]+/g, "their invoice"],
+  /* the Zoho reference and the fake Zoho id */
+  [/\s*\(?\bref(?:erence)?\s*:?\s*mimi-[\w:.-]+\)?/gi, ""],
+  [/\bmimi-[a-z_]+:[\w.-]+/gi, ""],
+  [/\s*\(?\bzfake_[0-9a-f]+\)?/gi, ""],
+  /* book ids in step lines ("the receipt for dlv-56-9034") */
+  [/\s+(?:for|to|on)\s+(?:dlv|pay(?:-ss)?|ord|prf)-[\w-]+/gi, ""],
+  [/\b(?:dlv|pay-ss|pay|ord|prf)-[\w-]+/gi, ""],
+];
+
+export function hideKeys(text: string): string {
+  if (!text) return text;
+  let out = text;
+  for (const [re, to] of KEYS) out = out.replace(re, to);
+  return out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([.,;:])/g, "$1")
+    .replace(/\(\s*\)/g, "")
+    .trim();
+}
+
+
 export function nairaSign(text: string): string {
   if (!text) return text;
   return text.replace(/(^|[^A-Za-z0-9_₦])N(?=\d)/g, "$1₦");

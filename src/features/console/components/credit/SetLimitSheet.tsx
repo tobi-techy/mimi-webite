@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { liveDecideCredit } from "@/features/console/api/actions";
+import { liveDecideCredit, liveSetLimit, liveUndoLimit } from "@/features/console/api/actions";
 import { useLive } from "@/features/console/api/live-store";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Avatar } from "@/features/console/components/ui/Avatar";
@@ -68,6 +68,11 @@ function Sheet({ t }: { t: LimitTarget }) {
   const input = useRef<HTMLInputElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const committed = useRef(false);
+  /* the API's id for this change (live demo), which Undo sends back */
+  const change = useRef<Promise<string | undefined> | null>(null);
+  const onApi = live && !t.shopId.startsWith("card:");
+  /* this demo server has no limit route yet: the change lives in this tab only */
+  const [localOnly, setLocalOnly] = useState(false);
   const amount = parseAmount(shown);
   const owed = t.owed ?? 0;
   const below = t.owed !== undefined && amount > 0 && amount < owed;
@@ -98,8 +103,24 @@ function Sheet({ t }: { t: LimitTarget }) {
     if (t.suggestion?.approvalId && amount === t.suggestion.to) void liveDecideCredit(t.suggestion.approvalId, true).then((r) => !r.ok && say(r.text));
   };
 
+  /** Takes the new limit back: on the API when it was saved there, and in this tab. */
+  async function takeBack(): Promise<boolean> {
+    const id = change.current ? await change.current : undefined;
+    if (id && !(await liveUndoLimit(id))) return false;
+    undoLimit(t.shopId);
+    return true;
+  }
+
   const close = () => {
-    if (step === "done") commit();
+    if (step === "done") {
+      commit();
+      /* the sheet goes, the change can still be taken back from the toast */
+      if (left > 0)
+        say(`${firstName(t.name)}: limit now ${naira(amount)}`, {
+          label: "Undo",
+          run: () => void takeBack().then((ok) => ok && say(`Undone. ${t.name} is back at ${naira(t.current)}.`)),
+        });
+    }
     closeLimitSheet();
   };
 
@@ -123,6 +144,19 @@ function Sheet({ t }: { t: LimitTarget }) {
   function set() {
     const now = stamp();
     saveLimit(t.shopId, { limit: amount, prev: t.current, at: now, by: owner.name, review: when, told: tell });
+    if (onApi) {
+      const reason = t.suggestion && amount === t.suggestion.to ? t.suggestion.why : undefined;
+      change.current = liveSetLimit(t.shopId, amount, reason).then((r) => {
+        /* refused by the API: the limit did not change anywhere */
+        if (!r.ok) {
+          undoLimit(t.shopId);
+          committed.current = true;
+          closeLimitSheet();
+        }
+        if (r.kept === "local") setLocalOnly(true);
+        return r.changeId;
+      });
+    }
     setAt(now);
     setLeft(UNDO_S);
     setStep("done");
@@ -130,11 +164,10 @@ function Sheet({ t }: { t: LimitTarget }) {
   }
 
   function undo() {
-    undoLimit(t.shopId);
     committed.current = true;
     sfx("console", "close", { emphasis: "subtle" });
-    say(`Undone. ${t.name} stays at ${naira(t.current)}.`);
     closeLimitSheet();
+    void takeBack().then((ok) => ok && say(`Undone. ${t.name} stays at ${naira(t.current)}.`));
   }
 
   const valid = amount > 0 && amount !== t.current;
@@ -321,7 +354,7 @@ function Sheet({ t }: { t: LimitTarget }) {
               {tell && <li>{live ? "Message to the shop: preview only in this demo, not sent" : `${firstName(t.name)} gets the message on WhatsApp`}</li>}
               {when && <li>Review on {when}</li>}
             </ul>
-            {live && <p className="mf-ls__note">Demo: the new limit is kept in this browser. The shop book on the server doesn&apos;t take limit changes from the console yet.</p>}
+            {localOnly && <p className="mf-ls__note">Demo: the new limit is kept in this browser for now.</p>}
           </div>
         )}
 

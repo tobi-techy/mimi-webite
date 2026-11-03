@@ -1,11 +1,11 @@
 "use client";
 
 import { attachLabel, checkAttachment, uploadRefusal, type AttachPurpose } from "@/features/console/api/attachments";
-import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
+import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { apiActive, getLive, notify, setLive } from "@/features/console/api/live-store";
 import { capText, friendlyMessage } from "@/features/console/api/mappers";
 import { newSession, readSession, writeSession } from "@/features/console/api/session";
-import { authed, held, localMedia, openTurns, pending, refresh, report, resetCaches, sentFrom } from "@/features/console/api/sync";
+import { authed, held, localMedia, openTurns, pending, refresh, republish, report, resetCaches, sentFrom, undone } from "@/features/console/api/sync";
 import { findConversation, getDemo, nextId, patchConversation, patchMessage } from "@/features/console/demo/store";
 import type { AskAnswer, Conversation, HelperName, Message, Upload, VoiceAudio, Worker } from "@/features/console/demo/types";
 import { assignFor } from "@/features/console/lib/chat-view";
@@ -130,6 +130,69 @@ export async function liveDecide(slug: string, cardId: string, approve: boolean)
   }
   /* the card's final state comes from the API, never from here */
   await refresh(true);
+}
+
+/**
+ * Undo under a done card from the API: a Zoho record comes back out (POST /v1/approvals/{id}/undo)
+ * or a new limit goes back (POST /v1/credit/changes/{change_id}/undo). The card says Undoing until
+ * the API answers; an older API without the route keeps the card as it was and says so.
+ */
+export async function liveUndo(slug: string, cardId: string): Promise<void> {
+  const id = cardId.replace(/^apr:/, "");
+  const m = findConversation(getDemo(), slug)?.messages.find((x) => x.id === cardId);
+  if (!m || m.kind !== "card" || m.card.undo?.state !== "ready") return;
+  const changeId = m.card.undo.changeId;
+  const set = (state: "ready" | "busy") => patchMessage(slug, cardId, (x) => (x.kind === "card" && x.card.undo ? { ...x, card: { ...x.card, undo: { ...x.card.undo, state } } } : x));
+  set("busy");
+  try {
+    if (m.card.kind === "limit" && changeId) await authed((t) => mimiApi.undoLimit(t, changeId));
+    else await authed((t) => mimiApi.undoApproval(t, id));
+    undone.add(changeId ?? id);
+  } catch (e) {
+    const err = e instanceof MimiApiError ? e : new MimiApiError(-1, "");
+    /* already undone (409): the API agrees it is back; say nothing */
+    if (err.status === 409) undone.add(changeId ?? id);
+    else {
+      set("ready");
+      if (missingRoute(err)) notify("info", "Undo isn't on this demo server yet.");
+      else report(err);
+      return;
+    }
+  }
+  republish();
+  await refresh(true);
+}
+
+/**
+ * Set credit limit, on the API (POST /v1/credit/{shop_id}/limit). Returns the change id that Undo
+ * needs, or `kept: "local"` when this demo server has no such route yet (the limit then stays in
+ * this tab, as before). Errors are already shown when `ok` is false.
+ */
+export async function liveSetLimit(shopId: string, amount: number, reason?: string): Promise<{ ok: boolean; changeId?: string; kept?: "local" }> {
+  try {
+    const r = await authed((t) => mimiApi.setLimit(t, shopId, amount, reason));
+    void refresh(true);
+    return { ok: true, changeId: r.change_id };
+  } catch (e) {
+    if (missingRoute(e)) return { ok: true, kept: "local" };
+    report(e);
+    return { ok: false };
+  }
+}
+
+/** Undo a limit change on the API (POST /v1/credit/changes/{change_id}/undo). A 409 means it was already undone. */
+export async function liveUndoLimit(changeId: string): Promise<boolean> {
+  try {
+    await authed((t) => mimiApi.undoLimit(t, changeId));
+  } catch (e) {
+    if (!(e instanceof MimiApiError && e.status === 409)) {
+      report(e);
+      return false;
+    }
+  }
+  undone.add(changeId);
+  void refresh(true);
+  return true;
 }
 
 /** Credit page: accept or dismiss a credit request by its approval. Returns the line for the toast. */

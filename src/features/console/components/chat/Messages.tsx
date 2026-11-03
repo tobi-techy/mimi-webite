@@ -23,6 +23,7 @@ import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { useDemo } from "@/features/console/demo/store";
 import {
   declineCard,
+  undoCard,
   openDoc,
   openPanel,
   openSheet,
@@ -194,7 +195,7 @@ function ProofCard({ m }: { m: Extract<Message, { kind: "proof" }> }) {
           <b>{m.foot}</b>
           {m.footSub}
         </div>
-        <VerdictTag v={m.verdict} />
+        <VerdictTag v={m.verdict}>{m.verdictLabel}</VerdictTag>
       </div>
     </div>
   );
@@ -392,6 +393,8 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
   brand: "share",
   flag: "triangle-alert",
   match: "shield-check",
+  zoho: "file-text",
+  limit: "landmark",
 };
 
 const proofWord: Record<ProofLevel, string> = { verified: "Verified", likely: "Likely", estimated: "Estimated" };
@@ -408,7 +411,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
   const fresh = useFresh(m.at);
   const plan = c.kind === "plan";
   const live = c.rows.filter((r) => r.tone !== "Skip");
-  const act = cardActions(c);
+  const act = c.labels ? { primary: c.labels.primary, secondary: c.labels.secondary } : cardActions(c);
   const tier = tierOf(c);
   const total = c.amount ?? (plan || c.kind === "order" ? live.reduce((s, r) => s + (r.amount ?? 0), 0) : undefined);
   const needs = c.status === "needs";
@@ -422,7 +425,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
       : allVerified
         ? `${c.sub} · all verified`
         : c.sub;
-  const showTotal = total !== undefined && total > 0 && !sub.includes(naira(total));
+  const showTotal = !c.noTotal && total !== undefined && total > 0 && !sub.includes(naira(total));
   return (
     <div
       className={cx("mc-apc v2-dc", needs && fresh && consoleMotion.approvalAttention && "is-attn")}
@@ -435,7 +438,7 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
         </div>
         {c.status === "sending" && <StatusPill status="running">{plan ? "Sending" : "Saving"}</StatusPill>}
         {c.status === "sent" && <StatusPill status="sent">{plan || c.kind === "brand" ? "Sent" : "Done"}</StatusPill>}
-        {c.status === "declined" && <StatusPill status="skipped">Discarded</StatusPill>}
+        {c.status === "declined" && <StatusPill status="skipped">{c.declinedText ?? "Discarded"}</StatusPill>}
       </div>
       {c.email && (
         <div className="v2-dc__quote">
@@ -451,6 +454,13 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
           <p>{c.message.text}</p>
         </div>
       )}
+      {c.reasons?.length && needs ? (
+        <ul className="v2-dc__why">
+          {c.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      ) : null}
       <dl className="v2-dc__rows">
         {!plan &&
           c.rows.map((r) => {
@@ -514,7 +524,12 @@ function CardView({ m, ctx }: { m: Extract<Message, { kind: "card" }>; ctx: Ctx 
       )}
       {c.status === "sent" && (
         <p className="v2-dc__done" role="status">
-          {c.doneText} · {c.sentAt}
+          <span>{c.undo?.state === "done" ? c.undo.text : `${c.doneText}${c.sentAt ? ` · ${c.sentAt}` : ""}`}</span>
+          {c.undo && c.undo.state !== "done" && (
+            <button type="button" className="v2-dc__undo" disabled={c.undo.state === "busy"} onClick={() => undoCard(ctx.slug, m.id)}>
+              {c.undo.state === "busy" ? "Undoing" : "Undo"}
+            </button>
+          )}
         </p>
       )}
     </div>

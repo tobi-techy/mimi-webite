@@ -110,7 +110,7 @@ function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
       group: "Actions",
       icon: "zap",
       title: "Play demo",
-      meta: "Auto-play the collections story (about 75 seconds)",
+      meta: "One morning with Mimi in five short scenes",
       action: "playDemo",
     },
     {

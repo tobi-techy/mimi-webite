@@ -1,5 +1,6 @@
 "use client";
 
+import { proofStatus, proofWords } from "@/features/console/lib/proof";
 import { LiveShopDetail } from "@/features/console/components/shops/LiveShopDetail";
 import { ShopDrawer } from "@/features/console/components/shops/ShopDrawer";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -96,9 +97,8 @@ export function ShopDetail({ shop }: { shop: Shop }) {
             </header>
             <ul className="v2-rows">
               {shop.payments.map((p) => {
-                const proof = (
-                  <StatusText status={p.verified ? "verified" : "self"}>{p.verified ? "Bank verified" : "Self-reported"}</StatusText>
-                );
+                const grade = p.proof ?? (p.verified ? "verified" : "unverified");
+                const proof = <StatusText status={proofStatus[grade]}>{proofWords[grade]}</StatusText>;
                 return (
                   <li key={p.date + p.amount} className={p.via ? "v2-rows--bank" : undefined}>
                     {p.via && <BankLogo bank={p.via} size={24} />}

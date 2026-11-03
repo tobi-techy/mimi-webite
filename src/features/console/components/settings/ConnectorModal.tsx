@@ -7,6 +7,7 @@ import { connectorPermissions, type Connector } from "@/features/console/content
 import { useConnected } from "@/features/console/hooks/use-connected";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { connectorsStore } from "@/features/console/lib/connectors-store";
+import { liveConnect, liveDisconnect } from "@/features/console/api/connectors";
 import { Button } from "@/features/console/components/ui/Button";
 
 const CONNECT_MS = 900;
@@ -16,6 +17,8 @@ export function ConnectorModal({ connector, onClose }: { connector: Connector; o
   const say = useToast();
   const on = useConnected().has(connector.key);
   const [busy, setBusy] = useState(false);
+  /* the demo's own connect hop (no consent page from the API) */
+  const [hop, setHop] = useState(false);
   const goRef = useRef<HTMLButtonElement>(null);
   const returnTo = useRef<Element | null>(null);
 
@@ -31,17 +34,25 @@ export function ConnectorModal({ connector, onClose }: { connector: Connector; o
   }, [onClose]);
 
   useEffect(() => {
-    if (!busy) return;
+    if (!hop) return;
     const t = window.setTimeout(() => {
       connectorsStore.set(connector.key, true);
       say(`${connector.name} connected`);
       onClose();
     }, CONNECT_MS);
     return () => window.clearTimeout(t);
-  }, [busy, connector, onClose, say]);
+  }, [hop, connector, onClose, say]);
 
-  function go() {
-    if (!on) return setBusy(true);
+  async function go() {
+    if (!on) {
+      setBusy(true);
+      /* the API's consent page when it has one; otherwise the demo hop below finishes it */
+      const how = await liveConnect(connector.key);
+      if (how === "error") setBusy(false);
+      else if (how === "local") setHop(true);
+      return;
+    }
+    if (!(await liveDisconnect(connector.key))) return;
     connectorsStore.set(connector.key, false);
     say(`${connector.name} disconnected`);
     onClose();
@@ -70,7 +81,7 @@ export function ConnectorModal({ connector, onClose }: { connector: Connector; o
           ))}
         </ul>
         <div className="x-btns">
-          <Button ref={goRef} variant={on ? "secondary" : "primary"} disabled={busy} onClick={go}>
+          <Button ref={goRef} variant={on ? "secondary" : "primary"} disabled={busy} onClick={() => void go()}>
             {busy ? (
               <>
                 <span className="x-ring" aria-hidden="true"></span>Connecting
