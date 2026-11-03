@@ -400,6 +400,9 @@ export type ApiComputerTask = {
 /** POST /v1/computer/tasks. */
 export type ApiComputerTaskIn = { goal: string; url: string; domain: string; kind: string };
 
+/** GET /v1/computer/kinds: the service's own list of task kinds and their labels. */
+export type ApiComputerKinds = { kinds?: unknown };
+
 /** One row of GET /v1/computer/tasks (a summary; the step log comes from the detail route). */
 export type ApiComputerTaskSummary = {
   task_id: string;

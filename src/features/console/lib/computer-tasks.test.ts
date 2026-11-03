@@ -5,19 +5,21 @@ import {
   artifactUrl,
   deriveDomain,
   describeStop,
+  holdsSession,
   isHttpUrl,
+  isListedKind,
   isRunning,
-  isTaskKind,
+  kindLabel,
   liveViewLink,
   needsOwner,
+  needsSignIn,
   normalizeArtifacts,
   planOf,
+  readKinds,
   screenshotRequest,
   STEP_NO_SENTENCE,
   stepSentence,
   stepsOf,
-  TASK_KINDS,
-  taskKindLabel,
   taskShortWord,
   taskStateWord,
   taskTitle,
@@ -82,7 +84,7 @@ test("the domain is read from the address, never guessed", () => {
 test("the new-task form says what to fix, in plain words", () => {
   const ok = { kind: "bank_statement", goal: "Read the statement", url: "https://ibank.providusbank.com" };
   assert.equal(validateNewTask({ ...ok, kind: "" }), "Choose what kind of task this is.");
-  assert.equal(validateNewTask({ ...ok, kind: "unknown_kind" }), "Choose what kind of task this is.");
+  /* which kinds exist is the service's list, not this module's: the form only offers what it read */
   assert.equal(validateNewTask({ ...ok, goal: "" }), "Say what the task should do.");
   assert.equal(validateNewTask({ ...ok, goal: "ab" }), "Say what the task should do, in a little more detail.");
   assert.equal(validateNewTask({ ...ok, goal: "a".repeat(2001) }), "Keep the goal under 2000 characters.");
@@ -91,14 +93,18 @@ test("the new-task form says what to fix, in plain words", () => {
   assert.equal(validateNewTask(ok), null);
 });
 
-test("a live view link is shown only while the task runs and only when the service gave one", () => {
+test("a live view link is shown whenever the service hands one over, and never without one", () => {
   const link = "https://live.example/session/abc";
   assert.equal(liveViewLink({ task_id: "t1", status: "running", live_view_url: link }), link);
   assert.equal(liveViewLink({ task_id: "t1", status: "RUNNING", live_view_url: link }), link);
-  /* the link lapses when the task ends, so it is not offered then */
-  assert.equal(liveViewLink({ task_id: "t1", status: "done", live_view_url: link }), null);
-  assert.equal(liveViewLink({ task_id: "t1", status: "proposed", live_view_url: link }), null);
-  assert.equal(liveViewLink({ task_id: "t1", status: "stopped", live_view_url: link }), null);
+  /* the state that exists so the owner can sign in keeps its session and its link: the link must show */
+  assert.equal(liveViewLink({ task_id: "t1", status: "awaiting_owner", live_view_url: link }), link);
+  assert.equal(liveViewLink({ task_id: "t1", status: "awaiting-owner", live_view_url: link }), link);
+  /* other statuses are shown too when the service still offers a link; it is the service's call */
+  assert.equal(liveViewLink({ task_id: "t1", status: "proposed", live_view_url: link }), link);
+  /* the link is gone once the session closes */
+  assert.equal(liveViewLink({ task_id: "t1", status: "done", live_view_url: null }), null);
+  assert.equal(liveViewLink({ task_id: "t1", status: "stopped", live_view_url: null }), null);
   /* nothing to link to, or nothing safe to link to */
   assert.equal(liveViewLink({ task_id: "t1", status: "running" }), null);
   assert.equal(liveViewLink({ task_id: "t1", status: "running", live_view_url: null }), null);
@@ -116,21 +122,53 @@ test("a step reads in its own words, never in an invented one", () => {
   assert.equal(stepSentence(null), STEP_NO_SENTENCE);
 });
 
-test("the kinds are the owner's five, and a new one is not hidden", () => {
+test("the kinds come from the service, and nothing is invented for one it does not list", () => {
+  const kinds = readKinds({
+    kinds: [
+      { kind: "price_check", label: "Price lists and promos" },
+      { kind: "order_list", label: "Order list" },
+      { kind: "bank_statement", label: "Bank statement" },
+      { kind: "gov_form", label: "Form or filing" },
+      { kind: "generic", label: "Something else" },
+      { kind: "" },
+      "nonsense",
+      null,
+    ],
+  });
   assert.deepEqual(
-    TASK_KINDS.map((k) => k.value),
-    ["price_list", "order_list", "bank_statement", "form", "other"],
+    kinds.map((k) => k.kind),
+    ["price_check", "order_list", "bank_statement", "gov_form", "generic"],
   );
-  assert.equal(isTaskKind("bank_statement"), true);
-  assert.equal(isTaskKind("other"), true);
-  assert.equal(isTaskKind("blog_post"), false);
-  assert.equal(taskKindLabel("price_list"), "Price lists and promos");
-  assert.equal(taskKindLabel("BANK_STATEMENT"), "Bank statement");
-  assert.equal(taskKindLabel("other"), "Something else");
-  /* a kind the console has not been told about reads as the API's own words */
-  assert.equal(taskKindLabel("blog_post"), "Blog post");
-  assert.equal(taskKindLabel(null), "");
-  assert.equal(taskKindLabel(""), "");
+  assert.equal(kindLabel("bank_statement", kinds), "Bank statement");
+  assert.equal(kindLabel("BANK_STATEMENT", kinds), "Bank statement");
+  assert.equal(isListedKind("generic", kinds), true);
+  /* a kind the service does not list reads as nothing, never as a label the console made up */
+  assert.equal(kindLabel("blog_post", kinds), "");
+  assert.equal(isListedKind("blog_post", kinds), false);
+  assert.equal(kindLabel("generic", []), "");
+  assert.equal(kindLabel(null, kinds), "");
+  assert.equal(kindLabel("", kinds), "");
+  /* an entry with no label keeps its kind, and reads as nothing */
+  assert.deepEqual(readKinds({ kinds: [{ kind: "odd" }] }), [{ kind: "odd", label: "" }]);
+  assert.deepEqual(readKinds({}), []);
+  assert.deepEqual(readKinds(null), []);
+});
+
+test("a task parked at a sign-in is waiting on the owner, not on an approval", () => {
+  assert.equal(taskTone("awaiting_owner"), "paused");
+  assert.equal(needsSignIn("awaiting_owner"), true);
+  assert.equal(needsSignIn("Awaiting-Owner"), true);
+  assert.equal(needsSignIn("running"), false);
+  /* the approval button belongs to a proposed task only */
+  assert.equal(needsOwner("awaiting_owner"), false);
+  assert.equal(needsOwner("proposed"), true);
+  assert.equal(taskShortWord("awaiting_owner"), "Waiting");
+  assert.equal(taskStateWord("awaiting_owner"), "Waiting for you to sign in");
+  /* the screen keeps re-reading both states: the service keeps moving in each */
+  assert.equal(holdsSession("running"), true);
+  assert.equal(holdsSession("awaiting_owner"), true);
+  assert.equal(holdsSession("done"), false);
+  assert.equal(holdsSession("stopped"), false);
 });
 
 test("steps and plan carry only what the API sent", () => {

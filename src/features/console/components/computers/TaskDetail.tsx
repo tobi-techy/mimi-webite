@@ -13,19 +13,19 @@ import { Button } from "@/features/console/components/ui/Button";
 import { Chip } from "@/features/console/components/ui/Chip";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes } from "@/features/console/config";
-import { useComputerTask } from "@/features/console/hooks/use-computer-tasks";
+import { useComputerTask, useTaskKinds } from "@/features/console/hooks/use-computer-tasks";
 import { useToast } from "@/features/console/hooks/use-toast";
 import {
   describeStop,
   isRunning,
-  isTaskKind,
+  kindLabel,
   liveViewLink,
   needsOwner,
+  needsSignIn,
   normalizeArtifacts,
   planOf,
   stepSentence,
   stepsOf,
-  taskKindLabel,
   taskStateWord,
   taskShortWord,
   taskTitle,
@@ -55,6 +55,7 @@ function Crumbs({ title }: { title: string }) {
 export function TaskDetail({ id }: { id: string }) {
   const { record, loading, availability } = useComputerTask(id);
   const say = useToast();
+  const { kinds } = useTaskKinds();
   const [busy, setBusy] = useState<"approve" | "stop" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -69,11 +70,12 @@ export function TaskDetail({ id }: { id: string }) {
   const title = taskTitle(record?.goal);
   /* the breadcrumb names the kind, so the goal is not read twice on the page */
   const crumbKind = record?.kind ?? record?.task?.kind ?? null;
-  const crumb = isTaskKind(crumbKind ?? "") ? taskKindLabel(crumbKind ?? "") : "Task";
+  const crumb = kindLabel(crumbKind, kinds);
+  const crumbText = crumb || "Task";
 
   const unavailable = (
     <>
-      <Crumbs title={crumb} />
+      <Crumbs title={crumbText} />
       <NotAvailable>
         <p>The service does not have computer tasks yet, so there is nothing to show for this one.</p>
       </NotAvailable>
@@ -85,7 +87,7 @@ export function TaskDetail({ id }: { id: string }) {
   if (!record || loading) {
     return (
       <>
-        <Crumbs title={crumb} />
+        <Crumbs title={crumbText} />
         <SkeletonRows count={5} className="x-ctskels" />
       </>
     );
@@ -95,7 +97,7 @@ export function TaskDetail({ id }: { id: string }) {
   if (!task && record.state === "error") {
     return (
       <>
-        <Crumbs title={crumb} />
+        <Crumbs title={crumbText} />
         <p className="x-ctwarn" role="status">
           <Icon name="triangle-alert" />
           {record.error ?? "This task could not be read."}
@@ -118,6 +120,8 @@ export function TaskDetail({ id }: { id: string }) {
   const kind = record.kind ?? task?.kind ?? null;
   const waiting = needsOwner(status);
   const running = isRunning(status);
+  const signIn = needsSignIn(status);
+  const kindWord = kindLabel(kind, kinds);
   /* the pill carries the short word already, so the fuller sentence shows only when it says more */
   const stateWord = taskStateWord(status);
   const pillWord = taskShortWord(status);
@@ -151,7 +155,7 @@ export function TaskDetail({ id }: { id: string }) {
 
   return (
     <>
-      <Crumbs title={crumb} />
+      <Crumbs title={crumbText} />
 
       <div className="x-ctdh">
         <div className="x-ctdh__t">
@@ -159,7 +163,7 @@ export function TaskDetail({ id }: { id: string }) {
           <p className="x-ctdh__m">
             <TaskStatusPill status={status} />
             {stateWord !== pillWord && <span>{stateWord}</span>}
-            {kind && <Chip>{taskKindLabel(kind)}</Chip>}
+            {kindWord && <Chip>{kindWord}</Chip>}
           </p>
           {record.url.trim() ? (
             <p className="x-ctdh__w x-num">Starts at {record.url.trim()}</p>
@@ -191,10 +195,17 @@ export function TaskDetail({ id }: { id: string }) {
           {problem}
         </p>
       )}
-      {stopped && (
+      {!signIn && stopped && (
         <p className="x-ctwarn" role="status">
           <Icon name="circle-pause" />
           Stopped: {stopped}
+        </p>
+      )}
+      {signIn && (
+        <p className="x-ctnote">
+          <Icon name="monitor" />
+          Stopped at a sign-in. It is waiting for you and it kept its browser open, so you can sign in from the live
+          view below.
         </p>
       )}
       {waiting && (

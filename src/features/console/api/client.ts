@@ -2,6 +2,7 @@ import { MIMI_API_URL } from "@/features/console/api/config";
 import { errorKind, type ErrorKind } from "@/features/console/api/mappers";
 import type {
   ApiApprovalList,
+  ApiComputerKinds,
   ApiComputerTask,
   ApiComputerTaskIn,
   ApiComputerTaskList,
@@ -228,6 +229,8 @@ export const mimiApi = {
   /* ---- computer tasks: a hosted cloud browser, one per task (owner approves the whole task) ---- */
   /** The list route is optional (the API may not have it yet): a 404/405 means "not available", not an error. */
   computerTasks: (token: string, o: Sig = {}) => call<ApiComputerTaskList>("/v1/computer/tasks", { token, ...o }),
+  /** The kinds the service takes, with its own labels: the single source, never hardcoded here. */
+  computerKinds: (token: string, o: Sig = {}) => call<ApiComputerKinds>("/v1/computer/kinds", { token, ...o }),
   computerTask: (token: string, id: string, o: Sig = {}) => call<ApiComputerTask>(`/v1/computer/tasks/${q(id)}`, { token, ...o }),
   /** Proposes a task. Never retried: re-sending would start a second run. */
   createComputerTask: (token: string, body: ApiComputerTaskIn) =>

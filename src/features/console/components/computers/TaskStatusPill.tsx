@@ -4,6 +4,8 @@ import { taskShortWord, taskTone, type TaskTone } from "@/features/console/lib/c
 const TONE_STATUS: Record<TaskTone, Status> = {
   proposed: "awaiting",
   running: "running",
+  /* parked at a sign-in: still the owner's turn, like an approval */
+  paused: "awaiting",
   done: "paid",
   stopped: "skipped",
   failed: "failed",

@@ -15,8 +15,8 @@ import { SearchField } from "@/features/console/components/ui/SearchField";
 import { Segmented } from "@/features/console/components/ui/Segmented";
 import { Table } from "@/features/console/components/ui/Table";
 import { computerTaskHref, consoleRoutes } from "@/features/console/config";
-import { useTasks } from "@/features/console/hooks/use-computer-tasks";
-import { askedLabel, isRunning, needsOwner, taskKindLabel, taskTitle, taskTone } from "@/features/console/lib/computer-tasks";
+import { useTaskKinds, useTasks } from "@/features/console/hooks/use-computer-tasks";
+import { askedLabel, isRunning, kindLabel, needsOwner, needsSignIn, taskTitle, taskTone } from "@/features/console/lib/computer-tasks";
 import type { TaskRecord } from "@/features/console/lib/computer-tasks-store";
 
 type Filter = "all" | "waiting" | "running" | "finished";
@@ -31,7 +31,8 @@ const inFilter = (filter: Filter, r: TaskRecord): boolean => {
   const status = statusOf(r);
   switch (filter) {
     case "waiting":
-      return needsOwner(status);
+      /* waiting on an approval, or parked at a sign-in: both are the owner's turn */
+      return needsOwner(status) || needsSignIn(status);
     case "running":
       return isRunning(status);
     case "finished":
@@ -51,6 +52,9 @@ function TaskWhere({ record }: { record: TaskRecord }) {
 /** The list of computer tasks, straight from the service. Nothing is invented to fill it. */
 export function TaskList() {
   const { records, availability, loaded, listError } = useTasks();
+  const { kinds, problem: kindsProblem } = useTaskKinds();
+  /* with no labels to read, the kind column would be blank on every row: it is left out and said so */
+  const showKind = kinds.length > 0;
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const query = q.trim().toLowerCase();
@@ -97,6 +101,12 @@ export function TaskList() {
               {listError}
             </p>
           )}
+          {!showKind && records.length > 0 && (
+            <p className="x-ctnote x-ctnote--flat" role="status">
+              <Icon name="triangle-alert" />
+              {kindsProblem ?? "The task kinds could not be read right now."} The kind of each task is not shown.
+            </p>
+          )}
           {records.length > 0 && (
             <div className="x-ltools">
               <SearchField label="Search tasks" value={q} onChange={setQ} />
@@ -123,7 +133,7 @@ export function TaskList() {
               <thead>
                 <tr>
                   <th>Task</th>
-                  <th>Kind</th>
+                  {showKind && <th>Kind</th>}
                   <th>Asked</th>
                   <th>Steps</th>
                   <th>Status</th>
@@ -138,7 +148,7 @@ export function TaskList() {
                         <TaskWhere record={r} />
                       </Link>
                     </td>
-                    <td>{kindOf(r) ? <Chip>{taskKindLabel(kindOf(r))}</Chip> : ""}</td>
+                    {showKind && <td>{kindLabel(kindOf(r), kinds) ? <Chip>{kindLabel(kindOf(r), kinds)}</Chip> : ""}</td>}
                     <td className="x-num">{r.createdAt ? askedLabel(r.createdAt) : ""}</td>
                     <td className="x-num">{r.stepCount ?? ""}</td>
                     <td>

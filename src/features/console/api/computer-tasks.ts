@@ -1,12 +1,12 @@
 "use client";
 
-import { fetchBlobAt, isAbort, MimiApiError, mimiApi, missingRoute } from "@/features/console/api/client";
+import { isAbort, fetchBlobAt, MimiApiError, mimiApi, missingRoute } from "@/features/console/api/client";
 import { MIMI_API_URL, USES_API } from "@/features/console/api/config";
 import { parseApiTime } from "@/features/console/api/mappers";
 import { sessionToken } from "@/features/console/api/session";
 import { authed } from "@/features/console/api/sync";
 import type { ApiComputerTask, ApiComputerTaskIn, ApiComputerTaskSummary } from "@/features/console/api/types";
-import { screenshotRequest } from "@/features/console/lib/computer-tasks";
+import { readKinds, screenshotRequest, type TaskKindOption } from "@/features/console/lib/computer-tasks";
 import { taskStore, type TaskRow } from "@/features/console/lib/computer-tasks-store";
 
 /**
@@ -58,6 +58,9 @@ function mergeTask(existing: ApiComputerTask | null, incoming: ApiComputerTask):
     steps: incoming.steps ?? existing?.steps,
     artifacts: incoming.artifacts ?? existing?.artifacts,
     stop_reason: incoming.stop_reason ?? existing?.stop_reason,
+    /* the signed live link dies with the session: a null from the service is taken as the answer,
+       while a response that leaves the field out keeps whatever the last one said */
+    live_view_url: "live_view_url" in incoming ? incoming.live_view_url ?? null : existing?.live_view_url ?? null,
   };
 }
 
@@ -65,6 +68,29 @@ const putMerged = (id: string, incoming: ApiComputerTask): void => {
   const existing = taskStore.find(id)?.task ?? null;
   taskStore.put(id, mergeTask(existing, incoming));
 };
+
+/**
+ * The kinds the service takes, with the service's own labels (`GET /v1/computer/kinds`). Read once
+ * per page load and kept, so the console never hardcodes a set that could drift from the API's.
+ */
+let kindsCache: TaskKindOption[] | null = null;
+
+export type KindsResult = { ok: true; kinds: TaskKindOption[] } | { ok: false; message: string };
+
+export async function loadKinds(signal?: AbortSignal): Promise<KindsResult> {
+  if (kindsCache) return { ok: true, kinds: kindsCache };
+  if (!USES_API) return { ok: false, message: NOT_AVAILABLE };
+  try {
+    const payload = await authed((t) => mimiApi.computerKinds(t, { signal }));
+    const kinds = readKinds(payload);
+    if (kinds.length === 0) return { ok: false, message: "The service has not listed any task kinds yet." };
+    kindsCache = kinds;
+    return { ok: true, kinds };
+  } catch (e) {
+    if (missingRoute(e)) return { ok: false, message: NOT_AVAILABLE };
+    return { ok: false, message: taskMessage(e, "The task kinds could not be read right now.") };
+  }
+}
 
 /** Reads the list. `missing` means the service does not have the route yet. */
 export async function loadTasks(signal?: AbortSignal): Promise<void> {

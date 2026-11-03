@@ -8,12 +8,14 @@ import { toPlainText } from "./plain-text.ts";
 import { safeHref } from "./safe-href.ts";
 
 /** How one task reads at a glance. `unknown` keeps a status word the console does not know yet. */
-export type TaskTone = "proposed" | "running" | "done" | "stopped" | "failed" | "unknown";
+export type TaskTone = "proposed" | "running" | "paused" | "done" | "stopped" | "failed" | "unknown";
 
 const TONES: Record<string, TaskTone> = {
   proposed: "proposed",
   queued: "proposed",
   running: "running",
+  /* parked at a sign-in wall: it is neither waiting for approval nor still running */
+  awaiting_owner: "paused",
   done: "done",
   finished: "done",
   completed: "done",
@@ -23,15 +25,18 @@ const TONES: Record<string, TaskTone> = {
   error: "failed",
 };
 
-/** The tone for a status word from the API (folded to lower case, spaces and dashes read as underscores). */
+/** A status word folded to one shape (lower case, spaces and dashes as underscores). */
+const fold = (status: string | null | undefined): string => (status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+/** The tone for a status word from the API. */
 export function taskTone(status: string | null | undefined): TaskTone {
-  const key = (status ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
-  return TONES[key] ?? "unknown";
+  return TONES[fold(status)] ?? "unknown";
 }
 
 const WORDS: Record<TaskTone, string> = {
   proposed: "Waiting for your approval",
   running: "Running",
+  paused: "Waiting for you to sign in",
   done: "Done",
   stopped: "Stopped",
   failed: "Failed",
@@ -56,6 +61,8 @@ export function taskShortWord(status: string | null | undefined): string {
       return "Waiting";
     case "running":
       return "Running";
+    case "paused":
+      return "Waiting";
     case "done":
       return "Done";
     case "stopped":
@@ -70,8 +77,20 @@ export function taskShortWord(status: string | null | undefined): string {
 /** True when a task is parked waiting on the owner; these are the ones the list calls out first. */
 export const needsOwner = (status: string | null | undefined): boolean => taskTone(status) === "proposed";
 
+/** True when the task is parked at a sign-in wall, waiting for the owner to sign in. */
+export const needsSignIn = (status: string | null | undefined): boolean => taskTone(status) === "paused";
+
 /** True while the task is on the computer right now. */
 export const isRunning = (status: string | null | undefined): boolean => taskTone(status) === "running";
+
+/**
+ * True while the task still holds a session on the computer: running, or parked at a sign-in waiting
+ * for the owner. Its step log is worth re-reading in both, because the service keeps moving.
+ */
+export const holdsSession = (status: string | null | undefined): boolean => {
+  const tone = taskTone(status);
+  return tone === "running" || tone === "paused";
+};
 
 /** A full web address (the only kind the console will hand to the service). */
 export function isHttpUrl(value: string): boolean {
@@ -103,7 +122,7 @@ export const MAX_GOAL = 2000;
 
 /** A plain-word complaint about the new-task form, or null when it is ready to send. */
 export function validateNewTask(input: { kind: string; goal: string; url: string }): string | null {
-  if (!isTaskKind(input.kind)) return "Choose what kind of task this is.";
+  if (!input.kind.trim()) return "Choose what kind of task this is.";
   const goal = input.goal.trim();
   if (!goal) return "Say what the task should do.";
   if (goal.length < 4) return "Say what the task should do, in a little more detail.";
@@ -130,42 +149,52 @@ export function stepSentence(step: ApiComputerTaskStep | null | undefined): stri
 }
 
 /**
- * What a task is for. These are the four the owner named, plus the generic one; the values are the
- * slugs the service is told (kept in step with the API's own set).
+ * What a task is for. The list and its labels come from the service (`GET /v1/computer/kinds`), which
+ * is the single source, so the console and the API cannot drift apart. Nothing is hardcoded here.
  */
-export type TaskKind = "price_list" | "order_list" | "bank_statement" | "form" | "other";
+export type TaskKindOption = { kind: string; label: string };
 
-export const TASK_KINDS: ReadonlyArray<{ value: TaskKind; label: string; hint: string }> = [
-  { value: "price_list", label: "Price lists and promos", hint: "Check a brand or supplier portal" },
-  { value: "order_list", label: "Order list", hint: "Pull the orders from a supplier portal" },
-  { value: "bank_statement", label: "Bank statement", hint: "Download a statement from a bank portal" },
-  { value: "form", label: "Form or filing", hint: "Fill a form on a government or tax portal" },
-  { value: "other", label: "Something else", hint: "Any other task on a website" },
-];
-
-const KIND_LABELS: Record<string, string> = Object.fromEntries(TASK_KINDS.map((k) => [k.value, k.label]));
-
-/** True when the value is one of the kinds the service is told. */
-export const isTaskKind = (value: string): value is TaskKind => value in KIND_LABELS;
+/** Reads the kinds the service publishes, keeping only the entries that carry a string kind. */
+export function readKinds(payload: { kinds?: unknown } | null | undefined): TaskKindOption[] {
+  const raw = payload?.kinds;
+  if (!Array.isArray(raw)) return [];
+  const out: TaskKindOption[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const kind = (entry as { kind?: unknown }).kind;
+    const label = (entry as { label?: unknown }).label;
+    if (typeof kind !== "string" || !kind.trim()) continue;
+    out.push({ kind: kind.trim(), label: typeof label === "string" ? label.trim() : "" });
+  }
+  return out;
+}
 
 /**
- * How a task's kind reads. A kind the console does not know is shown as the API's own words, so a
- * new kind on the service is never hidden.
+ * How a task's kind reads, in the service's own words. A kind the service listed no label for, or
+ * one it does not list at all, reads as nothing rather than as a label the console made up.
  */
-export function taskKindLabel(kind: string | null | undefined): string {
-  const key = (kind ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+export function kindLabel(kind: string | null | undefined, kinds: TaskKindOption[]): string {
+  const key = (kind ?? "").trim().toLowerCase();
   if (!key) return "";
-  return KIND_LABELS[key] ?? key.replace(/_+/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const found = kinds.find((k) => k.kind.toLowerCase() === key);
+  return found?.label ?? "";
+}
+
+/** True when the service lists this kind. */
+export function isListedKind(kind: string | null | undefined, kinds: TaskKindOption[]): boolean {
+  const key = (kind ?? "").trim().toLowerCase();
+  return !!key && kinds.some((k) => k.kind.toLowerCase() === key);
 }
 
 
 /**
- * A signed link to watch a running task's browser. The service mints it mid-run and lets it lapse
- * when the task ends, so the console links to it only while the task is running and only when the
- * service actually handed one over. Nothing is guessed at: no link, no link shown.
+ * A signed link to watch the task's browser. The service mints it mid-run and lets it lapse when the
+ * session closes, so the console shows the link whenever the service hands one over, whatever the
+ * task's status: a task parked at a sign-in keeps its session and its link on purpose, because that
+ * is the state where the owner has to sign in, and hiding the link there is exactly the wrong move.
+ * Nothing is guessed at: no link from the service, no link on the screen.
  */
 export function liveViewLink(task: ApiComputerTask | null | undefined): string | null {
-  if (!isRunning(task?.status)) return null;
   const href = safeHref(task?.live_view_url ?? "");
   return href && /^https:\/\//i.test(href) ? href : null;
 }

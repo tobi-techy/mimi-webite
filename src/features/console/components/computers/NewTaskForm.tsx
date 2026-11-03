@@ -5,31 +5,29 @@ import { useState, type FormEvent } from "react";
 import { createTask } from "@/features/console/api/computer-tasks";
 import { USES_API } from "@/features/console/api/config";
 import { NotAvailable, NotYet } from "@/features/console/components/computers/NotAvailable";
+import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { Button, ButtonLink } from "@/features/console/components/ui/Button";
 import { Icon } from "@/features/console/components/ui/Icon";
-import type { IconName } from "@/features/console/components/ui/icon-paths";
 import { computerTaskHref, consoleRoutes } from "@/features/console/config";
-import { useTasks } from "@/features/console/hooks/use-computer-tasks";
+import { useTaskKinds, useTasks } from "@/features/console/hooks/use-computer-tasks";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { cx } from "@/lib/cx";
-import { deriveDomain, MAX_GOAL, TASK_KINDS, validateNewTask } from "@/features/console/lib/computer-tasks";
-
-const KIND_ICON: Record<string, IconName> = {
-  price_list: "package",
-  order_list: "list-checks",
-  bank_statement: "landmark",
-  form: "pen",
-  other: "ellipsis",
-};
+import { deriveDomain, MAX_GOAL, validateNewTask } from "@/features/console/lib/computer-tasks";
 
 /**
  * Asking for a new task: what kind of task it is, what it should do, and the page to start on. Mimi
  * plans the steps first and nothing runs until the owner approves the task on its own screen.
+ *
+ * The kinds, and their labels, are read from the service (`GET /v1/computer/kinds`) rather than
+ * listed here, so the two cannot drift apart. When the service has not listed any, the form says so
+ * and no task is sent: a kind the console made up is worse than a form that waits.
  */
 export function NewTaskForm() {
   const router = useRouter();
   const say = useToast();
   const { availability } = useTasks();
+  const kindsState = useTaskKinds();
+  const kinds = kindsState.kinds;
   const [kind, setKind] = useState("");
   const [goal, setGoal] = useState("");
   const [url, setUrl] = useState("");
@@ -85,23 +83,31 @@ export function NewTaskForm() {
       <form className="x-ctform" onSubmit={(e) => void onSubmit(e)}>
         <fieldset className="x-ctfield">
           <legend className="x-af__l">What kind of task is it?</legend>
-          <div className="x-aseg x-ctkinds">
-            {TASK_KINDS.map((k) => (
-              <button
-                key={k.value}
-                type="button"
-                className={cx("x-ach2", kind === k.value && "is-on")}
-                aria-pressed={kind === k.value}
-                onClick={() => setKind(k.value)}
-              >
-                <Icon name={KIND_ICON[k.value] ?? "monitor"} />
-                <span>
-                  <b>{k.label}</b>
-                  <small>{k.hint}</small>
-                </span>
-              </button>
-            ))}
-          </div>
+          {kindsState.loading ? (
+            <SkeletonRows count={2} className="x-ctskels" />
+          ) : kinds.length === 0 ? (
+            <p className="x-af__h" role="status">
+              {kindsState.problem ?? "The service has not listed any task kinds yet."} A task cannot be planned until
+              it does.
+            </p>
+          ) : (
+            <div className="x-aseg x-ctkinds">
+              {kinds.map((k) => (
+                <button
+                  key={k.kind}
+                  type="button"
+                  className={cx("x-ach2", kind === k.kind && "is-on")}
+                  aria-pressed={kind === k.kind}
+                  onClick={() => setKind(k.kind)}
+                >
+                  <Icon name="monitor" />
+                  <span>
+                    <b>{k.label || k.kind}</b>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </fieldset>
 
         <div className="x-af">
@@ -146,7 +152,7 @@ export function NewTaskForm() {
         )}
 
         <div className="x-ctform__a">
-          <Button variant="primary" type="submit" disabled={busy}>
+          <Button variant="primary" type="submit" disabled={busy || kinds.length === 0}>
             {busy ? "Planning" : "Ask Mimi to plan it"}
           </Button>
           <ButtonLink variant="ghost" href={consoleRoutes.computers}>
