@@ -11,6 +11,7 @@ import {
   isRunning,
   kindLabel,
   liveViewLink,
+  looksLikeCode,
   needsOwner,
   needsSignIn,
   normalizeArtifacts,
@@ -18,6 +19,7 @@ import {
   readKinds,
   screenshotRequest,
   STEP_NO_SENTENCE,
+  stepNote,
   stepSentence,
   stepsOf,
   taskShortWord,
@@ -120,6 +122,34 @@ test("a step reads in its own words, never in an invented one", () => {
   assert.equal(stepSentence({ index: 3, action: "" }), STEP_NO_SENTENCE);
   assert.equal(stepSentence({ index: 4 }), STEP_NO_SENTENCE);
   assert.equal(stepSentence(null), STEP_NO_SENTENCE);
+});
+
+test("a machine token never reaches a person, and the step says why it is blank", () => {
+  for (const token of ["goto_url", "read_order_list", "sign_in_with_saved_session", "click_btn_2", "`extract_data`"]) {
+    const line = stepSentence({ index: 1, action: token });
+    assert.equal(line, STEP_NO_SENTENCE);
+    assert.ok(!line.includes(token.replace(/`/g, "")), `the token ${token} was rendered`);
+  }
+  assert.equal(looksLikeCode("goto_url"), true);
+  assert.equal(looksLikeCode("sign_in_with_saved_session"), true);
+  assert.equal(looksLikeCode("`extract_data`".replace(/`/g, "")), true);
+  /* prose is never second-guessed, whatever it is made of */
+  assert.equal(looksLikeCode("Opened the supplier portal"), false);
+  assert.equal(looksLikeCode("Opened the supplier_portal page"), false);
+  assert.equal(looksLikeCode("Read order list"), false);
+  assert.equal(looksLikeCode("Refer to step_2 above"), false);
+  assert.equal(looksLikeCode("step-2.png"), false);
+  assert.equal(looksLikeCode(""), false);
+  assert.equal(looksLikeCode(null), false);
+});
+
+test("a step note is the service's own words, and a token is left out of it too", () => {
+  assert.equal(stepNote({ index: 1, note: "Balance is 12 days late." }), "Balance is 12 days late.");
+  assert.equal(stepNote({ index: 2, note: "**Waiting** on approval" }), "Waiting on approval");
+  assert.equal(stepNote({ index: 3, note: "goto_url" }), "");
+  assert.equal(stepNote({ index: 4, note: "" }), "");
+  assert.equal(stepNote({ index: 5 }), "");
+  assert.equal(stepNote(null), "");
 });
 
 test("the kinds come from the service, and nothing is invented for one it does not list", () => {

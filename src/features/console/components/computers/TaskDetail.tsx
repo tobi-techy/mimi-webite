@@ -24,13 +24,13 @@ import {
   needsSignIn,
   normalizeArtifacts,
   planOf,
+  stepNote,
   stepSentence,
   stepsOf,
   taskStateWord,
   taskShortWord,
   taskTitle,
 } from "@/features/console/lib/computer-tasks";
-import { toPlainText } from "@/features/console/lib/plain-text";
 
 function Crumbs({ title }: { title: string }) {
   return (
@@ -250,7 +250,7 @@ export function TaskDetail({ id }: { id: string }) {
                   <div className="x-ctstep__n x-num">{step.index}</div>
                   <div className="x-ctstep__b">
                     <p className="x-ctstep__a">{stepSentence(step)}</p>
-                    {step.note && <p className="x-ctstep__nt">{toPlainText(step.note)}</p>}
+                    {stepNote(step) && <p className="x-ctstep__nt">{stepNote(step)}</p>}
                     <TaskScreenshot taskId={id} source={step.screenshot} alt={`Screenshot of step ${step.index}`} />
                   </div>
                 </li>

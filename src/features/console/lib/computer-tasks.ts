@@ -138,14 +138,35 @@ export function validateNewTask(input: { kind: string; goal: string; url: string
 export const STEP_NO_SENTENCE = "The service did not send a sentence for this step.";
 
 /**
+ * True when a step's own words are a machine token rather than a sentence: an underscore-joined
+ * lowercase code such as `goto_url`. A token like that is a bug at the source, so the screen shows
+ * the "no sentence" line and never the token, which keeps the bug visible in the data and keeps
+ * gibberish off a distributor's screen. Anything with a space in it is left alone: it is prose, and
+ * the console does not second-guess the service's wording.
+ */
+export function looksLikeCode(value: string | null | undefined): boolean {
+  const raw = (value ?? "").trim();
+  if (!raw || /\s/.test(raw)) return false;
+  return /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(raw);
+}
+
+/**
  * One step's sentence, in the step's own words: the distributor reads this to understand what Mimi
  * did, so the console never rewrites it and never turns a code into a made-up description. When the
- * service sends nothing readable, that is said plainly rather than dressed up.
+ * service sends nothing readable, or sends a machine token, that is said plainly rather than dressed
+ * up, and the token itself is kept off the screen.
  */
 export function stepSentence(step: ApiComputerTaskStep | null | undefined): string {
   const raw = typeof step?.action === "string" ? step.action : "";
   const text = toPlainText(raw).trim();
-  return text || STEP_NO_SENTENCE;
+  return text && !looksLikeCode(text) ? text : STEP_NO_SENTENCE;
+}
+
+/** One step's note in the service's own words, or "" when it sent none or sent a machine token. */
+export function stepNote(step: ApiComputerTaskStep | null | undefined): string {
+  const raw = typeof step?.note === "string" ? step.note : "";
+  const text = toPlainText(raw).trim();
+  return text && !looksLikeCode(text) ? text : "";
 }
 
 /**
