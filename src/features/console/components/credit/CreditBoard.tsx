@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ActionGroup } from "@/features/console/components/ui/ActionGroup";
 import { Avatar, Identity } from "@/features/console/components/ui/Avatar";
-import { EmptyState } from "@/features/console/components/ui/EmptyState";
+import { BookUnreachable } from "@/features/console/components/live/BookUnreachable";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { MiniBar } from "@/features/console/components/ui/Meter";
 import { SearchField } from "@/features/console/components/ui/SearchField";
@@ -151,7 +151,7 @@ export function CreditBoard() {
         {book.loading ? (
           <SkeletonRows count={6} />
         ) : rows.length === 0 ? (
-          <EmptyState>{lines.length ? "No credit lines match the current filters" : "No credit lines yet"}</EmptyState>
+          <BookUnreachable empty={lines.length ? "No credit lines match the current filters" : "No credit lines yet"} />
         ) : (
           <Table label="Credit lines">
             <thead>

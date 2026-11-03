@@ -39,7 +39,7 @@ export type CardStatus = "needs" | "sending" | "sent" | "declined";
 
 /** A plan or approval card: reminder plan, order draft, credit change, restock, brand draft, flagged payment. */
 export type DecisionCard = {
-  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match" | "zoho" | "limit";
+  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match" | "zoho" | "limit" | "return";
   /** Risk tier label; cards that wait on the owner are Approve. */
   tier?: RiskTier;
   /** Brand emails: the draft itself (stays a draft until the owner taps Send). */

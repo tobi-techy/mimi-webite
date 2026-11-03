@@ -2,6 +2,7 @@
 
 import { isApiCard, isApiThread, liveDecide, liveReset, liveSend, liveStart, liveUndo } from "@/features/console/api/actions";
 import { apiActive, notify } from "@/features/console/api/live-store";
+import { USES_API } from "@/features/console/api/config";
 import { consoleMotion } from "@/config/console-motion";
 import { sfx } from "@/lib/sound";
 import { CHASE_THOUGHT, OWED_LIST, brandCard, idleComputer, owner, photo, planReplies, reminderPlan } from "@/features/console/demo/seed";
@@ -1774,7 +1775,8 @@ async function tapStep(slug: string, step: string, ep: number): Promise<boolean>
 
 /** Auto-plays the collections story through the same chips a presenter taps (~70s). Sample build only. */
 export async function playDemo(go: (href: string) => void) {
-  if (apiActive()) return;
+  /* the API build never stages the sample story, in any connection state (not just when ready) */
+  if (USES_API || apiActive()) return;
   stageStory(true);
   const ep = epoch;
   const slug = DEMO_SLUG;

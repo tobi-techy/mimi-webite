@@ -164,7 +164,9 @@ const asTask = (c: Conversation): ShopTask => ({ slug: c.slug, helper: c.helper,
 
 /**
  * A chat. In the API build a shop's (or rep's) thread is never opened as a chat of its own: it is a
- * task in the responsible helper's inbox, so its link opens that helper's chat.
+ * task in the responsible helper's inbox, so its link opens that helper's chat. A task the API filed
+ * with Mimi is shown in her own chat (`openTask`), so no task is a link to nowhere; with no owner
+ * thread yet the task's own conversation is shown.
  */
 export function ThreadChat({ slug, focus }: { slug: string; focus?: RosterName }) {
   const inbox = useDemo((s) => {
@@ -175,12 +177,13 @@ export function ThreadChat({ slug, focus }: { slug: string; focus?: RosterName }
   });
   if (inbox) {
     const [o, h] = inbox.split("|") as [string, RosterName];
-    return <ThreadChatView slug={o} focus={h === "Mimi" ? undefined : h} />;
+    /* Mimi's own tasks open in Mimi's chat: focus would be cleared there (she is the owner thread) */
+    return <ThreadChatView slug={o} focus={h === "Mimi" ? undefined : h} openTask={h === "Mimi" ? slug : undefined} />;
   }
   return <ThreadChatView slug={slug} focus={focus} />;
 }
 
-function ThreadChatView({ slug, focus: focusIn }: { slug: string; focus?: RosterName }) {
+function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focus?: RosterName; openTask?: string }) {
   const conv = useDemo((s) => findConversation(s, slug));
   const typing = useDemo((s) => (s.typing?.slug === slug ? s.typing.who : null));
   const typingAny = useDemo((s) => s.typing);
@@ -423,9 +426,18 @@ function ThreadChatView({ slug, focus: focusIn }: { slug: string; focus?: Roster
       from: undefined as Worker | undefined,
       task: false,
     }));
+  /* a task is in a helper's inbox when she worked a turn in it, not only when she is its named
+     helper today: a thread the API moved keeps showing in the inbox of every helper who worked it */
+  const inInbox = (c: Conversation, who: Worker) =>
+    c.helper === who || c.messages.some((m) => ("from" in m ? m.from : undefined) === who);
+  /* the task a shop link points at (Mimi's own), or the task this chat is (no owner thread yet) */
+  const pointed = openTask ? tasks.filter((c) => c.slug === openTask) : [];
+  const self = isTask(conv) ? [conv] : [];
   const inboxTasks = focus
-    ? tasks.filter((c) => c.helper === focus).map((c) => ({ c, lines: shopTaskLines(asTask(c)), from: undefined as Worker | undefined, task: true }))
-    : [];
+    ? tasks.filter((c) => inInbox(c, focus)).map((c) => ({ c, lines: shopTaskLines(asTask(c)), from: undefined as Worker | undefined, task: true }))
+    : [...pointed, ...self]
+        .filter((c, i, all) => all.findIndex((x) => x.slug === c.slug) === i)
+        .map((c) => ({ c, lines: shopTaskLines(asTask(c)), from: undefined as Worker | undefined, task: true }));
   /* sample threads: what other helpers handed to her lives here too, as its own task */
   const borrowed =
     conv.api || who === "Mimi"

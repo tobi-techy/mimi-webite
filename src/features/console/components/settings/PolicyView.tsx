@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { mimiApi } from "@/features/console/api/client";
 import { useLive } from "@/features/console/api/live-store";
-import { authed } from "@/features/console/api/sync";
+import { authed, retryLive } from "@/features/console/api/sync";
 import type { ApiPolicyRule } from "@/features/console/api/types";
+import { Button } from "@/features/console/components/ui/Button";
 import { Note } from "@/features/console/components/ui/Note";
 import { Row } from "@/features/console/components/ui/Row";
 import { policyGroups, samplePolicy } from "@/features/console/content/policy";
@@ -21,18 +22,24 @@ export function PolicyView() {
   const status = useLive((s) => s.status);
   const [rules, setRules] = useState<ApiPolicyRule[] | null>(status === "off" ? samplePolicy : null);
   const [failed, setFailed] = useState(false);
+  /* bumped by Try again: re-runs the read after a failure or a renewed session */
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (status !== "ready") return;
     const ctrl = new AbortController();
     authed((t) => mimiApi.policy(t, { signal: ctrl.signal }))
-      .then((p) => setRules(p.rules))
+      .then((p) => {
+        /* a good read clears the notice: one blip must not pin it for the session */
+        setFailed(false);
+        setRules(p.rules);
+      })
       .catch(() => {
         /* no sample rules stand in for the API's: say it plainly */
         if (!ctrl.signal.aborted) setFailed(true);
       });
     return () => ctrl.abort();
-  }, [status]);
+  }, [status, attempt]);
 
   const shown = rules ?? [];
   const unreachable = failed || status === "fallback";
@@ -43,7 +50,19 @@ export function PolicyView() {
       </div>
       <p className="x-sub">Every step your helpers can take, and whether they do it on their own, ask you first, or never do it.</p>
       {unreachable ? (
-        <EmptyState>Mimi&apos;s rules can&apos;t be read right now.</EmptyState>
+        <>
+          <EmptyState>Mimi&apos;s rules can&apos;t be read right now.</EmptyState>
+          <p className="x-sub">
+            Nothing stands in for them.{" "}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => (status === "fallback" ? void retryLive() : setAttempt((n) => n + 1))}
+            >
+              Try again
+            </Button>
+          </p>
+        </>
       ) : rules === null ? (
         <SkeletonRows count={6} />
       ) : !rules.length ? (

@@ -14,7 +14,10 @@ export function PageMenu({ page, filters }: { page: string; filters?: string }) 
       <Picker
         label="More actions"
         options={[{ value: "Refresh", icon: "refresh-cw" }]}
-        onChange={() => void refresh(true).then(() => say(`${page} refreshed`))}
+        onChange={() =>
+          /* only claim a refresh when the read really ran: `refresh` resolves false on failure */
+          void refresh(true).then((ok) => say(ok ? `${page} refreshed` : "Couldn't refresh just now. Try again in a moment."))
+        }
       />
     );
   return (

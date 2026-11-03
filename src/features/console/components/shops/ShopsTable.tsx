@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Identity } from "@/features/console/components/ui/Avatar";
-import { EmptyState } from "@/features/console/components/ui/EmptyState";
+import { BookUnreachable } from "@/features/console/components/live/BookUnreachable";
 import { MiniBar } from "@/features/console/components/ui/Meter";
 import { Picker } from "@/features/console/components/ui/Picker";
 import { Pill } from "@/features/console/components/ui/Pill";
@@ -99,7 +99,7 @@ export function ShopsTable() {
       {loading ? (
         <SkeletonRows count={8} />
       ) : rows.length === 0 ? (
-        <EmptyState>{shops.length ? "No shops match the current filters" : "No shops in this book yet"}</EmptyState>
+        <BookUnreachable empty={shops.length ? "No shops match the current filters" : "No shops in this book yet"} />
       ) : (
         <Table label="Shops">
           <thead>

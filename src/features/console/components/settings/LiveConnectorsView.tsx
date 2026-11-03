@@ -5,6 +5,7 @@ import { MimiApiError } from "@/features/console/api/client";
 import { disconnect, finishConnect, listConnectors, readConnection, startConnect } from "@/features/console/api/connectors";
 import { useLive } from "@/features/console/api/live-store";
 import { friendlyMessage } from "@/features/console/api/mappers";
+import { retryLive } from "@/features/console/api/sync";
 import type { ApiConnectorRead } from "@/features/console/api/types";
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { ConnectorLogo } from "@/features/console/components/settings/ConnectorLogo";
@@ -53,14 +54,24 @@ export function LiveConnectorsView() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [reads, setReads] = useState<Record<string, ApiConnectorRead | string>>({});
   const callbackDone = useRef(false);
+  /* the consent return's parameters: kept in state (and in the URL) until the finish call succeeds */
+  const [callback, setCallback] = useState<{ state: string; connected_account_id: string; status: string } | null>(null);
+  /* newest list request issued: a slower earlier one must not commit after it */
+  const seq = useRef(0);
 
-  const load = useCallback(async (signal?: AbortSignal) => {
+  const load = useCallback(async (signal?: AbortSignal): Promise<ToolkitView[] | null> => {
+    /* only the newest list request may commit: a slow first read must not undo a finished connect */
+    const n = ++seq.current;
     setError(null);
     try {
-      setList(await listConnectors(signal));
+      const next = await listConnectors(signal);
+      if (n !== seq.current) return null;
+      setList(next);
+      return next;
     } catch (e) {
-      if (e instanceof DOMException) return;
-      setError(say(e));
+      if (e instanceof DOMException) return null;
+      if (n === seq.current) setError(say(e));
+      return null;
     }
   }, []);
 
@@ -76,21 +87,16 @@ export function LiveConnectorsView() {
     }
   }, []);
 
-  /* back from the tool's consent page: finish on the API, then read from the account once */
-  useEffect(() => {
-    if (!ready || callbackDone.current) return;
-    const p = callbackParams(window.location.search);
-    if (!p) return;
-    callbackDone.current = true;
-    window.history.replaceState(null, "", window.location.pathname);
-    if (p.status && !/success|active/i.test(p.status)) {
-      setNote("The tool didn't finish connecting, so nothing changed.");
-      return;
-    }
-    void (async () => {
+  /* Finishes the consent return on the API. The URL is cleared only once this succeeds, so a
+     failure can be retried (from the note) or by reloading the page with the parameters still on. */
+  const finish = useCallback(
+    async (p: { state: string; connected_account_id: string; status: string }) => {
       setBusy("callback");
       try {
         const r = await finishConnect(p);
+        callbackDone.current = true;
+        setCallback(null);
+        window.history.replaceState(null, "", window.location.pathname);
         setNote("Connected. Mimi is reading from it now.");
         await load();
         await check(r.connection_id);
@@ -99,8 +105,28 @@ export function LiveConnectorsView() {
       } finally {
         setBusy(null);
       }
-    })();
-  }, [ready, load, check]);
+    },
+    [load, check],
+  );
+
+  /* back from the tool's consent page: pick the parameters up here and hand them to `finish` */
+  useEffect(() => {
+    if (!ready || callbackDone.current || callback) return;
+    const p = callbackParams(window.location.search);
+    if (!p) return;
+    if (p.status && !/success|active/i.test(p.status)) {
+      callbackDone.current = true;
+      window.history.replaceState(null, "", window.location.pathname);
+      setNote("The tool didn't finish connecting, so nothing changed.");
+      return;
+    }
+    setCallback(p);
+  }, [ready, callback]);
+
+  useEffect(() => {
+    if (!ready || !callback || callbackDone.current) return;
+    void finish(callback);
+  }, [ready, callback, finish]);
 
   useEffect(() => {
     if (!ready) return;
@@ -126,8 +152,14 @@ export function LiveConnectorsView() {
     setConfirm(null);
     try {
       await disconnect(t.connectionId);
-      setNote(`${t.label} disconnected. Mimi no longer reads it.`);
-      await load();
+      /* the note follows the reloaded list: a toolkit can have more than one account connected */
+      const after = await load();
+      const still = after?.find((x) => x.toolkit === t.toolkit);
+      setNote(
+        still?.state === "connected"
+          ? `That ${t.label} account was disconnected. Another one is still connected, so Mimi still reads ${t.label}.`
+          : `${t.label} disconnected. Mimi no longer reads it.`,
+      );
     } catch (e) {
       setNote(say(e));
     } finally {
@@ -141,9 +173,21 @@ export function LiveConnectorsView() {
         <h1 className="x-title">Connected tools</h1>
       </div>
       <p className="x-sub">Connect the tools you already use. Mimi reads them only after you connect them here.</p>
-      {note && <Note>{note}</Note>}
+      {note && (
+        <Note>
+          <span>{note}</span>
+          {callback && (
+            <Button size="sm" variant="ghost" onClick={() => void finish(callback)} disabled={busy === "callback"}>
+              Try again
+            </Button>
+          )}
+        </Note>
+      )}
       {failed ? (
-        <EmptyState>Mimi can&apos;t be reached right now, so your tools can&apos;t be shown.</EmptyState>
+        <div className="x-void-wrap">
+          <EmptyState>Mimi can&apos;t be reached right now, so your tools can&apos;t be shown.</EmptyState>
+          <Button onClick={() => void retryLive()}>Retry</Button>
+        </div>
       ) : error ? (
         <div className="x-void-wrap">
           <EmptyState>{error}</EmptyState>

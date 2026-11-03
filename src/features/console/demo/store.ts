@@ -11,8 +11,9 @@ import type { Conversation, DemoState, Message } from "@/features/console/demo/t
  * swaps in the saved copy (so markup never mismatches).
  *
  * In the demo build (USES_API) the sample threads are held back until the API answers, so the
- * first paint is a skeleton rather than sample threads that then swap out; if the API cannot be
- * reached they come back (`restoreSampleConversations`).
+ * first paint is a skeleton rather than sample threads that then swap out. If the API cannot be
+ * reached they stay away: the console says so on Mimi's chat and offers Retry, and no sample
+ * thread stands in for the book.
  */
 const KEY = "mimi-console-demo";
 const SEED: DemoState = USES_API ? { ...seedState(), conversations: [] } : seedState();
@@ -58,14 +59,6 @@ export function setDemo(update: (s: DemoState) => DemoState) {
 let hydrated = false;
 export function hydrateDemo() {
   if (hydrated || apiBacked || USES_API) return;
-  hydrateSaved();
-}
-
-/** The API could not be reached on first load: show the sample threads (and the saved copy). */
-export function restoreSampleConversations() {
-  if (apiBacked) return;
-  state = { ...state, conversations: seedState().conversations };
-  emit();
   hydrateSaved();
 }
 

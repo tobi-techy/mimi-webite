@@ -64,6 +64,8 @@ function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
       ["Waiting on you", "check", consoleRoutes.needs],
       ["Shops", "store", consoleRoutes.shops],
       ["Credit", "landmark", consoleRoutes.credit],
+      ["Money at risk", "gauge", consoleRoutes.money],
+      ["Returns", "package", consoleRoutes.returns],
       ["Automations", "refresh-cw", consoleRoutes.automations],
       ["Computers", "monitor", settingsHref("computers")],
     ] as const
@@ -161,6 +163,8 @@ function apiPages(): PaletteItem[] {
       ["Waiting on you", "check", consoleRoutes.needs],
       ["Shops", "store", consoleRoutes.shops],
       ["Credit", "landmark", consoleRoutes.credit],
+      ["Money at risk", "gauge", consoleRoutes.money],
+      ["Returns", "package", consoleRoutes.returns],
     ] as const
   ).map(([title, icon, href]): PaletteItem => ({
     id: `p-${title}`,
@@ -187,7 +191,19 @@ function apiPages(): PaletteItem[] {
         : [];
     }),
   );
-  return [...pages, ...sets];
+  /* New thread is a real route in the API build too (Composer and ThreadChat link to it), so it
+     stays in the palette. The rest of the sample actions (play the story, add a shop) do not. */
+  const actions: PaletteItem[] = [
+    {
+      id: "a-new",
+      group: "Actions",
+      icon: "plus",
+      title: "New thread",
+      meta: "Start a fresh Mimi thread",
+      href: consoleRoutes.newThread,
+    },
+  ];
+  return [...pages, ...sets, ...actions];
 }
 
 /** What the palette lists for a query, tab and look-back window, grouped in display order. */

@@ -3,7 +3,7 @@
 import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
 import { getLive, notify, setLive } from "@/features/console/api/live-store";
-import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
+import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
@@ -29,6 +29,8 @@ const FAST_MS = 1000;
 const details = new Map<string, { sig: string; detail: ApiThreadDetail }>();
 let approvals: ApiApproval[] = [];
 let shopRows: ApiShop[] = [];
+/** The API's own sums from GET /v1/shops (mimi/owed.py): the book's definition of owed and overdue. */
+let bookTotals: { owed: number; overdue: number } | null = null;
 let credit: ApiCredit | null = null;
 let threads: ApiThreadSummary[] = [];
 /** Messages the owner sent that the API has not stored yet, per thread. */
@@ -193,6 +195,7 @@ function publishBook() {
   const prev = getLive();
   setLive({
     shops,
+    bookTotals,
     creditLines: credit ? mapCreditLines(credit, shops) : prev.creditLines,
     creditRecs: credit ? mapCreditRecs(credit) : prev.creditRecs,
   });
@@ -217,8 +220,38 @@ async function refreshThreads(t: string, signal?: AbortSignal) {
 async function refreshBook(t: string, signal?: AbortSignal) {
   const [s, c] = await Promise.all([mimiApi.shops(t, { signal }), mimiApi.credit(t, { signal })]);
   shopRows = s.shops;
+  /* the API's own totals win over anything the console could add up itself */
+  bookTotals =
+    typeof s.owed_total_kobo === "number" || typeof s.overdue_total_kobo === "number"
+      ? { owed: koboToNaira(s.owed_total_kobo), overdue: koboToNaira(s.overdue_total_kobo) }
+      : null;
   credit = c;
   publishBook();
+  await refreshLedger(t, signal);
+}
+
+/**
+ * The returns ledger and the exposure figure. Both arrive with the API's next release: until this
+ * server has them the routes answer 404, which reads as "not available yet" on the screen and is
+ * never announced as an error.
+ */
+async function refreshLedger(t: string, signal?: AbortSignal) {
+  await Promise.all([
+    (async () => {
+      try {
+        setLive({ returns: mapReturns(await mimiApi.returns(t, { signal })) });
+      } catch (e) {
+        if (!isAbort(e) && !missingRoute(e)) report(e);
+      }
+    })(),
+    (async () => {
+      try {
+        setLive({ exposure: mapExposure(await mimiApi.exposure(t, { signal })) });
+      } catch (e) {
+        if (!isAbort(e) && !missingRoute(e)) report(e);
+      }
+    })(),
+  ]);
 }
 
 /** One shop with its payments and open invoices, for the drawer. Aborted when the drawer closes. */
@@ -259,8 +292,11 @@ export function republish(): void {
 /* ---------- polling ---------- */
 
 let timer: ReturnType<typeof setTimeout> | undefined;
-let busy = false;
 let again = false;
+/** A queued pass set `again`: remember a book request that arrived while a read was in flight. */
+let againBook = false;
+/** The pass in flight, so a second caller waits for a real outcome instead of a false success. */
+let passInFlight: Promise<boolean> | null = null;
 
 const hidden = () => typeof document !== "undefined" && document.hidden;
 const active = () => openTurns.size > 0 || [...pending.values()].some((l) => l.some((m) => !keeps(m))) || threads.some((t) => t.status === "running");
@@ -271,14 +307,29 @@ function schedule() {
   if (active() && !hidden()) timer = setTimeout(() => void refresh(), FAST_MS);
 }
 
-/** Re-reads threads and approvals (and the book when asked), then polls again only if work is running. */
-export async function refresh(withBook = false): Promise<void> {
-  if (busy) {
+/**
+ * Re-reads threads and approvals (and the book when asked), then polls again only if work is
+ * running. Resolves true only when the read really ran and succeeded, so a caller that announces
+ * "refreshed" never claims it after a failure. A call that arrives while a read is in flight rides
+ * along with it (and queues one more pass, keeping its book request): nothing is dropped.
+ */
+export function refresh(withBook = false): Promise<boolean> {
+  if (passInFlight) {
     again = true;
-    return;
+    if (withBook) againBook = true;
+    return passInFlight;
   }
-  busy = true;
+  const p = runRefresh(withBook).finally(() => {
+    if (passInFlight === p) passInFlight = null;
+  });
+  passInFlight = p;
+  return p;
+}
+
+/** One pass. `ok` is true only when it reached the end without an error. */
+async function runRefresh(withBook: boolean): Promise<boolean> {
   let capCheck = false;
+  let ok = false;
   try {
     await authed(async (t) => {
       for (const [turnId, thread] of [...openTurns]) {
@@ -303,16 +354,19 @@ export async function refresh(withBook = false): Promise<void> {
       await refreshThreads(t);
       if (withBook) await refreshBook(t);
       if (capCheck) await checkCap(t);
+      ok = true;
     });
   } catch (e) {
     report(e);
   } finally {
-    busy = false;
     if (again) {
       again = false;
-      void refresh(withBook);
+      const queued = withBook || againBook;
+      againBook = false;
+      void refresh(queued);
     } else schedule();
   }
+  return ok;
 }
 
 let started = false;

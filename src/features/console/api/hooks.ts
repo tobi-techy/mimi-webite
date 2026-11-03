@@ -5,6 +5,8 @@ import { USES_API } from "@/features/console/api/config";
 import { getLive, useLive } from "@/features/console/api/live-store";
 import { loadShop } from "@/features/console/api/sync";
 import { creditKpis, creditLines, creditRecommendations, type CreditLine, type CreditRecommendation } from "@/features/console/content/credit";
+import type { Exposure } from "@/features/console/content/exposure";
+import type { ShopReturn } from "@/features/console/content/returns";
 import { shops as sampleShops, type Shop } from "@/features/console/content/shops";
 import { useDemo } from "@/features/console/demo/store";
 import type { Conversation } from "@/features/console/demo/types";
@@ -38,6 +40,15 @@ export function useShops(): { shops: readonly Shop[]; loading: boolean } {
   return { shops: sampleShops, loading: false };
 }
 
+/**
+ * The API build could not reach Mimi on first load (or after a reset that failed): the book pages
+ * say that and offer Retry, instead of an empty book, which would read as "you are owed nothing".
+ * False in the sample build, while the first read is still running, and once the book has loaded.
+ */
+export function useUnreachable(): boolean {
+  return useLive((s) => USES_API && s.status === "fallback");
+}
+
 /** One API shop for the drawer: the list row at once, then its detail (aborted on close). */
 export function useShop(id: string): { shop: Shop | undefined; loading: boolean } {
   const status = useLive((s) => s.status);
@@ -68,7 +79,9 @@ type Kpi = { value: string; label: string };
 /** The four tiles on Credit: sample figures, or totals added up from the API's shops. Null while loading. */
 export function useCreditKpis(): readonly Kpi[] | null {
   const { shops, loading } = useShops();
-  if (loading) return null;
+  const unreachable = useUnreachable();
+  /* noughts would be a claim: show no tiles at all when the book could not be read */
+  if (loading || unreachable) return null;
   if (!USES_API && !shops.some((s) => s.live)) return creditKpis;
   const sum = (f: (s: Shop) => number) => shops.reduce((n, s) => n + f(s), 0);
   return [
@@ -82,9 +95,36 @@ export function useCreditKpis(): readonly Kpi[] | null {
 /** The line under the Shops title. Null while loading. */
 export function useShopsSummary(): string | null {
   const { shops, loading } = useShops();
-  if (loading) return null;
-  if (!shops.some((s) => s.live)) return "48 shops · 41 on WhatsApp · ₦4.82m outstanding";
+  const unreachable = useUnreachable();
+  /* no summary when there is nothing to summarise: the page says Mimi can't be reached instead */
+  if (loading || unreachable) return null;
+  /* the sample line is the sample build's only: the API build never prints figures it did not read */
+  if (!USES_API && !shops.some((s) => s.live)) return "48 shops · 41 on WhatsApp · ₦4.82m outstanding";
   const owed = shops.reduce((n, s) => n + s.owed, 0);
   const overdue = shops.filter((s) => (s.live?.overdue ?? 0) > 0).length;
   return `${shops.length} shops · ${overdue} overdue · ${nairaShort(owed)} outstanding`;
+}
+
+/* stable empty, so screens that copy it into state never loop */
+const NO_RETURNS: readonly ShopReturn[] = [];
+
+/** The API's own sums from GET /v1/shops: the book's definition of owed and overdue. */
+export function useBookTotals(): { owed: number; overdue: number } | null {
+  return useLive((s) => s.bookTotals);
+}
+
+/**
+ * The returns ledger. `missing` is true when this server has no returns route yet, which the screen
+ * shows as "not available yet": an empty list would read as "no returns", and that would be a lie.
+ */
+export function useReturns(): { returns: readonly ShopReturn[]; loading: boolean; missing: boolean } {
+  const status = useLive((s) => s.status);
+  const returns = useLive((s) => s.returns);
+  if (status === "connecting") return { returns: NO_RETURNS, loading: true, missing: false };
+  return { returns: returns ?? NO_RETURNS, loading: false, missing: returns === null };
+}
+
+/** Credit exposure from the API, with its own ageing buckets. Null when this server has no route. */
+export function useExposure(): Exposure | null {
+  return useLive((s) => s.exposure);
 }

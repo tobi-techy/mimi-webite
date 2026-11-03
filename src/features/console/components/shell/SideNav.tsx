@@ -227,6 +227,14 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <Link href={consoleRoutes.credit} className="mc-ib" aria-label="Credit" title="Credit">
           <Icon name="landmark" />
         </Link>
+        {USES_API && (
+          <Link href={consoleRoutes.money} className="mc-ib" aria-label="Money at risk" title="Money at risk">
+            <Icon name="gauge" />
+          </Link>
+        )}
+        <Link href={consoleRoutes.returns} className="mc-ib" aria-label="Returns" title="Returns">
+          <Icon name="package" />
+        </Link>
         {!USES_API && (
           <Link href={consoleRoutes.automations} className="mc-ib" aria-label="Automations" title="Automations">
             <Icon name="refresh-cw" />
@@ -250,10 +258,10 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <Link
           href={consoleRoutes.settings}
           className="mc-ini"
-          aria-label={`${owner.name}, settings`}
+          aria-label={`${me.name}, settings`}
           title="Settings"
         >
-          {owner.initials}
+          {me.initials}
         </Link>
       </div>
 
@@ -307,6 +315,21 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                 on={pathname.startsWith(consoleRoutes.shops)}
               />
               <NavRow href={consoleRoutes.credit} icon="landmark" label="Credit" on={pathname.startsWith(consoleRoutes.credit)} />
+              {/* money at risk reads the book, so it only exists where the API does */}
+              {USES_API && (
+                <NavRow
+                  href={consoleRoutes.money}
+                  icon="gauge"
+                  label="Money at risk"
+                  on={pathname.startsWith(consoleRoutes.money)}
+                />
+              )}
+              <NavRow
+                href={consoleRoutes.returns}
+                icon="package"
+                label="Returns"
+                on={pathname.startsWith(consoleRoutes.returns)}
+              />
               {/* automations and shop lists are sample data: the API build has no routes for them yet */}
               {!USES_API && (
                 <NavRow

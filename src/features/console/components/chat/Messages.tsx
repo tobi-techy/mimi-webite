@@ -395,6 +395,7 @@ export const cardIcon: Record<DecisionCard["kind"], IconName> = {
   match: "shield-check",
   zoho: "file-text",
   limit: "landmark",
+  return: "receipt",
 };
 
 const proofWord: Record<ProofLevel, string> = { verified: "Verified", likely: "Likely", estimated: "Estimated" };
