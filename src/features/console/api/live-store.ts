@@ -3,8 +3,10 @@
 import { useSyncExternalStore } from "react";
 import { USES_API } from "@/features/console/api/config";
 import type { ErrorKind } from "@/features/console/api/mappers";
+import type { BooksAgreement } from "@/features/console/content/books";
 import type { CreditLine, CreditRecommendation } from "@/features/console/content/credit";
 import type { Exposure } from "@/features/console/content/exposure";
+import type { Routine } from "@/features/console/content/routines";
 import type { ShopReturn } from "@/features/console/content/returns";
 import type { Shop } from "@/features/console/content/shops";
 
@@ -37,12 +39,17 @@ export type LiveState = {
   returns: ShopReturn[] | null;
   /** Credit exposure, with the API's own ageing buckets; null until this server has the route. */
   exposure: Exposure | null;
+  /** Mimi's routines (the work she does on her own); null until this server has the route. */
+  routines: Routine[] | null;
+  /** The two books comparison; null until this server has the route. */
+  books: BooksAgreement | null;
   /**
-   * Why `returns`/`exposure` are null: "missing" is this server having no such route (the honest
-   * "not available yet"), "error" is a read that failed, which the screens must say and offer Retry
-   * for. Without this a dropped connection would read as "the ledger isn't connected to Mimi".
+   * Why `returns`/`exposure`/`routines`/`books` are null: "missing" is this server having no such
+   * route (the honest "not available yet"), "error" is a read that failed, which the screens must
+   * say and offer Retry for. Without this a dropped connection would read as "the ledger isn't
+   * connected to Mimi".
    */
-  ledger: { returns: LedgerRead; exposure: LedgerRead };
+  ledger: { returns: LedgerRead; exposure: LedgerRead; routines: LedgerRead; books: LedgerRead };
   /**
    * The demo's daily allowance is used up (or the demo is paused): the API refuses new turns, so
    * the composer is shut and says why. Set from a refused send (429/503) or from GET /v1/me.
@@ -70,7 +77,9 @@ const INITIAL: LiveState = {
   creditRecs: null,
   returns: null,
   exposure: null,
-  ledger: { returns: "unread", exposure: "unread" },
+  routines: null,
+  books: null,
+  ledger: { returns: "unread", exposure: "unread", routines: "unread", books: "unread" },
   cap: null,
   since: 0,
   viewed: {},

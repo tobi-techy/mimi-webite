@@ -5,7 +5,9 @@ import { USES_API } from "@/features/console/api/config";
 import { getLive, useLive } from "@/features/console/api/live-store";
 import { loadShop } from "@/features/console/api/sync";
 import { creditKpis, creditLines, creditRecommendations, type CreditLine, type CreditRecommendation } from "@/features/console/content/credit";
+import type { BooksAgreement } from "@/features/console/content/books";
 import type { Exposure } from "@/features/console/content/exposure";
+import type { Routine } from "@/features/console/content/routines";
 import type { ShopReturn } from "@/features/console/content/returns";
 import { shops as sampleShops, type Shop } from "@/features/console/content/shops";
 import { useDemo } from "@/features/console/demo/store";
@@ -133,4 +135,31 @@ export function useExposureFailed(): boolean {
 /** Credit exposure from the API, with its own ageing buckets. Null when this server has no route. */
 export function useExposure(): Exposure | null {
   return useLive((s) => s.exposure);
+}
+
+/* stable empty, so screens that copy it into state never loop */
+const NO_ROUTINES: readonly Routine[] = [];
+
+/**
+ * Mimi's routines. `missing` is true when this server has no routines route yet, which the screen
+ * shows as "not available yet": an empty rail would read as "Mimi runs nothing", and that is a lie.
+ */
+export function useRoutines(): { routines: readonly Routine[]; loading: boolean; missing: boolean; failed: boolean } {
+  const status = useLive((s) => s.status);
+  const routines = useLive((s) => s.routines);
+  const read = useLive((s) => s.ledger.routines);
+  if (status === "connecting") return { routines: NO_ROUTINES, loading: true, missing: false, failed: false };
+  return { routines: routines ?? NO_ROUTINES, loading: false, missing: read === "missing", failed: read === "error" };
+}
+
+/**
+ * The two books comparison. `missing` again means this server has no route for it; `agreement` null
+ * with the route present is a read that has not landed. A screen never treats either as agreement.
+ */
+export function useBooksAgreement(): { agreed: BooksAgreement | null; loading: boolean; missing: boolean; failed: boolean } {
+  const status = useLive((s) => s.status);
+  const books = useLive((s) => s.books);
+  const read = useLive((s) => s.ledger.books);
+  if (status === "connecting") return { agreed: null, loading: true, missing: false, failed: false };
+  return { agreed: books, loading: false, missing: read === "missing", failed: read === "error" };
 }

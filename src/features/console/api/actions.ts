@@ -5,7 +5,7 @@ import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console
 import { apiActive, getLive, notify, setLive } from "@/features/console/api/live-store";
 import { capText, friendlyMessage } from "@/features/console/api/mappers";
 import { newSession, readSession, writeSession } from "@/features/console/api/session";
-import { authed, held, localMedia, openTurns, pending, refresh, republish, report, resetCaches, sentFrom, undone } from "@/features/console/api/sync";
+import { authed, held, localMedia, openTurns, pending, refresh, refreshRoutines, republish, report, resetCaches, sentFrom, undone } from "@/features/console/api/sync";
 import { findConversation, getDemo, nextId, patchConversation, patchMessage } from "@/features/console/demo/store";
 import type { AskAnswer, Conversation, HelperName, Message, Upload, VoiceAudio, Worker } from "@/features/console/demo/types";
 import { assignFor } from "@/features/console/lib/chat-view";
@@ -204,6 +204,25 @@ export async function liveDecideCredit(approvalId: string, approve: boolean): Pr
   } catch (e) {
     const err = report(e);
     return { ok: false, text: friendlyMessage(err.kind, err.detail) };
+  }
+}
+
+/**
+ * Pause or resume one routine (POST /v1/routines/{id}/pause|resume). A write: the row only changes
+ * after the API answers, and the list is re-read so the screen shows the API's own paused state.
+ */
+export async function liveSetRoutinePaused(id: string, paused: boolean): Promise<boolean> {
+  try {
+    await authed(async (t) => {
+      await (paused ? mimiApi.pauseRoutine(t, id) : mimiApi.resumeRoutine(t, id));
+      await refreshRoutines(t);
+    });
+    return true;
+  } catch (e) {
+    /* a route that went missing mid-session reads as "not available", not as a dropped connection */
+    if (missingRoute(e)) void refresh(true);
+    else report(e);
+    return false;
   }
 }
 

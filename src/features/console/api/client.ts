@@ -2,6 +2,7 @@ import { MIMI_API_URL } from "@/features/console/api/config";
 import { errorKind, type ErrorKind } from "@/features/console/api/mappers";
 import type {
   ApiApprovalList,
+  ApiBooksAgreement,
   ApiComputerKinds,
   ApiComputerTask,
   ApiComputerTaskIn,
@@ -18,6 +19,8 @@ import type {
   ApiMedia,
   ApiPolicy,
   ApiReturnList,
+  ApiRoutineChange,
+  ApiRoutineList,
   ApiShopDetail,
   ApiShopList,
   ApiThreadDetail,
@@ -26,6 +29,8 @@ import type {
   ApiTurnIn,
 } from "@/features/console/api/types";
 import { RETURNS_PATH } from "@/features/console/lib/returns-contract";
+import { ROUTINES_PATH, routinePausePath, routineResumePath } from "@/features/console/lib/routines-contract";
+import { BOOKS_PATH } from "@/features/console/lib/two-books-contract";
 
 /**
  * The one typed client for the MIMI-AGENT API. Nothing else in the console calls fetch.
@@ -232,6 +237,15 @@ export const mimiApi = {
   returns: (token: string, o: Sig = {}) => call<ApiReturnList>(RETURNS_PATH, { token, ...o }),
   /** Credit exposure: the API's own ageing buckets and its age-weighted figure. */
   exposure: (token: string, o: Sig = {}) => call<ApiExposure>("/v1/credit/exposure", { token, ...o }),
+
+  /* ---- routines and the two books: routes this server may not have yet (a 404 is "not available") ---- */
+  /** Mimi's routines: the work she does on her own, with its schedule and paused state. */
+  routines: (token: string, o: Sig = {}) => call<ApiRoutineList>(ROUTINES_PATH, { token, ...o }),
+  /** Pauses or resumes one routine. A write never retries: deciding twice is not idempotent. */
+  pauseRoutine: (token: string, id: string) => call<ApiRoutineChange>(routinePausePath(id), { method: "POST", token }),
+  resumeRoutine: (token: string, id: string) => call<ApiRoutineChange>(routineResumePath(id), { method: "POST", token }),
+  /** The two books comparison: Mimi's outstanding against Zoho Books', per shop and as a total. */
+  booksAgreement: (token: string, o: Sig = {}) => call<ApiBooksAgreement>(BOOKS_PATH, { token, ...o }),
 
   /* ---- computer tasks: a hosted cloud browser, one per task (owner approves the whole task) ---- */
   /** The list route is optional (the API may not have it yet): a 404/405 means "not available", not an error. */
