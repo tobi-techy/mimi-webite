@@ -12,9 +12,8 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import { Note } from "@/features/console/components/ui/Note";
 import { Pill } from "@/features/console/components/ui/Pill";
 import { shopHref } from "@/features/console/config";
-import { parseApiTime } from "@/features/console/api/mappers";
 import { routineAction, routineLook, type Routine } from "@/features/console/content/routines";
-import { lastFindingWords, readWords, routineLine } from "@/features/console/lib/routine-times";
+import { lastFindingWords, lastRunWords } from "@/features/console/lib/routine-times";
 
 /**
  * Routines: the work Mimi does on her own, one row each. The API owns the name, the schedule, the
@@ -30,7 +29,7 @@ import { lastFindingWords, readWords, routineLine } from "@/features/console/lib
  * that instead, with the same Try again the other book pages offer.
  */
 export function RoutinesView() {
-  const { routines, asOf, ready, loading, missing, failed } = useRoutines();
+  const { routines, ready, loading, missing, failed } = useRoutines();
   /* the times are worded once, when the screen opens: they are words, not a running clock */
   const [now] = useState(() => Date.now());
   const [busy, setBusy] = useState("");
@@ -46,8 +45,7 @@ export function RoutinesView() {
       <>
         <EmptyState>Mimi couldn&apos;t read her routines just now.</EmptyState>
         <Note>
-          <span>Nothing is wrong with them. They were not read, so nothing is shown.</span>
-          <Button size="sm" variant="ghost" onClick={() => void refresh(true)}>
+                    <Button size="sm" variant="ghost" onClick={() => void refresh(true)}>
             Try again
           </Button>
         </Note>
@@ -80,12 +78,10 @@ export function RoutinesView() {
     else if (!out.started) setRefused({ id: r.id, text: out.note });
   };
   const running = routines.filter((r) => !r.paused).length;
-  /* a row that says "last ran at 8:00" without a date invites the argument a reconciliation needs a date for */
-  const read = readWords(asOf, parseApiTime, now);
+  /* copy cut (4 Nov): no "Read today at … in Lagos time" line; "Last ran" already carries its day */
 
   return (
     <>
-      {read && <p className="x-sub">{read} in Lagos time.</p>}
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="calendar-clock" />
@@ -101,7 +97,8 @@ export function RoutinesView() {
               <li key={r.id} aria-busy={busy === r.id || undefined}>
                 <span className="v2-rows__l">
                   <span>{r.name}</span>
-                  <span className="rt-line">{routineLine(r, now)}</span>
+                  {/* schedule and last run only: "Next run" repeated the schedule's own time (copy cut, 4 Nov) */}
+                  <span className="rt-line">{[r.schedule, lastRunWords(r, now)].join(" · ")}</span>
                   {/* a never-run routine sends no finding, so the row says "Not run yet" once and never a bare "Last time:" */}
                   {lastFindingWords(r) && (
                     <span className="rt-line">
@@ -148,12 +145,6 @@ export function RoutinesView() {
           })}
         </ul>
       </div>
-      {noRun && <p className="x-sub">This server can&apos;t start a routine by hand yet, so Run now is not offered.</p>}
-      <p className="x-sub">
-        A paused routine does not run, and it says why it was paused. Resuming puts it back on its
-        schedule. Run now starts one straight away, and the API refuses it when the day&apos;s run
-        already happened or the routine is paused.
-      </p>
     </>
   );
 }

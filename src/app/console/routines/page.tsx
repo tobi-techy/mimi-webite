@@ -19,7 +19,6 @@ export default function RoutinesPage() {
           <h1 className="x-title">Routines</h1>
           <PageMenu page="Routines" />
         </div>
-        <p className="x-sub">The work Mimi does on her own, when it runs, and what it found last time.</p>
         <RoutinesView />
       </Page>
     </ConsoleView>

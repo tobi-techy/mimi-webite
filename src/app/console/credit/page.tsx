@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CreditBoard } from "@/features/console/components/credit/CreditBoard";
 import { ConsoleView } from "@/features/console/components/shell/ConsoleView";
 import { Icon } from "@/features/console/components/ui/Icon";
@@ -8,7 +7,6 @@ import { USES_API } from "@/features/console/api/config";
 import { ToastButton } from "@/features/console/components/ui/ToastButton";
 import { CreditKpis } from "@/features/console/components/credit/CreditKpis";
 import { Page } from "@/features/console/components/ui/Page";
-import { consoleRoutes } from "@/features/console/config";
 
 export const metadata: Metadata = { title: "Credit" };
 
@@ -27,9 +25,6 @@ export default function CreditPage() {
           </ToastButton>
             )}
         </div>
-        <p className="x-sub">
-          <Link href={consoleRoutes.shops}>Shops</Link> · Coral Lane sets every limit. Mimi recommends.
-        </p>
         <CreditKpis />
         <CreditBoard />
       </Page>

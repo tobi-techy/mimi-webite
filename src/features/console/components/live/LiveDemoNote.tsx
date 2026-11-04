@@ -29,8 +29,8 @@ export function LiveDemoNote() {
   return (
     <Note>
       <span>
-        {warn ??
-          "Sandbox: your own copy of Coral Lane Trading, a sample distributor. Same console and Mimi as production."}
+        {/* one word, not the explainer sentence (copy cut, 4 Nov): the footer and the reset say the rest */}
+        {warn ?? "Sandbox"}
       </span>
       <Button size="sm" variant="ghost" onClick={() => void liveReset()}>
         Reset sandbox

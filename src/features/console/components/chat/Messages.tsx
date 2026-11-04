@@ -859,7 +859,7 @@ export function EmptyThread({ helper, children }: { helper: string; children?: R
       ) : (
         <MimiLooking size="sm" className="mc-void__mimi" />
       )}
-      <p className="mc-void__t">{children ?? `Nothing here yet. Ask ${helper} anything to get started.`}</p>
+      <p className="mc-void__t">{children ?? `Ask ${helper} anything.`}</p>
     </div>
   );
 }

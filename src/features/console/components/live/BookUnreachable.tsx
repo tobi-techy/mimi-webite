@@ -16,9 +16,8 @@ export function BookUnreachable({ empty }: { empty: string }) {
   if (!unreachable) return <EmptyState>{empty}</EmptyState>;
   return (
     <>
-      <EmptyState>Mimi can&apos;t be reached right now, so this page has nothing to read.</EmptyState>
+      <EmptyState>Mimi can&apos;t be reached right now.</EmptyState>
       <Note>
-        <span>Nothing is wrong with the book. This page shows nothing rather than figures it did not read.</span>
         <Button size="sm" variant="ghost" onClick={() => void retryLive()}>
           Try again
         </Button>

@@ -19,7 +19,6 @@ export default function MoneyPage() {
           <h1 className="x-title">Money at risk</h1>
           <PageMenu page="Money at risk" />
         </div>
-        <p className="x-sub">What Coral Lane is owed, how old it is, and which shops are carrying it.</p>
         <MoneyAtRisk />
       </Page>
     </ConsoleView>

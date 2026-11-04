@@ -8,7 +8,7 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes } from "@/features/console/config";
 import { triggerLabel } from "@/features/console/content/automations";
 import { conversationHref, toggleAutomation } from "@/features/console/demo/engine";
-import { faceStateLabel, rosterRow, type RosterName } from "@/features/console/demo/roster";
+import { NOTHING_YET, faceStateLabel, rosterRow, type RosterName } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
 import type { Conversation } from "@/features/console/demo/types";
@@ -95,6 +95,8 @@ export function HelperView({ name }: { name: RosterName }) {
       </p>
       <div className="mc-hv2">
         <section className="mc-hv2__main" aria-label={`${name}'s tasks`}>
+          {/* no tasks at all: four chips that all say 0 are noise (copy cut, 4 Nov) */}
+          {threads.length > 0 && (
           <div className="mc-hv2__chips" role="group" aria-label="Show tasks">
             {FILTERS.map((f) => (
               <button
@@ -109,6 +111,7 @@ export function HelperView({ name }: { name: RosterName }) {
               </button>
             ))}
           </div>
+          )}
 
           {shown.length ? (
             <ul className="mc-hv2__list">
@@ -144,7 +147,7 @@ export function HelperView({ name }: { name: RosterName }) {
             </ul>
           ) : (
             <p className="mc-hv2__empty">
-              {threads.length ? "No tasks in this view." : `${name} has no tasks yet.`}
+              {threads.length ? "No tasks in this view." : "No tasks yet."}
             </p>
           )}
         </section>
@@ -165,19 +168,24 @@ export function HelperView({ name }: { name: RosterName }) {
                   {/* the step often starts with the state ("Waiting on you to approve…"): say it once */}
                   {row.step.toLowerCase().startsWith(faceStateLabel[row.state].toLowerCase()) ? row.step : faceStateLabel[row.state]}
                 </span>
-                {!row.step.toLowerCase().startsWith(faceStateLabel[row.state].toLowerCase()) && row.step}
+                {/* an idle helper's step is only "Done": the state already says it (copy cut, 4 Nov) */}
+                {row.state !== "idle" && !row.step.toLowerCase().startsWith(faceStateLabel[row.state].toLowerCase()) && row.step}
               </dd>
             </div>
-            <div>
-              <dt>Today</dt>
-              <dd>
-                {naira(row.costToday)} · {row.steps} steps
-              </dd>
-            </div>
-            <div>
-              <dt>Outcome</dt>
-              <dd>{row.preview}</dd>
-            </div>
+            {(row.costToday > 0 || row.steps > 0) && (
+              <div>
+                <dt>Today</dt>
+                <dd>
+                  {naira(row.costToday)} · {row.steps} steps
+                </dd>
+              </div>
+            )}
+            {row.preview !== NOTHING_YET && (
+              <div>
+                <dt>Outcome</dt>
+                <dd>{row.preview}</dd>
+              </div>
+            )}
           </dl>
 
           {/* routines and automations are sample data: the API build has no routes for them yet */}

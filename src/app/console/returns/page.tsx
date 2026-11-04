@@ -15,7 +15,6 @@ export default function ReturnsPage() {
           <h1 className="x-title">Returns</h1>
           <PageMenu page="Returns" />
         </div>
-        <p className="x-sub">Stock coming back, where it has got to, and what it is worth to the shop.</p>
         <ReturnsView />
       </Page>
     </ConsoleView>

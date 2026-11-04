@@ -12,7 +12,7 @@ import type { ShopReturn } from "@/features/console/content/returns";
 import { shops as sampleShops, type Shop } from "@/features/console/content/shops";
 import { useDemo } from "@/features/console/demo/store";
 import type { Conversation } from "@/features/console/demo/types";
-import { nairaShort } from "@/features/console/lib/format";
+import { naira } from "@/features/console/lib/format";
 
 /**
  * One hook per resource. Each returns `loading` (show the skeleton) while the demo build waits for
@@ -94,9 +94,9 @@ export function useCreditKpis(): readonly Kpi[] | null {
   const pct = (part: number, whole: number) => `${Math.round((part / whole) * 100)}%`;
   /* context only from the same figures: a share never shows when its whole is nought */
   return [
-    { value: nairaShort(owed), label: "Outstanding", note: `across ${shops.length} ${shops.length === 1 ? "shop" : "shops"}` },
-    { value: nairaShort(overdue), label: "Overdue", note: owed > 0 ? `${pct(overdue, owed)} of outstanding` : undefined },
-    { value: nairaShort(limits), label: "Credit limits", note: limits > 0 ? `${pct(owed, limits)} in use` : undefined },
+    { value: naira(owed), label: "Outstanding", note: `across ${shops.length} ${shops.length === 1 ? "shop" : "shops"}` },
+    { value: naira(overdue), label: "Overdue", note: owed > 0 ? `${pct(overdue, owed)} of outstanding` : undefined },
+    { value: naira(limits), label: "Credit limits", note: limits > 0 ? `${pct(owed, limits)} in use` : undefined },
     { value: String(shops.length), label: "Shops", note: `${late} overdue` },
   ];
 }
@@ -108,10 +108,10 @@ export function useShopsSummary(): string | null {
   /* no summary when there is nothing to summarise: the page says Mimi can't be reached instead */
   if (loading || unreachable) return null;
   /* the sample line is the sample build's only: the API build never prints figures it did not read */
-  if (!USES_API && !shops.some((s) => s.live)) return "48 shops · 41 on WhatsApp · ₦4.82m outstanding";
+  if (!USES_API && !shops.some((s) => s.live)) return "48 shops · 41 on WhatsApp · ₦4,820,000 outstanding";
   const owed = shops.reduce((n, s) => n + s.owed, 0);
   const overdue = shops.filter((s) => (s.live?.overdue ?? 0) > 0).length;
-  return `${shops.length} shops · ${overdue} overdue · ${nairaShort(owed)} outstanding`;
+  return `${shops.length} shops · ${overdue} overdue · ${naira(owed)} outstanding`;
 }
 
 /* stable empty, so screens that copy it into state never loop */

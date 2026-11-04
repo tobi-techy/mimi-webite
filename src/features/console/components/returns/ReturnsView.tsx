@@ -47,7 +47,6 @@ export function ReturnsView() {
       <>
         <EmptyState>Mimi couldn&apos;t read the returns ledger just now.</EmptyState>
         <Note>
-          <span>Nothing is wrong with the ledger. It was not read, so nothing is shown.</span>
           <Button size="sm" variant="ghost" onClick={() => void refresh(true)}>
             Try again
           </Button>

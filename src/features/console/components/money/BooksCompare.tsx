@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { parseApiTime } from "@/features/console/api/mappers";
 import { useBooksAgreement } from "@/features/console/api/hooks";
 import { refresh } from "@/features/console/api/sync";
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
@@ -14,7 +12,6 @@ import { Table } from "@/features/console/components/ui/Table";
 import { consoleRoutes, shopHref } from "@/features/console/config";
 import type { BooksAgreement } from "@/features/console/content/books";
 import { booksState, booksWhole, booksWords, orderedShops, shopSectionWords, summaryWords } from "@/features/console/lib/two-books";
-import { readWords } from "@/features/console/lib/routine-times";
 
 /**
  * Two books: what Mimi's book says Coral Lane is owed, against what Zoho Books reports, shop by shop
@@ -32,7 +29,6 @@ import { readWords } from "@/features/console/lib/routine-times";
  */
 export function BooksView() {
   const { agreed, loading, missing, failed } = useBooksAgreement();
-  const [now] = useState(() => Date.now());
 
   if (loading) return <SkeletonRows count={5} />;
   if (missing) return <NotYet />;
@@ -42,7 +38,6 @@ export function BooksView() {
       <>
         <EmptyState>Mimi couldn&apos;t read both books just now.</EmptyState>
         <Note>
-          <span>Nothing is wrong with the books. They were not read, so nothing is shown.</span>
           <Button size="sm" variant="ghost" onClick={() => void refresh(true)}>
             Try again
           </Button>
@@ -52,13 +47,12 @@ export function BooksView() {
   /* nothing readable: the honest note, never an empty comparison that would read as agreement */
   if (!agreed) return <NotYet />;
   if (agreed.connected === false) return <NotConnected />;
-  return <Compared v={agreed} now={now} />;
+  return <Compared v={agreed} />;
 }
 
 /** The two books, side by side. Nothing on this screen is added up or subtracted by the console. */
-function Compared({ v, now }: { v: BooksAgreement; now: number }) {
+function Compared({ v }: { v: BooksAgreement }) {
   const shops = orderedShops(v);
-  const read = readWords(v.asOf, parseApiTime, now);
   const total = booksState(v.total);
   /* whether the whole book can be compared at all: a shop Zoho has no figure for was not compared */
   const whole = booksWhole(v);
@@ -67,12 +61,8 @@ function Compared({ v, now }: { v: BooksAgreement; now: number }) {
 
   return (
     <>
-      {(read || summary) && (
-        <p className="x-sub">
-          {read ? `${read} in Lagos time. ` : ""}
-          {summary}
-        </p>
-      )}
+      {/* copy cut (4 Nov): the "Read today at … in Lagos time" line went; the figures carry the point */}
+      {summary && <p className="x-sub">{summary}</p>}
 
       <div className="x-kpis">
         <Figure value={v.total.mimi} what="Mimi's book" />
@@ -95,9 +85,7 @@ function Compared({ v, now }: { v: BooksAgreement; now: number }) {
             : `All shops together, ${booksWords(total, "Zoho Books")}.`}
           {v.note ? ` ${v.note}` : ""}
         </p>
-      ) : v.note ? (
-        <p className="x-sub">{v.note}</p>
-      ) : null}
+      ) : null /* not comparable: the API's note explains a difference that is not shown, so it stays out */}
 
       <div className="x-grp">
         <div className="x-gh">
