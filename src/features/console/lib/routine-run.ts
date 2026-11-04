@@ -18,3 +18,14 @@ export function runOutcome(p: { row: Routine | null; detail?: string; missing?: 
   if (p.missing) return { started: false, note: "", missing: true };
   return { started: false, note: p.detail?.trim() || RUN_FAILED };
 }
+
+/**
+ * Which answers are the API refusing a run, in its own words, and which are our own failure to
+ * report. The route refuses two ways: 409 with its sentence (already ran today, or paused), and 404
+ * "unknown routine" for a routine the API does not have. Anything else is not a refusal: a 401
+ * ("Missing bearer"), a 5xx or a dropped connection is a fault to report, and its machine wording is
+ * never printed on the row as if the API had refused the owner in a sentence.
+ */
+export function refusalWords(status: number, detail: string): string {
+  return status === 409 || status === 404 ? detail.trim() : "";
+}

@@ -7,7 +7,7 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { lastRunWords, nextRunWords, nextTimeWords, readWords, routineLine, timeWords } from "./routine-times.ts";
+import { lastFindingWords, lastRunWords, nextRunWords, nextTimeWords, readWords, routineLine, timeWords } from "./routine-times.ts";
 import { parseApiTime } from "../api/mappers.ts";
 import type { Routine } from "../content/routines.ts";
 
@@ -76,4 +76,20 @@ test("the as-of time on the two books screen is worded in Lagos, and absent stay
   assert.equal(readWords("2026-11-04T08:04:00+01:00", parseApiTime, NOW), "Read today at 8:04 AM");
   assert.equal(readWords("", parseApiTime, NOW), "");
   assert.equal(readWords("not a time", parseApiTime, NOW), "");
+});
+
+test("a routine with no finding shows no Last time line, and never a bare prefix", () => {
+  assert.equal(lastFindingWords(routine()), "", "the API sent no sentence, so nothing is said");
+  assert.equal(
+    routineLine(routine({ lastRunAt: 0 }), NOW),
+    "Every day at 8:00 AM · Not run yet · Next run tomorrow at 8:00 AM",
+    "a never-run routine says Not run yet once, in its own line",
+  );
+});
+
+test("a finding is shown under its label, as the API wrote it", () => {
+  assert.equal(
+    lastFindingWords(routine({ finding: "3 shops are past 60 days, ₦1,240,000 between them." })),
+    "Last time: 3 shops are past 60 days, ₦1,240,000 between them.",
+  );
 });

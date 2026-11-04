@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readRunRow } from "../api/mappers.ts";
-import { RUN_FAILED, runOutcome } from "./routine-run.ts";
+import { RUN_FAILED, refusalWords, runOutcome } from "./routine-run.ts";
 import type { Routine } from "../content/routines.ts";
 
 const row: Routine = {
@@ -35,6 +35,22 @@ test("a refusal is shown in the API's own words, never re-worded", () => {
   assert.equal(refused.started, false);
   assert.equal(refused.note, "Today's morning briefing already ran.");
   assert.equal(refused.missing, undefined, "a refusal is not a missing route");
+});
+
+test("the two documented refusals are shown as written, and no other answer is printed as one", () => {
+  assert.equal(
+    refusalWords(409, "It is paused, so it did not run. The reason: held until the cards are filed."),
+    "It is paused, so it did not run. The reason: held until the cards are filed.",
+    "the API's own refusal: the owner reads the sentence it wrote",
+  );
+  assert.equal(refusalWords(404, "unknown routine"), "unknown routine", "the route is deployed and answered");
+  assert.equal(refusalWords(401, "Missing bearer"), "", "an auth failure is reported, not printed on the row");
+  assert.equal(refusalWords(500, "Internal Server Error"), "");
+  assert.equal(refusalWords(-1, ""), "", "a dropped connection is ours to report");
+  /* and a refusal end to end: the sentence on the row, never a run */
+  const out = runOutcome({ row: null, detail: refusalWords(409, "It is paused, so it did not run.") });
+  assert.equal(out.started, false);
+  assert.equal(out.note, "It is paused, so it did not run.");
 });
 
 test("a route this server does not have says so, so the control can go away", () => {
