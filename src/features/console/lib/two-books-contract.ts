@@ -41,6 +41,18 @@
  * same as false, and the console makes no claim it was not given. A shop only one book knows carries
  * `null` (and a "") on the other side and is its own state on the screen.
  *
+ * **A shop Zoho Books has no figure for is not a nought and not agreement, and it is not a whole-book
+ * comparison either** (Tobi, 4 Nov 2026). While matching is unfinished the live payload answers
+ * `zoho_connected: true` with every shop row carrying `zoho_outstanding_naira: ""` and
+ * `difference_naira: ""`, and a total of `zoho_outstanding_naira: "₦0"` with a full
+ * `difference_naira`. The console counts those rows and, while there are any, shows Mimi's own total
+ * and a plain sentence where the Zoho total and the difference would be: "24 shops are not in Zoho
+ * Books yet, so the two books cannot be compared as a whole." Nothing is worked out here, and no
+ * figure is invented. The other direction is the `zoho:<id>` prefix on `shop_id`, a Zoho customer
+ * Mimi's book does not have ("2 payments in Zoho Books belong to customers Mimi does not have"); keep
+ * that prefix, because it is what tells the two apart. When every row carries both figures the totals
+ * are shown exactly as above.
+ *
  * An answer this console does not recognise reads as "not available yet", never as an empty book and
  * never as two books that agree: renamed fields, or a shops list where no row could be read, is a
  * shape we do not know. `{"shops": []}` is an honest empty comparison, and a total with a figure is a

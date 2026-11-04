@@ -80,6 +80,10 @@
 .x-kpi:first-child { border-left: 0; padding-left: 0; }
 .x-kpi b { display: block; font-size: 28px; font-weight: 500; letter-spacing: -.035em; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .x-kpi span { font-size: 12.5px; color: var(--muted); }
+/* two books that cannot be compared as a whole: the sentence takes the place of the Zoho total and
+   the difference, so the row shows no figure for a comparison that did not happen */
+.x-kpis .x-cmp-na { grid-column: 1 / -1; align-self: center; font-size: 13px; line-height: 18px; color: var(--muted); }
+@media (min-width: 761px) { .x-kpis .x-cmp-na { grid-column: 2 / -1; } }
 .x-recs { margin-top: 32px; padding: 0; overflow: hidden; }
 .x-rh { display: flex; align-items: center; gap: 8px; padding: 16px 20px; font-size: 15px; font-weight: 500; }
 .x-rh .x-num { color: var(--muted); font-weight: 400; }
