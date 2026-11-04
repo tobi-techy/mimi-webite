@@ -167,6 +167,16 @@ export function ShopsTable() {
           </tbody>
         </Table>
       )}
+      {/* how many rows and in what order: the sort is part of the answer */}
+      {!loading && rows.length > 0 && (
+        <p className="x-tfoot">
+          <b>
+            {rows.length === shops.length ? rows.length : `${rows.length} of ${shops.length}`} {shops.length === 1 ? "shop" : "shops"}
+          </b>
+          <span aria-hidden="true">·</span>
+          {sort === "Highest owed first" ? "sorted by highest owed" : "sorted by lowest owed"}
+        </p>
+      )}
     </>
   );
 }

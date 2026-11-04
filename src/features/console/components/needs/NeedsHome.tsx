@@ -20,7 +20,8 @@ import type { Conversation, HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 import { consoleRoutes } from "@/features/console/config";
 
-const VISIBLE = 4;
+/* a full-width page has room for the whole pile at a glance; past this many it folds */
+const VISIBLE = 8;
 type Starter = { helper: HelperName; label: string; text: string };
 /** New thread choice chips: a helper face + a plain job. Picking one fills the composer. */
 const STARTERS: readonly Starter[] = [
@@ -52,15 +53,13 @@ function Row({ it }: { it: NeedItem }) {
     <li className={cx("mc-nr", sending && "is-sending")}>
       <HelperFace name={it.helper} size={32} />
       <Link className="mc-nr__tx" href={cardHref(it)}>
-        <span className="mc-nr__what">
-          {it.what}
-          {it.amount !== undefined && <b> · {naira(it.amount)}</b>}
-        </span>
+        <span className="mc-nr__what">{it.what}</span>
         <small className="mc-nr__why">
           {it.shop && !/^\d+ shops$|manager|Dufil|Hypo|Peak|Indomie/i.test(it.shop) && <ShopAvatar name={it.shop} size={20} className="mc-nr__shop" />}
           {[it.shop, it.why].filter(Boolean).join(" · ") || it.helper}
         </small>
       </Link>
+      <span className="mc-nr__amt">{it.amount !== undefined ? naira(it.amount) : ""}</span>
       <div className="mc-nr__act">
         {sending ? (
           <span className="mc-nr__st mc-mono" role="status">
@@ -104,15 +103,13 @@ function DoneRow({ it, now }: { it: DecidedItem; now: number }) {
     <li className="mc-nr is-done">
       <HelperFace name={it.helper} size={32} />
       <Link className="mc-nr__tx" href={cardHref(it)}>
-        <span className="mc-nr__what">
-          {it.what}
-          {it.amount !== undefined && <b> · {naira(it.amount)}</b>}
-        </span>
+        <span className="mc-nr__what">{it.what}</span>
         <small className="mc-nr__why">
           {it.shop && !/^\d+ shops$|manager|Dufil|Hypo|Peak|Indomie/i.test(it.shop) && <ShopAvatar name={it.shop} size={20} className="mc-nr__shop" />}
           {[it.shop, it.line].filter(Boolean).join(" · ")}
         </small>
       </Link>
+      <span className="mc-nr__amt">{it.amount !== undefined ? naira(it.amount) : ""}</span>
       <div className="mc-nr__act">
         <span className="mc-nr__st mc-mono">
           {outcomeWords(it.outcome)}
@@ -162,6 +159,10 @@ export function NeedsHome() {
   const decided = useMemo(() => (USES_API && api ? decidedItems(conversations) : []), [conversations, api]);
   /* the decision times are worded once, when the screen opens: they are words, not a running clock */
   const [now] = useState(() => Date.now());
+  /* the line under the headline: how many waiting items carry money and the largest of them
+     (never a sum: an order, a limit and an amount owed are not one kind of money) */
+  const withMoney = items.filter((i) => i.status === "needs" && i.amount !== undefined);
+  const largest = withMoney.reduce((n, i) => Math.max(n, i.amount ?? 0), 0);
   const head = needsHeadline({ when, owner: ownerFirstName ?? undefined, waiting, decided: decided.length, busy });
 
   function go() {
@@ -215,6 +216,16 @@ export function NeedsHome() {
           ) : (
             <>
               <h1 className="mc-nh__hi">{head}</h1>
+              {waiting > 0 && (
+                <p className="mc-nh__sum">
+                  {withMoney.length > 0 && largest > 0 && (
+                    <>
+                      <b>{withMoney.length}</b> {withMoney.length === 1 ? "carries" : "carry"} money, the largest <b>{naira(largest)}</b>.{" "}
+                    </>
+                  )}
+                  Nothing goes out until you approve it.
+                </p>
+              )}
               {items.length > 0 && (
                 <section aria-label="Waiting on you">
                   <ul className="mc-nl">

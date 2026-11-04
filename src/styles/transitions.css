@@ -40,6 +40,41 @@
   animation: page-in var(--page-vt-duration) var(--page-vt-ease) both;
 }
 
+/*
+ * Console (4 Nov 2026, Tobi: "smooth and clean"): only the main pane changes. The old screen goes
+ * at once and the new one fades in over 160ms with a 4px settle. A cross-fade was tried and left
+ * two pages ghosted over each other; the old top-down wipe left the lower half of the pane empty
+ * mid-way. The group itself does not morph: both screens fill the same frame, so a size or
+ * position tween would only add movement.
+ */
+:root {
+  --console-vt-in: 160ms;
+}
+::view-transition-group(.console) {
+  animation: none;
+}
+::view-transition-old(.console) {
+  animation: console-out 1ms linear both;
+}
+::view-transition-new(.console) {
+  animation: console-in var(--console-vt-in) cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes console-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes console-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes page-out {
   to {
     opacity: 0;

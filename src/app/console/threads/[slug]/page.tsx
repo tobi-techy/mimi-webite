@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/navigation/PageTransition";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -31,5 +32,10 @@ export default async function ThreadPage({ params }: Props) {
       </Suspense>
     );
   if (!all.some((c) => c.slug === slug)) notFound();
-  return <ThreadChat slug={slug} />;
+  /* the same quick main-pane fade as every other console screen (ConsoleView) */
+  return (
+    <PageTransition kind="console">
+      <ThreadChat slug={slug} />
+    </PageTransition>
+  );
 }

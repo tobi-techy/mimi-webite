@@ -48,6 +48,7 @@ export function AutomationsList() {
   const [helper, setHelper] = useState("All helpers");
   const inTab = (a: Automation, t: Tab) => (t === "Shared" ? !!a.shared : !a.shared);
   const query = q.trim().toLowerCase();
+  const waitingRuns = autos.filter((a) => a.runs[0]?.status === "needs").length;
   const shown = autos.filter(
     (a) =>
       inTab(a, tab) &&
@@ -70,6 +71,18 @@ export function AutomationsList() {
           New automation
         </Link>
       </div>
+      <p className="x-sub">
+        <b>{autos.filter((a) => on[a.id]).length}</b> of <b>{autos.length}</b> on
+        {waitingRuns > 0 ? (
+          <>
+            , <b>{waitingRuns}</b> last {waitingRuns === 1 ? "run is" : "runs are"} waiting on you.
+          </>
+        ) : (
+          ". Nothing is waiting on you."
+        )}
+      </p>
+      {/* tabs left, search and filter right, on one row */}
+      <div className="x-tbar">
       <div className="x-atabs" role="tablist" aria-label="Automations">
         {TABS.map((t) => (
           <button key={t} type="button" role="tab" aria-selected={tab === t} className={cx(tab === t && "is-on")} onClick={() => setTab(t)}>
@@ -90,6 +103,7 @@ export function AutomationsList() {
           onChange={setHelper}
           options={[{ value: "All helpers" }, ...helperNames.map((h) => ({ value: h }))]}
         />
+      </div>
       </div>
       <div className="x-atbl" role="table" aria-label="Automations">
         <div className="x-atbl__h" role="row">

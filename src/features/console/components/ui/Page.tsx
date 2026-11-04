@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 
-/** The centred content column of a console screen: fluid up to 1080px (1200px when `wide`). */
+/** A console screen's frame: the full main pane with fluid side padding, capped only on ultra-wide screens (layout-full.css). `wide` is kept for callers; every page now shares one width. */
 export function Page({
   wide,
   className,

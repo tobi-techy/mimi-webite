@@ -17,6 +17,7 @@ export function CreditKpis() {
         <div key={k.label} className="x-kpi">
           <b>{k.value ?? <SkeletonNum />}</b>
           <span>{k.label}</span>
+          {"note" in k && k.note ? <small>{k.note}</small> : null}
         </div>
       ))}
     </div>

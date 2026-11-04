@@ -76,7 +76,8 @@ export function useCreditBook(): { lines: readonly CreditLine[]; recs: readonly 
   return { lines: creditLines, recs: creditRecommendations, live: false, loading: false };
 }
 
-type Kpi = { value: string; label: string };
+/** A tile: the figure, what it is, and (when it can be worked out from the same figures) its context. */
+type Kpi = { value: string; label: string; note?: string };
 
 /** The four tiles on Credit: sample figures, or totals added up from the API's shops. Null while loading. */
 export function useCreditKpis(): readonly Kpi[] | null {
@@ -86,11 +87,17 @@ export function useCreditKpis(): readonly Kpi[] | null {
   if (loading || unreachable) return null;
   if (!USES_API && !shops.some((s) => s.live)) return creditKpis;
   const sum = (f: (s: Shop) => number) => shops.reduce((n, s) => n + f(s), 0);
+  const owed = sum((s) => s.owed);
+  const overdue = sum((s) => s.live?.overdue ?? 0);
+  const limits = sum((s) => s.live?.creditLimit ?? 0);
+  const late = shops.filter((s) => (s.live?.overdue ?? 0) > 0).length;
+  const pct = (part: number, whole: number) => `${Math.round((part / whole) * 100)}%`;
+  /* context only from the same figures: a share never shows when its whole is nought */
   return [
-    { value: nairaShort(sum((s) => s.owed)), label: "Outstanding" },
-    { value: nairaShort(sum((s) => s.live?.overdue ?? 0)), label: "Overdue" },
-    { value: nairaShort(sum((s) => s.live?.creditLimit ?? 0)), label: "Credit limits" },
-    { value: String(shops.length), label: "Shops" },
+    { value: nairaShort(owed), label: "Outstanding", note: `across ${shops.length} ${shops.length === 1 ? "shop" : "shops"}` },
+    { value: nairaShort(overdue), label: "Overdue", note: owed > 0 ? `${pct(overdue, owed)} of outstanding` : undefined },
+    { value: nairaShort(limits), label: "Credit limits", note: limits > 0 ? `${pct(owed, limits)} in use` : undefined },
+    { value: String(shops.length), label: "Shops", note: `${late} overdue` },
   ];
 }
 
