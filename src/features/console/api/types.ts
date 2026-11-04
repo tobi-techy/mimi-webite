@@ -581,6 +581,12 @@ export type ApiRoutine = {
   next_run_at?: string | null;
   /** What it found last time, one line a person reads. "" when it found nothing to say. */
   last_finding?: string | null;
+  /**
+   * The shop the last finding is about, when it is about one shop. The console links the finding to
+   * that shop's page; "" or absent means the finding is about no single shop, and it stays plain
+   * text. Machine data: never rendered.
+   */
+  last_finding_shop_id?: string | null;
 };
 
 export type ApiRoutineList = { routines?: ApiRoutine[]; as_of?: string | null };

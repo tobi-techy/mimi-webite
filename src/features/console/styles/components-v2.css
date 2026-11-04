@@ -416,6 +416,9 @@ button.v2-wf__h:hover { color: var(--v2-t1); }
 /* routines: a schedule and a finding are whole sentences, so they wrap rather than being cut */
 .rt-line { font-size: 13px; line-height: 18px; color: var(--v2-t3); }
 .rt-act { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+/* a finding the API ties to one shop opens that shop, so it has to look tappable */
+.rt-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.rt-link:hover { color: var(--v2-t1); }
 
 /* source chips: the tile sits as far from the chip edge as from its top and bottom */
 .mc-src:has(> .c-bank) { padding-left: 3px; }

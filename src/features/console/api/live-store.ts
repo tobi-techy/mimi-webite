@@ -6,7 +6,7 @@ import type { ErrorKind } from "@/features/console/api/mappers";
 import type { BooksAgreement } from "@/features/console/content/books";
 import type { CreditLine, CreditRecommendation } from "@/features/console/content/credit";
 import type { Exposure } from "@/features/console/content/exposure";
-import type { Routine } from "@/features/console/content/routines";
+import type { RoutineList } from "@/features/console/content/routines";
 import type { ShopReturn } from "@/features/console/content/returns";
 import type { Shop } from "@/features/console/content/shops";
 
@@ -39,8 +39,8 @@ export type LiveState = {
   returns: ShopReturn[] | null;
   /** Credit exposure, with the API's own ageing buckets; null until this server has the route. */
   exposure: Exposure | null;
-  /** Mimi's routines (the work she does on her own); null until this server has the route. */
-  routines: Routine[] | null;
+  /** Mimi's routines (the work she does on her own) with the as-of time they were read; null until this server has the route. */
+  routines: RoutineList | null;
   /** The two books comparison; null until this server has the route. */
   books: BooksAgreement | null;
   /**

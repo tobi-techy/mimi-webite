@@ -17,7 +17,8 @@
  *       "paused_reason": "",
  *       "last_run_at": "2026-11-04T08:00:12+01:00",
  *       "next_run_at": "2026-11-05T08:00:00+01:00",
- *       "last_finding": "3 shops are past 60 days, ₦1,240,000 between them."
+ *       "last_finding": "3 shops are past 60 days, ₦1,240,000 between them.",
+ *       "last_finding_shop_id": ""
  *     }
  *   ],
  *   "as_of": "2026-11-04T09:00:00+01:00"
@@ -25,7 +26,13 @@
  * ```
  * `name`, `schedule`, `paused_reason` and `last_finding` are sentences written by code, rendered as
  * written; `id` is machine data and is never shown. `last_run_at` and `next_run_at` are ISO 8601 with
- * a zone, "" when a routine has never run, and the console words them itself in Lagos.
+ * a zone, "" when a routine has never run, and the console words them itself in Lagos. `as_of` is
+ * shown too ("Read today at 9:00 AM"): a row that says when it last ran needs the date it was read.
+ *
+ * `last_finding_shop_id` is the one new field the console asks for: the shop the last finding is
+ * about, when it is about exactly one shop. The console then opens that shop from the finding's line
+ * (`/shops/live?id=…`, which the static export serves). It is never rendered, and "" or absent leaves
+ * the finding as plain text, because the console will not guess a link out of a sentence.
  *
  * `POST /v1/routines/{id}/pause` and `POST /v1/routines/{id}/resume` (owner key), each answering
  * `{ "id": "morning_brief", "name": "Morning briefing", "paused": true }`.

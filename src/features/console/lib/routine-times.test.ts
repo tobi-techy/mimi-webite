@@ -25,6 +25,7 @@ const routine = (o: Partial<Routine> = {}): Routine => ({
   lastRunAt: lagos(2026, 11, 4, 8, 0),
   nextRunAt: lagos(2026, 11, 5, 8, 0),
   finding: "",
+  findingShopId: "",
   ...o,
 });
 

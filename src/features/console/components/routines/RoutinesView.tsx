@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { liveSetRoutinePaused } from "@/features/console/api/actions";
 import { useRoutines } from "@/features/console/api/hooks";
@@ -10,20 +11,26 @@ import { EmptyState } from "@/features/console/components/ui/EmptyState";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { Note } from "@/features/console/components/ui/Note";
 import { Pill } from "@/features/console/components/ui/Pill";
+import { shopHref } from "@/features/console/config";
+import { parseApiTime } from "@/features/console/api/mappers";
 import { routineAction, routineLook, type Routine } from "@/features/console/content/routines";
-import { routineLine } from "@/features/console/lib/routine-times";
+import { readWords, routineLine } from "@/features/console/lib/routine-times";
 
 /**
  * Routines: the work Mimi does on her own, one row each. The API owns the name, the schedule, the
  * finding and the paused state, and every one of them is shown as written; the console only words
- * the two times, in Lagos.
+ * the two times, in Lagos, and dates the list.
+ *
+ * A finding opens the shop it is about, but only when the API names that shop
+ * (`last_finding_shop_id`). The console never guesses a link out of a sentence: a finding about
+ * several shops, or about the book, stays plain text.
  *
  * Until this server has GET /v1/routines the screen says so in plain words. It never shows an empty
  * rail, which would read as "Mimi runs nothing" and would not be true, and a read that failed says
  * that instead, with the same Try again the other book pages offer.
  */
 export function RoutinesView() {
-  const { routines, loading, missing, failed } = useRoutines();
+  const { routines, asOf, loading, missing, failed } = useRoutines();
   /* the times are worded once, when the screen opens: they are words, not a running clock */
   const [now] = useState(() => Date.now());
   const [busy, setBusy] = useState("");
@@ -52,9 +59,12 @@ export function RoutinesView() {
     setBusy("");
   };
   const running = routines.filter((r) => !r.paused).length;
+  /* a row that says "last ran at 8:00" without a date invites the argument a reconciliation needs a date for */
+  const read = readWords(asOf, parseApiTime, now);
 
   return (
     <>
+      {read && <p className="x-sub">{read} in Lagos time.</p>}
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="calendar-clock" />
@@ -71,7 +81,23 @@ export function RoutinesView() {
                 <span className="v2-rows__l">
                   <span>{r.name}</span>
                   <span className="rt-line">{routineLine(r, now)}</span>
-                  {r.finding && <span className="rt-line">Last time: {r.finding}</span>}
+                  {r.finding && (
+                    <span className="rt-line">
+                      Last time:{" "}
+                      {r.findingShopId ? (
+                        <Link
+                          className="rt-link"
+                          href={shopHref(r.findingShopId)}
+                          scroll={false}
+                          aria-label={`Open the shop this is about: ${r.finding}`}
+                        >
+                          {r.finding}
+                        </Link>
+                      ) : (
+                        r.finding
+                      )}
+                    </span>
+                  )}
                   {r.paused && r.pausedReason && <span className="rt-line">Paused: {r.pausedReason}</span>}
                 </span>
                 <span className="rt-act v2-rows__r">
@@ -114,7 +140,7 @@ function NotYet() {
           {[
             ["The work Mimi does on her own", "One row per routine, named the way Mimi names it."],
             ["When it runs", "The schedule in words, and when it last ran and runs next, in Lagos time."],
-            ["What it found", "One line on what the last run turned up, written by Mimi."],
+            ["What it found", "One line on what the last run turned up, opening that shop when the API names it."],
             ["Pause and resume", "A routine can be paused, so it stops running, and resumed later."],
           ].map(([name, what]) => (
             <li key={name}>

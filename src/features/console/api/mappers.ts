@@ -9,7 +9,7 @@
 import type { BooksAgreement, BooksMoney, BooksShop } from "../content/books";
 import type { CreditLine, CreditRecommendation } from "../content/credit";
 import type { Exposure, ExposureShop } from "../content/exposure";
-import type { Routine } from "../content/routines";
+import type { Routine, RoutineList } from "../content/routines";
 import type { ShopReturn } from "../content/returns";
 import type { LiveShopExtra, Shop, ShopStatus } from "../content/shops";
 import type { ProofGrade } from "../lib/proof";
@@ -1140,11 +1140,20 @@ function name(v: unknown): string {
 }
 
 /**
+ * A machine id, kept as sent, or "". Unlike a name it is never rendered, so it is not filtered for
+ * looking like an id: it is one, and the console only uses it to build a link the API asked for.
+ */
+function machineId(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/**
  * Mimi's routines. The API owns the words (`name`, `schedule`, `paused_reason`, `last_finding`) and
  * they are rendered as written; the two times become epoch ms for the console to word in Lagos. A
  * routine with no id or no name is not a row: it could not be paused, and a person could not read it.
+ * The as-of time comes with the rows, so the screen can date them.
  */
-export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | undefined) => number | null): Routine[] {
+export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | undefined) => number | null): RoutineList {
   const out: Routine[] = [];
   for (const r of l.routines ?? []) {
     const id = typeof r.id === "string" ? r.id.trim() : "";
@@ -1160,9 +1169,11 @@ export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | un
       lastRunAt: parseTime(r.last_run_at) ?? 0,
       nextRunAt: parseTime(r.next_run_at) ?? 0,
       finding: words(r.last_finding),
+      /* the one piece of machine data the console keeps: it builds the finding's link, and is never shown */
+      findingShopId: machineId(r.last_finding_shop_id),
     });
   }
-  return out;
+  return { asOf: figure(l.as_of), routines: out };
 }
 
 /* ---------- two books (GET /v1/books/agreement) ---------- */

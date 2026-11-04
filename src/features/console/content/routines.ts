@@ -21,9 +21,26 @@ export type Routine = {
   nextRunAt: number;
   /** What it found last time, in one line. "" when it had nothing to say. */
   finding: string;
+  /**
+   * The shop that finding is about, when it is about one shop. The finding then opens that shop.
+   * "" means the finding is about no single shop (or names several), so it stays plain text: the
+   * console never guesses a link out of a sentence. Machine id: never rendered.
+   */
+  findingShopId: string;
 };
 
 export type RoutineLook = { label: string; tone: "green" | "amber" | "muted" };
+
+/**
+ * The list as the rail reads it: the rows, and when the API read them. The as-of time goes on
+ * screen, because "last ran at 8:00" without a date invites the same argument a reconciliation
+ * figure without a date does.
+ */
+export type RoutineList = {
+  /** When the API read the list, ISO with zone. "" when it sent none. */
+  asOf: string;
+  routines: Routine[];
+};
 
 /** The pill on a routine's row: the API's own paused switch, in two words. */
 export function routineLook(r: Routine): RoutineLook {

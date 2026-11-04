@@ -141,15 +141,22 @@ export function useExposure(): Exposure | null {
 const NO_ROUTINES: readonly Routine[] = [];
 
 /**
- * Mimi's routines. `missing` is true when this server has no routines route yet, which the screen
- * shows as "not available yet": an empty rail would read as "Mimi runs nothing", and that is a lie.
+ * Mimi's routines, with the as-of time the API read them. `missing` is true when this server has no
+ * routines route yet, which the screen shows as "not available yet": an empty rail would read as
+ * "Mimi runs nothing", and that is a lie.
  */
-export function useRoutines(): { routines: readonly Routine[]; loading: boolean; missing: boolean; failed: boolean } {
+export function useRoutines(): { routines: readonly Routine[]; asOf: string; loading: boolean; missing: boolean; failed: boolean } {
   const status = useLive((s) => s.status);
-  const routines = useLive((s) => s.routines);
+  const list = useLive((s) => s.routines);
   const read = useLive((s) => s.ledger.routines);
-  if (status === "connecting") return { routines: NO_ROUTINES, loading: true, missing: false, failed: false };
-  return { routines: routines ?? NO_ROUTINES, loading: false, missing: read === "missing", failed: read === "error" };
+  if (status === "connecting") return { routines: NO_ROUTINES, asOf: "", loading: true, missing: false, failed: false };
+  return {
+    routines: list?.routines ?? NO_ROUTINES,
+    asOf: list?.asOf ?? "",
+    loading: false,
+    missing: read === "missing",
+    failed: read === "error",
+  };
 }
 
 /**

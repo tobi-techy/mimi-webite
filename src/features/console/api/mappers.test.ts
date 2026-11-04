@@ -703,6 +703,7 @@ const routinesList: ApiRoutineList = {
       last_run_at: "2026-11-04T08:00:12+01:00",
       next_run_at: "2026-11-05T08:00:00+01:00",
       last_finding: "3 shops are past 60 days, ₦1,240,000 between them.",
+      last_finding_shop_id: "shop-001",
     },
     {
       id: "chase_overdue",
@@ -718,7 +719,9 @@ const routinesList: ApiRoutineList = {
 };
 
 test("routines: the API's own words are carried through, as written", () => {
-  const out = mapRoutines(routinesList, parseApiTime);
+  const list = mapRoutines(routinesList, parseApiTime);
+  assert.equal(list.asOf, "2026-11-04T09:00:00+01:00", "the rail dates its rows, so the as-of time is carried");
+  const out = list.routines;
   assert.equal(out.length, 2);
   assert.deepEqual(out[0], {
     id: "morning_brief",
@@ -729,14 +732,16 @@ test("routines: the API's own words are carried through, as written", () => {
     lastRunAt: Date.UTC(2026, 10, 4, 7, 0, 12),
     nextRunAt: Date.UTC(2026, 10, 5, 7, 0),
     finding: "3 shops are past 60 days, ₦1,240,000 between them.",
+    findingShopId: "shop-001",
   });
   assert.equal(out[1]!.paused, true, "the paused switch is the API's");
   assert.equal(out[1]!.pausedReason, "Held while the shop's dispute is sorted out.");
+  assert.equal(out[1]!.findingShopId, "", "no shop named is no link, never one guessed from the sentence");
   assert.equal(out[1]!.lastRunAt, 0, "a routine that has never run has no instant, not a nought as a time");
 });
 
 test("a routine with no id, or a name a person cannot read, is not a row", () => {
-  const out = mapRoutines(
+  const list = mapRoutines(
     {
       routines: [
         { id: "", name: "No id" },
@@ -746,6 +751,8 @@ test("a routine with no id, or a name a person cannot read, is not a row", () =>
     },
     parseApiTime,
   );
+  const out = list.routines;
+  assert.equal(list.asOf, "", "no as-of time sent is no time, never a made-up one");
   assert.deepEqual(out.map((r) => r.id), ["ok"], "a row that could not be paused or read is dropped");
 });
 
@@ -763,7 +770,7 @@ test("a machine word is not a schedule or a finding, and a bad time is no time",
       ],
     },
     parseApiTime,
-  );
+  ).routines;
   assert.equal(r!.schedule, "", "a bare token is not a sentence, so nothing is shown for it");
   assert.equal(r!.finding, "", "the same for a finding that is a machine word rather than a sentence");
   assert.equal(r!.lastRunAt, 0);
@@ -772,7 +779,7 @@ test("a machine word is not a schedule or a finding, and a bad time is no time",
   const [s] = mapRoutines(
     { routines: [{ id: "s", name: "Routine", schedule: "Every hour", last_finding: "Nothing to chase today." }] },
     parseApiTime,
-  );
+  ).routines;
   assert.equal(s!.schedule, "Every hour", "a sentence the API wrote is shown as written");
   assert.equal(s!.finding, "Nothing to chase today.");
 });
