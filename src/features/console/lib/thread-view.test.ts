@@ -5,6 +5,9 @@ import {
   finishLine,
   joinNames,
   liveWork,
+  NO_THREAD_TEXT,
+  noThreadRetry,
+  noThreadState,
   splitLongReplies,
   splitReply,
   statusLine,
@@ -153,4 +156,30 @@ test("typing dots last 600-1400ms by length, capped at 1.6s, 300ms for reduced m
   assert.ok(typingMs("x".repeat(80)) > 1000 && typingMs("x".repeat(80)) <= 1400);
   assert.equal(typingMs("x".repeat(400)), 1600);
   assert.equal(typingMs("x".repeat(400), 1, true), 300);
+});
+
+/* ---------- a thread screen with no conversation to show ---------- */
+
+test("/threads/new with no id says nothing was chosen, never that Mimi is unreachable", () => {
+  const state = noThreadState({ liveStatus: "ready", slug: "", openedWithoutId: true });
+  assert.equal(state, "not-chosen");
+  const text = NO_THREAD_TEXT["not-chosen"];
+  assert.equal(text, "Not available yet. No thread was chosen.");
+  assert.ok(!/can't be reached|cannot be reached|unreachable|down|nothing is shown/i.test(text), `no outage wording: ${text}`);
+  assert.ok(!noThreadRetry(state), "a page that never tried offers no retry");
+});
+
+test("the home page turned away by the demo API reads exactly as it did before", () => {
+  const state = noThreadState({ liveStatus: "fallback", slug: "", openedWithoutId: false });
+  assert.equal(state, "turned-away", "an empty slug with no route signal is still the home page's case");
+  assert.equal(NO_THREAD_TEXT["turned-away"], "Mimi can't be reached right now. Nothing is shown in her place.");
+  assert.ok(noThreadRetry(state), "the home page keeps its Retry");
+});
+
+test("a thread that is no longer in the demo, and a first load still connecting", () => {
+  assert.equal(noThreadState({ liveStatus: "ready", slug: "ikeja-collections-drop" }), "gone");
+  assert.equal(NO_THREAD_TEXT.gone, "This thread isn't in the demo any more.");
+  assert.ok(!noThreadRetry("gone"), "a thread that is gone offers starting a new one, not a retry");
+  assert.equal(noThreadState({ liveStatus: "connecting", slug: "", openedWithoutId: true }), "connecting");
+  assert.equal(noThreadState({ liveStatus: "connecting", slug: "" }), "connecting", "a first load shows the skeleton either way");
 });

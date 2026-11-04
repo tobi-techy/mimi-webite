@@ -20,7 +20,7 @@ import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes, consoleThread, helperHref } from "@/features/console/config";
 import { needItems } from "@/features/console/demo/needs";
-import { liveWork, statusLine, taskState, taskStateLabel, updatedBy } from "@/features/console/lib/thread-view";
+import { liveWork, NO_THREAD_TEXT, noThreadState, statusLine, taskState, taskStateLabel, updatedBy } from "@/features/console/lib/thread-view";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
   openPanel,
@@ -168,7 +168,7 @@ const asTask = (c: Conversation): ShopTask => ({ slug: c.slug, helper: c.helper,
  * with Mimi is shown in her own chat (`openTask`), so no task is a link to nowhere; with no owner
  * thread yet the task's own conversation is shown.
  */
-export function ThreadChat({ slug, focus }: { slug: string; focus?: RosterName }) {
+export function ThreadChat({ slug, focus, openedWithoutId }: { slug: string; focus?: RosterName; openedWithoutId?: boolean }) {
   const inbox = useDemo((s) => {
     const c = findConversation(s, slug);
     if (!c || !isTask(c)) return null;
@@ -180,10 +180,21 @@ export function ThreadChat({ slug, focus }: { slug: string; focus?: RosterName }
     /* Mimi's own tasks open in Mimi's chat: focus would be cleared there (she is the owner thread) */
     return <ThreadChatView slug={o} focus={h === "Mimi" ? undefined : h} openTask={h === "Mimi" ? slug : undefined} />;
   }
-  return <ThreadChatView slug={slug} focus={focus} />;
+  return <ThreadChatView slug={slug} focus={focus} openedWithoutId={openedWithoutId} />;
 }
 
-function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focus?: RosterName; openTask?: string }) {
+function ThreadChatView({
+  slug,
+  focus: focusIn,
+  openTask,
+  openedWithoutId,
+}: {
+  slug: string;
+  focus?: RosterName;
+  openTask?: string;
+  /* the route opened with no thread id: a state of its own, not this visitor being turned away */
+  openedWithoutId?: boolean;
+}) {
   const conv = useDemo((s) => findConversation(s, slug));
   const typing = useDemo((s) => (s.typing?.slug === slug ? s.typing.who : null));
   const typingAny = useDemo((s) => s.typing);
@@ -345,7 +356,8 @@ function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focu
   }, [menu]);
 
   if (!conv) {
-    if (liveStatus === "connecting")
+    const reason = noThreadState({ liveStatus, slug, openedWithoutId });
+    if (reason === "connecting")
       return (
         <div className="mc-tv">
           <section className="mc-thread" aria-label="Thread" aria-busy="true">
@@ -357,11 +369,18 @@ function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focu
           </section>
         </div>
       );
-    /* home with no chat to open (the demo API turned this visitor away): say so plainly, no dead end */
-    if (!slug)
+    /* the route was opened with no thread id: nothing was chosen, so there is nothing to retry */
+    if (reason === "not-chosen")
       return (
         <section className="mc-empty-thread" aria-label="Thread">
-          <EmptyThread helper="Mimi">Mimi can&apos;t be reached right now. Nothing is shown in her place.</EmptyThread>
+          <EmptyThread helper="Mimi">{NO_THREAD_TEXT["not-chosen"]}</EmptyThread>
+        </section>
+      );
+    /* home with no chat to open (the demo API turned this visitor away): say so plainly, no dead end */
+    if (reason === "turned-away")
+      return (
+        <section className="mc-empty-thread" aria-label="Thread">
+          <EmptyThread helper="Mimi">{NO_THREAD_TEXT["turned-away"]}</EmptyThread>
           <div className="mc-empty-thread__acts">
             <button type="button" className="mc-btn mc-btn--pri" onClick={() => void retryLive()}>
               Retry
@@ -371,7 +390,7 @@ function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focu
       );
     return (
       <section className="mc-empty-thread" aria-label="Thread">
-        <EmptyThread helper="Mimi">This thread isn&apos;t in the demo any more.</EmptyThread>
+        <EmptyThread helper="Mimi">{NO_THREAD_TEXT.gone}</EmptyThread>
         <Link className="mc-btn" href={consoleRoutes.newThread}>
           Start a new thread
         </Link>
