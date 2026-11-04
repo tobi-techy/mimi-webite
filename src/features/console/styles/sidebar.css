@@ -1,0 +1,153 @@
+/*
+ * Sidebar grid (pass 2, 4 Nov 2026; RATIONALE.md "Sidebar"). Loaded last so it is the one word on
+ * the sidebar's geometry; earlier files keep their colours.
+ *
+ * One left edge, one right edge. Every row box (org header, search, nav, section label, helper,
+ * shop list, footer) spans the same width. Inside it: --sb-pad, then a --sb-mark column as wide as
+ * the helper sticker faces (kept at their size, Tobi 4 Nov), then --sb-gap, then the label. Nav
+ * icons sit centred in that column, so every label starts at one x and every count or dot ends at
+ * one x. Rico's spec for the rest: 240px wide, 28px nav rows, 8px pill, Geist Medium 13/16.
+ */
+.mc-app .mc-side {
+  --sb-pad: 4px;
+  --sb-mark: 36px;
+  --sb-gap: 8px;
+  --sb-row: 28px;
+  --sb-face-row: 40px;
+  --sb-group: 24px;
+  --sb-radius: 8px;
+}
+@media (min-width: 900px) {
+  .mc-app .mc-side { width: 240px; }
+  .mc-app.is-collapsed .mc-side { width: 64px; }
+}
+
+/* ---------- shared row type: Geist Medium 13/16, muted, the selected row brighter ---------- */
+.mc-app .mc-side :is(.mc-nav, .mc-side__team .mc-ro) {
+  display: flex; align-items: center; gap: var(--sb-gap);
+  padding: 0 var(--sb-pad); margin: 0; border-radius: var(--sb-radius);
+  font: 500 13px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif; color: var(--f-muted);
+}
+.mc-app .mc-side :is(.mc-nav__label, .mc-ro__n) {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: inherit; color: inherit; letter-spacing: 0;
+}
+.mc-app .mc-side :is(.mc-nav, .mc-side__team .mc-ro):hover { background: var(--f-lift); color: var(--f-text); }
+/* selected: one full-width soft pill, the same for every row */
+.mc-app .mc-side :is(.mc-nav[aria-current="page"], .mc-side__team .mc-ro.is-on, .mc-side__team .mc-ro[aria-current="page"]) {
+  background: var(--f-lift); color: var(--f-text);
+}
+
+/* ---------- org header ---------- */
+.mc-app .mc-side .mc-side__top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0; margin: 0 0 12px; min-height: 32px;
+}
+.mc-app .mc-side .mc-side__top .mc-ws {
+  height: 32px; padding: 0 var(--sb-pad); gap: var(--sb-gap); border-radius: var(--sb-radius); min-width: 0;
+  font-family: var(--font-geist-sans), "Geist", system-ui, sans-serif; color: var(--f-text);
+}
+.mc-app .mc-side .mc-side__top .mc-ws__mk {
+  width: var(--sb-mark); height: 24px; flex: none; display: grid; place-items: center; margin: 0; padding: 0;
+}
+.mc-app .mc-side .mc-side__top .mc-ws__nm { font-size: 13px; line-height: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the collapse glyph ends on the count edge */
+.mc-app .mc-side .mc-side__top > .mc-ib { flex: none; margin-right: 0; }
+
+/* ---------- search: a row-height box, glass in the mark column ---------- */
+.mc-app .mc-side .mc-qs {
+  display: flex; align-items: center; gap: var(--sb-gap);
+  width: 100%; box-sizing: border-box; height: 32px; margin: 0 0 var(--sb-group);
+  /* the 1px hairline is inside the box: one less of padding keeps the glass and the word on the grid */
+  padding: 0 calc(var(--sb-pad) - 1px); border-radius: var(--sb-radius); font: 500 13px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif;
+}
+.mc-app .mc-side .mc-qs .i {
+  display: block; flex: none; width: 16px; height: 16px; margin: 0 calc((var(--sb-mark) - 16px) / 2); color: var(--f-dim);
+}
+.mc-app .mc-side .mc-qs span { flex: 1; min-width: 0; text-align: left; }
+.mc-app .mc-side .mc-qs kbd { flex: none; padding: 0; margin: 0 2px 0 0; }
+
+/* ---------- nav rows: 28px ---------- */
+.mc-app .mc-side .mc-navs { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0 0 var(--sb-group); border: 0; }
+.mc-app .mc-side .mc-nav { height: var(--sb-row); min-height: var(--sb-row); }
+.mc-app .mc-side .mc-nav .i {
+  flex: none; width: 16px; height: 16px; margin: 0 calc((var(--sb-mark) - 16px) / 2); color: inherit;
+}
+/* counts: one right column, tabular figures, grey */
+.mc-app .mc-side .mc-nav__k {
+  flex: none; margin: 0 2px 0 auto; min-width: 20px; padding: 0; text-align: right;
+  font: 400 12px/16px var(--font-geist-mono), "Geist Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;
+  color: var(--f-dim); background: none; height: auto;
+}
+
+/* ---------- section labels: sentence case, grey, on the mark column's left edge ---------- */
+.mc-app .mc-side .mf-sec {
+  display: flex; align-items: center; height: var(--sb-row); padding: 0 calc(var(--sb-pad) + 2px); margin: 0;
+  font: 500 12px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif; letter-spacing: 0; text-transform: none;
+  color: var(--f-dim);
+}
+.mc-app .mc-side .mc-side__team { padding: 0; margin: 0; border: 0; }
+.mc-app .mc-side .mc-side__team .mf-sec + .mc-roster { margin-bottom: var(--sb-group); }
+
+/* ---------- helper and shop list rows: the nav row's grid, tall enough for the sticker face ---------- */
+.mc-app .mc-side .mc-roster { display: flex; flex-direction: column; gap: 0; padding: 0; }
+.mc-app .mc-side .mc-side__team .mc-ro { height: var(--sb-face-row); min-height: var(--sb-face-row); }
+.mc-app .mc-side .mc-ro .mc-face { flex: none; margin: 0; }
+.mc-app .mc-side .mc-ro .mc-ro__mk { width: var(--sb-mark); height: 24px; flex: none; display: grid; place-items: center; color: inherit; }
+.mc-app .mc-side .mc-ro .mc-ro__mk .i { width: 16px; height: 16px; }
+.mc-app .mc-side .mc-ro .mc-nav__k { margin-right: 2px; }
+/* something waits: a 6px dot on the count edge, orange only when it waits on the owner */
+.mc-app .mc-side .mc-ro__dot {
+  flex: none; width: 6px; height: 6px; margin: 0 2px 0 auto; border-radius: 50%; background: var(--f-text);
+}
+.mc-app .mc-side .mc-ro__dot.is-needs { background: var(--f-orange); }
+/* the loading row: one face and one line, the same height */
+.mc-app .mc-side .mc-ro--skel .mc-skel--face { width: var(--sb-mark); height: var(--sb-mark); }
+.mc-app .mc-side .mc-ro--skel .mc-ro__tx { flex: 1; display: block; }
+.mc-app .mc-side .mc-ro--skel .mc-skel--l1 { display: block; width: 72px; height: 10px; }
+
+/* ---------- footer: the user row on the same grid ---------- */
+.mc-app .mc-side .mc-side__full > .mc-me {
+  display: flex; align-items: center; gap: var(--sb-gap);
+  min-height: 40px; padding: 8px 0 0 var(--sb-pad); margin: 0; box-sizing: border-box;
+}
+/* the initials keep their 28px circle, centred in the mark column */
+.mc-app .mc-side .mc-me .mc-ini { width: 28px; height: 28px; flex: none; margin: 0 calc((var(--sb-mark) - 28px) / 2); }
+.mc-app .mc-side .mc-me__tx { flex: 1; min-width: 0; }
+.mc-app .mc-side .mc-me__nm { font: 500 13px/16px var(--font-geist-sans), "Geist", system-ui, sans-serif; color: var(--f-text); }
+.mc-app .mc-side .mc-me > .mc-ib { width: 28px; height: 28px; margin: 0; }
+.mc-app .mc-side .mc-me > .mc-ib:last-child { margin-right: calc(var(--sb-pad) - 4px); }
+
+/* ---------- collapsed rail: one centre line, faces at their size, 16px icons ---------- */
+@media (min-width: 900px) {
+  .mc-app .mc-side .mc-rail { align-items: center; gap: 4px; }
+  .mc-app .mc-side .mc-rail > .mc-ib { width: 36px; height: 32px; padding: 0; display: grid; place-items: center; border-radius: var(--sb-radius); }
+  .mc-app .mc-side .mc-rail .mc-pin { width: 44px; min-height: 44px; border-radius: var(--sb-radius); }
+  .mc-app .mc-side .mc-rail .mc-face { margin: 0; }
+  .mc-app .mc-side .mc-rail__faces { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 16px; }
+  .mc-app .mc-side .mc-rail .mc-pin.is-on { background: var(--f-lift); }
+}
+
+/* ---------- phones: the sidebar is the home list; same grid, 16px sides, 40px touch rows ---------- */
+@media (max-width: 899px) {
+  .mc-app .mc-side { --sb-row: 40px; --sb-face-row: 52px; --sb-mark: 42px; --sb-group: 16px; }
+  .mc-app .mc-side .mc-side__top { padding: 0 8px; margin: 0 0 4px; }
+  .mc-app .mc-side .mc-side__top > .mc-ib { margin-right: -8px; }
+  .mc-app .mc-side .mc-qs { width: auto; margin: 0 8px var(--sb-group); height: 40px; }
+  .mc-app .mc-side .mc-navs { padding: 0 8px; }
+  .mc-app .mc-side .mc-side__team { padding: 0 8px; }
+  .mc-app .mc-side .mf-sec { padding: 0 calc(var(--sb-pad) + 2px); }
+  .mc-app .mc-side .mc-side__team .mc-ro { padding: 0 var(--sb-pad); gap: var(--sb-gap); border-radius: var(--sb-radius); }
+  .mc-app .mc-side .mc-side__team .mc-ro .mc-ro__tx { border: 0; padding: 0; margin: 0; }
+  .mc-app .mc-side :is(.mc-nav, .mc-side__team .mc-ro, .mc-qs, .mc-me__nm) { font-size: 15px; line-height: 20px; }
+  .mc-app .mc-side .mc-side__team .mc-ro.is-on { background: var(--f-lift); }
+  .mc-app .mc-side .mc-side__full > .mc-me { padding: 8px 8px 0 calc(8px + var(--sb-pad)); }
+  .mc-app .mc-side .mf-ptitle { margin: 4px 12px 12px; }
+  /* All / Helpers: a segmented track, 8px outside and 7px inside (Rico's Home / Activity switch) */
+  .mc-app .mc-side .mf-seg { display: flex; gap: 0; margin: 0 12px 12px; padding: 1px; border-radius: 8px; background: var(--f-lift); width: auto; }
+  .mc-app .mc-side .mf-seg__b {
+    flex: 1; height: 32px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--f-muted);
+    font: 500 14px/1 var(--font-geist-sans), "Geist", system-ui, sans-serif;
+  }
+  .mc-app .mc-side .mf-seg__b.is-on { background: var(--f-raised, var(--f-panel)); color: var(--f-text); box-shadow: none; }
+}

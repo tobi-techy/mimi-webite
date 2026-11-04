@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { SoundToggle } from "@/components/sound/SoundToggle";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { WorkspaceMenu } from "@/features/console/components/shell/WorkspaceMenu";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import type { IconName } from "@/features/console/components/ui/icon-paths";
-import { ListBadge } from "@/features/console/components/lists/ShopListView";
 import { consoleRoutes, helperHref, listHref } from "@/features/console/config";
 import { shopLists } from "@/features/console/content/shop-lists";
 import { conversationHref } from "@/features/console/demo/engine";
@@ -47,8 +46,6 @@ function NavRow({
   );
 }
 
-const nairaShort = (n: number) => `₦${n.toLocaleString("en-US")}`;
-
 /**
  * Mimi's row opens the console home (her conversation); a helper's row opens her conversation. In
  * the live demo a helper's answers sit in the owner's one thread with Mimi, so her row opens her
@@ -61,16 +58,14 @@ const rosterHref = (r: RosterRow) => {
   return r.shared ? `${href}${href.includes("?") ? "&" : "?"}with=${encodeURIComponent(r.name)}` : href;
 };
 
-/** The row's count: what waits on the owner (orange), else new lines since she was last opened (neutral). */
-function RowCount({ r }: { r: RosterRow }) {
-  /* waiting on the owner reads as the orange ring on her face (Factory rebuild, 31 Oct 2026): no count */
-  if (r.needs > 0) return null;
-  if (r.unread && r.unread > 0)
-    return (
-      <b className="mc-badge mc-ro__k mc-ro__k--new" aria-hidden="true">
-        {r.unread > 99 ? "99+" : r.unread}
-      </b>
-    );
+/**
+ * The row's mark on the right: a small dot when something waits. Orange when it waits on the owner
+ * (orange is the status colour), the text grey for new lines since she was last opened. The number
+ * is in the row's accessible name, so the dot carries no text.
+ */
+function RowDot({ r }: { r: RosterRow }) {
+  if (r.needs > 0) return <i className="mc-ro__dot is-needs" aria-hidden="true" />;
+  if (r.unread && r.unread > 0) return <i className="mc-ro__dot" aria-hidden="true" />;
   return null;
 }
 
@@ -88,7 +83,6 @@ function RosterSkeleton({ rail }: { rail?: boolean }) {
             <span className="mc-skel mc-skel--face" />
             <span className="mc-ro__tx">
               <span className="mc-skel mc-skel--l1" />
-              <span className="mc-skel mc-skel--l2" />
             </span>
           </span>
         ),
@@ -98,76 +92,43 @@ function RosterSkeleton({ rail }: { rail?: boolean }) {
 }
 
 /**
- * One roster row (Grok Bot style): face with state, name, relative time, an outcome preview and
- * an orange count when the helper needs you. Each helper has one conversation; the row opens it.
- * Hover, focus or a long-press swaps the preview for the current step and today's cost.
+ * One roster row: her sticker face (kept at its size, Tobi 4 Nov) in the mark column, her name at
+ * the same x as every nav label, and a dot on the right when something waits. The preview, the time
+ * and today's cost were meta that changed no decision, so they went (sidebar pass 2, 4 Nov 2026).
+ * Each helper has one conversation; the row opens it.
  */
 function RosterItem({ r, on }: { r: RosterRow; on: boolean }) {
-  const [peek, setPeek] = useState(false);
   /* a tap on a phone always lands: the drawer closes even when the row opens the page already open */
   const { closeDrawer } = useShell();
-  const press = useRef<number | undefined>(undefined);
   const href = rosterHref(r);
-  const label = `${r.name}, ${faceStateLabel[r.state].toLowerCase()}${r.needs ? `, ${r.needs} waiting on you` : r.unread ? `, ${r.unread} new` : ""}. ${r.preview}. Now: ${r.step}.${r.costToday ? ` ${nairaShort(r.costToday)} today.` : ""}`;
+  const label = `${r.name}, ${faceStateLabel[r.state].toLowerCase()}${r.needs ? `, ${r.needs} waiting on you` : r.unread ? `, ${r.unread} new` : ""}`;
   return (
     <Link
       href={href}
       role="listitem"
-      className={cx("mc-ro", on && "is-on", peek && "is-peek")}
+      className={cx("mc-ro", on && "is-on")}
       aria-current={on ? "page" : undefined}
       aria-label={label}
-      onPointerDown={(e) => {
-        if (e.pointerType !== "touch") return;
-        press.current = window.setTimeout(() => setPeek(true), 420);
-      }}
-      onPointerUp={() => window.clearTimeout(press.current)}
-      onPointerLeave={() => {
-        window.clearTimeout(press.current);
-        setPeek(false);
-      }}
-      onContextMenu={(e) => peek && e.preventDefault()}
-      onClick={(e) => {
-        if (peek) {
-          e.preventDefault();
-          setPeek(false);
-          return;
-        }
-        closeDrawer();
-      }}
+      onClick={closeDrawer}
     >
       <HelperFace name={r.name} size={38} state={r.state} />
-      <span className="mc-ro__tx">
-        <span className="mc-ro__l1">
-          <span className="mc-ro__n">{r.name}</span>
-          <span className="mc-ro__ago">{r.state === "working" ? "now" : r.ago}</span>
-          {r.costToday > 0 && <span className="mc-ro__cost">{nairaShort(r.costToday)} today</span>}
-        </span>
-        <span className="mc-ro__l2">
-          <span className="mc-ro__pv">{r.preview}</span>
-          <span className="mc-ro__step">{r.step}</span>
-          <RowCount r={r} />
-        </span>
-      </span>
+      <span className="mc-ro__n">{r.name}</span>
+      <RowDot r={r} />
     </Link>
   );
 }
 
-/** One shop list row: dashed count badge, name, time, the outcome line. */
+/** One shop list row: list mark, name, and how many shops are on it in the count column. */
 function ListItem({ id, on }: { id: string; on: boolean }) {
   const l = shopLists.find((x) => x.id === id)!;
   const { closeDrawer } = useShell();
   return (
     <Link href={listHref(l.id)} role="listitem" className={cx("mc-ro mf-ro--list", on && "is-on")} aria-current={on ? "page" : undefined} onClick={closeDrawer}>
-      <ListBadge count={l.count} size={36} />
-      <span className="mc-ro__tx">
-        <span className="mc-ro__l1">
-          <span className="mc-ro__n">{l.name}</span>
-          <span className="mc-ro__ago">{l.ago}</span>
-        </span>
-        <span className="mc-ro__l2">
-          <span className="mc-ro__pv">{l.preview}</span>
-        </span>
+      <span className="mc-ro__mk" aria-hidden="true">
+        <Icon name="list-checks" />
       </span>
+      <span className="mc-ro__n">{l.name}</span>
+      <span className="mc-nav__k">{l.count}</span>
     </Link>
   );
 }
@@ -397,9 +358,9 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           <span className="mc-ini" aria-hidden="true">
             {me.initials}
           </span>
+          {/* one line: the company is the workspace header's job, not a second footer line */}
           <span className="mc-me__tx" title={`${me.name} · ${me.company}`}>
             <span className="mc-me__nm">{me.name}</span>
-            <small>{me.company}</small>
           </span>
           <SoundToggle className="mc-ib" />
           <ThemeToggle className="mc-ib" />

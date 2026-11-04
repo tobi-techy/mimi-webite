@@ -9,6 +9,9 @@ import type { Conversation, DemoState, HelperName } from "@/features/console/dem
  * Demo data only: the outcomes and costs below are synthetic and match the seeded threads.
  */
 
+/** The preview of a helper with nothing done yet. Screens that show no meta line for it compare against this. */
+export const NOTHING_YET = "Nothing yet";
+
 /** What a helper's face shows. Mapped from job state in the product (RAI-298 approach 1). */
 export type FaceState = "idle" | "working" | "waiting" | "blocked" | "done";
 export type RosterName = HelperName | "Mimi";
@@ -180,7 +183,7 @@ export function rosterRow(
     if (!live) state = cards > 0 ? "waiting" : where ? threadFaceState(where.helper === name ? where : { state: "idle" }) : "idle";
     /* Mimi's row reads her own lines only: what other helpers said lives in their chats */
     if (name === "Mimi") preview = total ? needsLine(total) : act.last?.text ?? "Ask me anything";
-    else preview = act.last?.text ?? thread?.preview ?? "Nothing yet";
+    else preview = act.last?.text ?? thread?.preview ?? NOTHING_YET;
     if (!live) step = cards > 0 ? "Waiting on you" : act.last && name !== "Mimi" ? "Waiting for your next message" : where ? `${where.status.charAt(0).toUpperCase()}${where.status.slice(1)}` : "Waiting for work";
     const ago = act.last ? agoLabel(act.last.at, now) : thread?.ago ?? "";
     return { name, state, needs: cards, preview, step, ago, costToday: 0, steps: 0, thread: where, unread: act.unread, shared };
