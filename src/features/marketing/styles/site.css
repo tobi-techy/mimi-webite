@@ -268,21 +268,9 @@ body {
   .x-burger {
     display: block;
   }
+  /* full-height sheet over the page, under the nav bar; see "mobile menu sheet" below */
   .x-mmenu {
     display: block;
-    max-height: 0;
-    overflow: hidden;
-    visibility: hidden;
-    transition:
-      max-height 0.4s var(--x-ease),
-      visibility 0s 0.4s;
-    background: var(--x-paper);
-  }
-  .x-nav.is-open .x-mmenu {
-    max-height: 480px;
-    visibility: visible;
-    transition: max-height 0.4s var(--x-ease);
-    border-top: 1px solid var(--x-line);
   }
   .x-mmenu a.x-ml {
     display: flex;
@@ -2817,9 +2805,6 @@ body {
   .x-mmenu a.x-ml {
     border-color: var(--x-line);
   }
-  .x-nav.is-open .x-mmenu {
-    border-top-color: var(--x-line);
-  }
 }
 
 /* outline cards */
@@ -4324,11 +4309,6 @@ body {
   }
 }
 /* ===== blog (#/blog, #/blog/<slug>) ===== */
-@media (max-width: 860px) {
-  .x-nav.is-open .x-mmenu {
-    max-height: 560px;
-  }
-}
 .x-bfilters {
   display: flex;
   flex-wrap: wrap;
@@ -5269,18 +5249,6 @@ body {
 }
 
 /* ===== UX pass 2026-10-25 ===== */
-/* mobile menu: the page behind it does not scroll; a short (landscape) screen scrolls the menu itself */
-html.x-menu-open,
-html.x-menu-open body {
-  overflow: hidden;
-}
-@media (max-width: 860px) {
-  .x-nav.is-open .x-mmenu {
-    max-height: min(560px, calc(100dvh - 110px));
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-}
 /* hero hint: `.x-site p { margin: 0 }` was eating its 14px gap under the channel strip */
 .x-site .x-hint {
   margin-top: 14px;
@@ -5658,4 +5626,114 @@ html.x-menu-open body {
 }
 .x-bk-hset.is-bright .mimi-helper:not([data-helper="mimi"]) {
   --h-eye: #101010;
+}
+
+/* ===== mobile nav 2026-10-30 ===== */
+/* The page must not get a scroll container of its own: `overflow-x: hidden` on body (hark.css)
+   turns into one as soon as the root's overflow changes, and the sticky nav then sticks to body
+   instead of the viewport. `clip` cuts sideways overflow without ever scrolling. */
+body {
+  overflow-x: clip;
+}
+/* sticky bar that clears the notch when the page runs edge to edge */
+.x-nav {
+  position: sticky;
+  top: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.x-nav.is-open {
+  z-index: 90; /* over the WhatsApp button and the scroll hairline */
+}
+/* scroll lock: only the root (the viewport) stops scrolling, so the page stays where it was.
+   NavFrame also blocks stray touch scrolling and pads the scrollbar gap on desktop browsers. */
+html.x-menu-open {
+  overflow: hidden;
+}
+html.x-menu-open body {
+  padding-right: var(--x-sbw, 0px);
+}
+/* burger -> X: transform only, so it never passes through odd shapes mid-way */
+.x-burger span {
+  transition: transform var(--x-ui);
+}
+.x-nav.is-open .x-burger span:nth-child(1) {
+  top: 17px;
+  transform: translateY(4px) rotate(45deg);
+}
+.x-nav.is-open .x-burger span:nth-child(2) {
+  top: 25px;
+  transform: translateY(-4px) rotate(-45deg);
+}
+/* mobile menu sheet: fixed, full height, above the page and under the nav bar */
+@media (max-width: 860px) {
+  .x-nav .x-nav__in {
+    position: relative;
+    z-index: 2;
+  }
+  .x-mmenu {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    height: 100vh;
+    height: 100dvh;
+    padding: var(--x-menu-top, 64px) 0 calc(24px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    background: var(--x-canvas);
+    color: var(--x-text);
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.14s var(--x-mech),
+      visibility 0s linear 0.14s;
+  }
+  .x-mmenu__in {
+    display: block;
+    border-top: 1px solid var(--x-line);
+    transform: translateY(-6px);
+    transition: transform 0.14s var(--x-mech);
+  }
+  .x-nav.is-open .x-mmenu {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity var(--x-ui);
+  }
+  .x-nav.is-open .x-mmenu__in {
+    transform: none;
+    transition: transform var(--x-ui);
+  }
+  /* current section: a small status square on its number */
+  .x-mmenu a.x-ml.is-on .x-label {
+    color: var(--x-text);
+  }
+  .x-mmenu a.x-ml.is-on .x-label::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 8px;
+    vertical-align: 1px;
+    background: var(--x-accent);
+  }
+  .x-mmenu a.x-ml.is-on:not(:has(.x-label))::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: var(--x-accent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .x-burger span,
+  .x-mmenu,
+  .x-mmenu__in,
+  .x-nav.is-open .x-mmenu,
+  .x-nav.is-open .x-mmenu__in {
+    transition: none;
+  }
+  .x-mmenu__in {
+    transform: none;
+  }
 }
