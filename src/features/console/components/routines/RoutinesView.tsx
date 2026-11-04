@@ -14,7 +14,7 @@ import { Pill } from "@/features/console/components/ui/Pill";
 import { shopHref } from "@/features/console/config";
 import { parseApiTime } from "@/features/console/api/mappers";
 import { routineAction, routineLook, type Routine } from "@/features/console/content/routines";
-import { readWords, routineLine } from "@/features/console/lib/routine-times";
+import { lastFindingWords, readWords, routineLine } from "@/features/console/lib/routine-times";
 
 /**
  * Routines: the work Mimi does on her own, one row each. The API owns the name, the schedule, the
@@ -102,7 +102,8 @@ export function RoutinesView() {
                 <span className="v2-rows__l">
                   <span>{r.name}</span>
                   <span className="rt-line">{routineLine(r, now)}</span>
-                  {r.finding && (
+                  {/* a never-run routine sends no finding, so the row says "Not run yet" once and never a bare "Last time:" */}
+                  {lastFindingWords(r) && (
                     <span className="rt-line">
                       Last time:{" "}
                       {r.findingShopId ? (

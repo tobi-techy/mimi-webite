@@ -44,6 +44,14 @@ export function routineLine(r: Routine, now: number): string {
   return [r.schedule, lastRunWords(r, now), nextRunWords(r, now)].filter(Boolean).join(" · ");
 }
 
+/**
+ * A finding with its label, or "" when the API sent none (a routine that has never run): the row
+ * then shows "Not run yet" once, in its second line, and not a "Last time:" with nothing after it.
+ */
+export function lastFindingWords(r: Routine): string {
+  return r.finding ? `Last time: ${r.finding}` : "";
+}
+
 /** When the API read both books: "Read today at 9:04 AM". "" when it sent no time. */
 export function readWords(asOf: string, parseTime: (s: string) => number | null, now: number): string {
   const t = parseTime(asOf);

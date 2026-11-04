@@ -10,7 +10,7 @@ import type { Routine } from "@/features/console/content/routines";
 import { findConversation, getDemo, nextId, patchConversation, patchMessage } from "@/features/console/demo/store";
 import type { AskAnswer, Conversation, HelperName, Message, Upload, VoiceAudio, Worker } from "@/features/console/demo/types";
 import { assignFor } from "@/features/console/lib/chat-view";
-import { runOutcome, type RoutineRunOutcome } from "@/features/console/lib/routine-run";
+import { refusalWords, runOutcome, type RoutineRunOutcome } from "@/features/console/lib/routine-run";
 
 /**
  * What the owner does on API threads. The demo engine hands over to these when a thread or card
@@ -248,8 +248,9 @@ export async function liveRunRoutine(id: string): Promise<RoutineRunOutcome> {
     return runOutcome({ row, detail: sentence });
   } catch (e) {
     if (missingRoute(e)) return runOutcome({ row: null, missing: true });
-    /* a refusal carries the API's own sentence; anything else is reported the usual way */
-    const detail = e instanceof MimiApiError ? e.detail : "";
+    /* a refusal carries the API's own sentence (409, or the route's own 404); anything else is ours */
+    const err = e instanceof MimiApiError ? e : new MimiApiError(-1, "");
+    const detail = refusalWords(err.status, err.detail);
     if (!detail) report(e);
     return runOutcome({ row: null, detail });
   }

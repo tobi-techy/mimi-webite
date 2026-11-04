@@ -32,6 +32,7 @@ import type {
 import { RETURNS_PATH } from "@/features/console/lib/returns-contract";
 import { ROUTINES_PATH, routinePausePath, routineResumePath, routineRunPath } from "@/features/console/lib/routines-contract";
 import { BOOKS_PATH } from "@/features/console/lib/two-books-contract";
+import { routeMissing } from "@/features/console/lib/missing-route";
 
 /**
  * The one typed client for the MIMI-AGENT API. Nothing else in the console calls fetch.
@@ -288,8 +289,12 @@ export const mimiApi = {
   event: (token: string, body: ApiEventIn) => call<{ turn_id?: string; thread_id?: string } & Record<string, unknown>>("/v1/events", { method: "POST", token, body, retries: 1 }),
 };
 
-/** A route this API build does not have yet (an older demo host): the console falls back to its own copy. */
-export const missingRoute = (e: unknown): boolean => e instanceof MimiApiError && (e.status === 404 || e.status === 405) && (!e.detail || /^not found$/i.test(e.detail.trim()));
+/**
+ * A route this API build does not have yet (an older demo host): the console falls back to its own
+ * copy. "Not available yet" is only ever said for the body FastAPI sends for a path it does not
+ * serve, never for a 404 the route itself wrote (see lib/missing-route.ts).
+ */
+export const missingRoute = (e: unknown): boolean => e instanceof MimiApiError && routeMissing(e.status, e.detail);
 
 /**
  * Fetches an absolute URL as a Blob, so a computer task's step screenshot can be shown from a
