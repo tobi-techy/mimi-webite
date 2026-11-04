@@ -3,12 +3,14 @@
 import { attachLabel, checkAttachment, uploadRefusal, type AttachPurpose } from "@/features/console/api/attachments";
 import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { apiActive, getLive, notify, setLive } from "@/features/console/api/live-store";
-import { capText, friendlyMessage } from "@/features/console/api/mappers";
+import { capText, friendlyMessage, readRunRow } from "@/features/console/api/mappers";
 import { newSession, readSession, writeSession } from "@/features/console/api/session";
 import { authed, held, localMedia, openTurns, pending, refresh, refreshRoutines, republish, report, resetCaches, sentFrom, undone } from "@/features/console/api/sync";
+import type { Routine } from "@/features/console/content/routines";
 import { findConversation, getDemo, nextId, patchConversation, patchMessage } from "@/features/console/demo/store";
 import type { AskAnswer, Conversation, HelperName, Message, Upload, VoiceAudio, Worker } from "@/features/console/demo/types";
 import { assignFor } from "@/features/console/lib/chat-view";
+import { runOutcome, type RoutineRunOutcome } from "@/features/console/lib/routine-run";
 
 /**
  * What the owner does on API threads. The demo engine hands over to these when a thread or card
@@ -223,6 +225,33 @@ export async function liveSetRoutinePaused(id: string, paused: boolean): Promise
     if (missingRoute(e)) void refresh(true);
     else report(e);
     return false;
+  }
+}
+
+/**
+ * Run one routine now (POST /v1/routines/{id}/run): for the owner who wants today's brief before the
+ * routine's own tick. The row is not changed from here: the list is re-read, so the screen shows the
+ * API's own last-run state. A refusal is shown in the API's own sentence, never as a success, and a
+ * route this server does not have says so (`missing`) so the rail can stop offering the control.
+ */
+export async function liveRunRoutine(id: string): Promise<RoutineRunOutcome> {
+  let row: Routine | null = null;
+  let sentence = "";
+  try {
+    await authed(async (t) => {
+      const answer = await mimiApi.runRoutine(t, id);
+      /* an answer that is not the routine's own row is not a run: read it before the re-read */
+      row = readRunRow(answer);
+      sentence = typeof answer?.detail === "string" ? answer.detail : "";
+      if (row) await refreshRoutines(t);
+    });
+    return runOutcome({ row, detail: sentence });
+  } catch (e) {
+    if (missingRoute(e)) return runOutcome({ row: null, missing: true });
+    /* a refusal carries the API's own sentence; anything else is reported the usual way */
+    const detail = e instanceof MimiApiError ? e.detail : "";
+    if (!detail) report(e);
+    return runOutcome({ row: null, detail });
   }
 }
 

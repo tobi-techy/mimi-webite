@@ -594,6 +594,13 @@ export type ApiRoutineList = { routines?: ApiRoutine[]; as_of?: string | null };
 /** The answer to pausing or resuming one routine: its own new state, in words. */
 export type ApiRoutineChange = { id?: string | null; name?: string | null; paused?: boolean | null; note?: string | null };
 
+/**
+ * The answer to running one routine now (POST /v1/routines/{id}/run): the routine's own row, in the
+ * shape the list sends it. The scheduler answers with the row bare, under `routine`, or as a one-row
+ * `routines` list; a refusal carries a `detail` sentence instead, which is read as written.
+ */
+export type ApiRoutineRun = ApiRoutine & { routine?: ApiRoutine | null; routines?: ApiRoutine[] | null; detail?: string | null };
+
 /* ---------- two books (GET /v1/books/agreement) ---------- */
 
 /**

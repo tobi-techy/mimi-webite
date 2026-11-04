@@ -20,6 +20,7 @@ import type {
   ApiPolicy,
   ApiReturnList,
   ApiRoutineChange,
+  ApiRoutineRun,
   ApiRoutineList,
   ApiShopDetail,
   ApiShopList,
@@ -29,7 +30,7 @@ import type {
   ApiTurnIn,
 } from "@/features/console/api/types";
 import { RETURNS_PATH } from "@/features/console/lib/returns-contract";
-import { ROUTINES_PATH, routinePausePath, routineResumePath } from "@/features/console/lib/routines-contract";
+import { ROUTINES_PATH, routinePausePath, routineResumePath, routineRunPath } from "@/features/console/lib/routines-contract";
 import { BOOKS_PATH } from "@/features/console/lib/two-books-contract";
 
 /**
@@ -244,6 +245,8 @@ export const mimiApi = {
   /** Pauses or resumes one routine. A write never retries: deciding twice is not idempotent. */
   pauseRoutine: (token: string, id: string) => call<ApiRoutineChange>(routinePausePath(id), { method: "POST", token }),
   resumeRoutine: (token: string, id: string) => call<ApiRoutineChange>(routineResumePath(id), { method: "POST", token }),
+  /** Run one routine now. Never retried: a second run on the same day is refused by the API's own claim. */
+  runRoutine: (token: string, id: string) => call<ApiRoutineRun>(routineRunPath(id), { method: "POST", token }),
   /** The two books comparison: Mimi's outstanding against Zoho Books', per shop and as a total. */
   booksAgreement: (token: string, o: Sig = {}) => call<ApiBooksAgreement>(BOOKS_PATH, { token, ...o }),
 

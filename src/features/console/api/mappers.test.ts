@@ -441,19 +441,31 @@ test("zoho_payment approval: a plain Record card, then Recorded in Zoho with Und
   assert.equal(pending.kind, "zoho");
   assert.equal(pending.title, "Record ₦34,950 from Mama Chidi Kiosk in Zoho Books");
   assert.equal(pending.labels?.primary, "Record in Zoho");
+  assert.equal(pending.doneText, "Recorded in Zoho Books against the invoice", "the line it will show once really sent");
   assert.ok(!JSON.stringify(pending).includes("mimi-zp-1"), "no internal reference in the card");
   const done = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: true, demo: true } }, "")!;
   assert.equal(done.status, "sent");
-  assert.equal(done.doneText, "Recorded in Zoho");
   assert.deepEqual(done.undo, { state: "ready" });
-  /* the decided card carries whether the API's write was demo only, and when it was decided */
+  /* a demo-only write claims no real one: the card says so in its own words, and never "Recorded in Zoho" */
   assert.equal(done.demoOnly, true);
+  assert.equal(done.doneText, "Demo only: no real record changed.");
+  assert.ok(!JSON.stringify(done).includes("Recorded in Zoho"), JSON.stringify(done.doneText));
+  /* a real write says which book it landed in and what it went against */
+  const real = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "zp_1", undo_available: true } }, "")!;
+  assert.equal(real.doneText, "Recorded in Zoho Books against the invoice");
+  assert.equal(real.demoOnly, undefined);
+  /* the decided card carries whether the API's write was demo only, and when it was decided */
   assert.equal(done.decidedAt, undefined, "no decided_at, so no time to show");
-  const timed = mapApprovalCard({ ...a, status: "approved", decided_at: "Thu 2026-11-05 09:00 AM WAT (UTC+01:00)" }, "")!;
+  const timed = mapApprovalCard({ ...a, status: "approved", result: { demo: true }, decided_at: "Thu 2026-11-05 09:00 AM WAT (UTC+01:00)" }, "")!;
   assert.equal(timed.decidedAt, Date.UTC(2026, 10, 5, 8, 0));
-  assert.equal(timed.demoOnly, undefined);
+
   const back = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: false, undone_at: "2026-11-03T08:00:00Z" } }, "")!;
   assert.equal(back.undo?.state, "done");
+  assert.equal(back.undo?.text, "Taken back out of Zoho");
+  /* a demo-only write taken back says the demo words too, never that Zoho took anything out */
+  const backDemo = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", demo: true, undo_available: false, undone_at: "2026-11-03T08:00:00Z" } }, "")!;
+  assert.equal(backDemo.undo?.text, "Demo only: no real record changed.");
+  assert.ok(!JSON.stringify(backDemo).includes("Recorded in Zoho"));
 });
 
 test("credit_over_limit approval: reasons, Approve new limit / Keep limit, Undo by change id", () => {

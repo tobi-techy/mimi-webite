@@ -1,3 +1,5 @@
+/* relative with its extension, like lib/ageing.ts: node --test loads this file without a bundler */
+import { decidedLine, outcomeOf, type DecidedOutcome } from "../content/decisions.ts";
 import type { CardStatus, Conversation, DecisionCard, HelperName } from "@/features/console/demo/types";
 
 /** One item in the Needs you pile: a card somewhere in a thread that waits on the owner. */
@@ -58,9 +60,6 @@ export function needItems(conversations: Conversation[]): NeedItem[] {
 export const needCount = (conversations: Conversation[]) =>
   conversations.reduce((n, c) => n + c.messages.filter((m) => m.kind === "card" && m.card.status === "needs").length, 0);
 
-/** How a decided card ended: approved, declined, or an approval the owner took back. */
-export type DecidedOutcome = "approved" | "declined" | "undone";
-
 /** One decided card as the needs screen's history row: what it was, how it ended, and when. */
 export type DecidedItem = {
   key: string;
@@ -72,22 +71,12 @@ export type DecidedItem = {
   shop?: string;
   amount?: number;
   outcome: DecidedOutcome;
-  /** One line saying how it ended, in the console's own words (or the demo caveat in their place). */
+  /** One line saying how it ended, worded by content/decisions.ts (the card reads the same words). */
   line: string;
   /** When the owner decided, epoch ms. 0 when the API sent no time. */
   decidedAt: number;
   conv: Conversation;
 };
-
-/** The outcome in one word: the three states a card can be left in. */
-export const outcomeWords = (o: DecidedOutcome): string => (o === "approved" ? "Approved" : o === "declined" ? "Declined" : "Undone");
-
-/**
- * The API said the write was demo only (`result.demo`): the row says this instead of the card's own
- * done line, which would read as a change to a real book (the rehearsal's approved shop payment came
- * back `{"demo": true, "zoho_payment_id": "zfake_…"}`, and nothing reached Zoho Books).
- */
-export const demoOnlyLine = "Demo only: no real record changed.";
 
 /**
  * Decided cards (approved, declined, taken back), newest first. This is the history under the pile:
@@ -100,7 +89,7 @@ export function decidedItems(conversations: Conversation[]): DecidedItem[] {
     for (const m of conv.messages) {
       if (m.kind !== "card" || m.card.status === "needs" || m.card.status === "sending") continue;
       const c = m.card;
-      const outcome: DecidedOutcome = c.undo?.state === "done" ? "undone" : c.status === "declined" ? "declined" : "approved";
+      const outcome = outcomeOf(c);
       out.push({
         key: `${conv.slug}:${m.id}`,
         slug: conv.slug,
@@ -111,7 +100,7 @@ export function decidedItems(conversations: Conversation[]): DecidedItem[] {
         shop: c.shop,
         amount: amountOf(c),
         outcome,
-        line: c.demoOnly ? demoOnlyLine : outcome === "undone" ? c.undo?.text ?? "Taken back" : outcome === "declined" ? c.declinedText ?? "Declined" : c.doneText,
+        line: decidedLine({ outcome, kind: c.kind, doneText: c.doneText, declinedText: c.declinedText, undoText: c.undo?.text, demoOnly: c.demoOnly }),
         decidedAt: c.decidedAt ?? 0,
         conv,
       });

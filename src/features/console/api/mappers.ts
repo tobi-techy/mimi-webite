@@ -1,11 +1,13 @@
 /**
  * Pure mappers from MIMI-AGENT API responses to the console's existing demo types, so every
- * screen keeps rendering with the same components. Type imports only (no runtime imports), so
- * `node --test` can run the tests in mappers.test.ts without a bundler.
+ * screen keeps rendering with the same components. Imports stay pure and relative (the content
+ * modules, and nothing that needs a bundler), so `node --test` can run the tests in
+ * mappers.test.ts without one.
  *
  * Rule: never invent a figure. A value the API does not have (sell-through, score, sales this week)
  * is marked through `Shop.live` and the screens show a dash instead.
  */
+import { decidedLine, outcomeOf } from "../content/decisions.ts";
 import type { BooksAgreement, BooksMoney, BooksShop } from "../content/books";
 import type { CreditLine, CreditRecommendation } from "../content/credit";
 import type { Exposure, ExposureShop } from "../content/exposure";
@@ -28,6 +30,7 @@ import type {
   ApiReturn,
   ApiReturnList,
   ApiRoutineList,
+  ApiRoutineRun,
   ApiShop,
   ApiShopDetail,
   ApiStep,
@@ -232,7 +235,11 @@ export type OverLimitPayload = { shop_name: string; order_ngn: number; limit_ngn
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
-/** "Record ₦500,000 from Mama Sola in Zoho Books": after approve, "Recorded in Zoho" with Undo. */
+/**
+ * "Record ₦500,000 from Mama Sola in Zoho Books"; after approve, the shared rule in
+ * content/decisions.ts words the line (a real write names Zoho Books and the invoice, a demo-only
+ * one says so in its own words) with Undo under it.
+ */
 export function zohoCard(p: ZohoPayload, status: CardStatus, opts: { undo?: DecisionCard["undo"]; sentAt?: string } = {}): DecisionCard {
   const amount = Math.round(p.amount_ngn);
   const shop = nairaSign(p.shop_name) || "A shop";
@@ -252,6 +259,7 @@ export function zohoCard(p: ZohoPayload, status: CardStatus, opts: { undo?: Deci
     labels: { primary: "Record in Zoho", secondary: "Not now" },
     status,
     sentAt: opts.sentAt,
+    /* rewritten by the shared rule when the card is mapped: never rendered as written here */
     doneText: "Recorded in Zoho",
     declinedText: "Not recorded",
     undo: opts.undo,
@@ -345,8 +353,28 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
     ...(decided !== null ? { decidedAt: decided } : {}),
     ...(a.result?.demo === true ? { demoOnly: true } : {}),
   };
+  /**
+   * One card, worded by the shared rule (content/decisions.ts), so the in-thread card and the
+   * decided row on Needs you cannot claim different things about the same write.
+   */
+  const worded = (c: DecisionCard): DecisionCard => {
+    const outcome = outcomeOf(c);
+    const line = decidedLine({
+      outcome,
+      kind: c.kind,
+      doneText: c.doneText,
+      declinedText: c.declinedText,
+      undoText: c.undo?.text,
+      demoOnly: c.demoOnly,
+    });
+    if (outcome === "declined") return { ...c, declinedText: line };
+    /* an undone card shows its undo line; a demo-only card shows the demo words in both places, so
+       neither the done line nor the line under an undo can read as a real write */
+    if (outcome === "undone") return { ...c, ...(c.demoOnly ? { doneText: line } : {}), ...(c.undo ? { undo: { ...c.undo, text: line } } : {}) };
+    return { ...c, doneText: line };
+  };
   const wired = wiredCard(a, status, decided !== null ? clockLabel(decided) : undefined, undone);
-  if (wired) return { ...wired, ...decidedFields };
+  if (wired) return worded({ ...wired, ...decidedFields });
   const kind = cardKindOf(a.tool || a.intent_kind);
   const amount = payloadAmount(a.payload);
   const helper = helperOf(a.helper);
@@ -356,7 +384,7 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
   const subject = typeof a.payload?.subject === "string" ? a.payload.subject : "";
   const body = typeof a.payload?.body === "string" ? a.payload.body : a.draft?.text ?? "";
   const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.brand === "string" ? a.payload.brand : "";
-  return {
+  return worded({
     kind,
     tier: "Approve",
     shop: shopName || undefined,
@@ -373,7 +401,7 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
     sentAt: decided !== null ? clockLabel(decided) : undefined,
     doneText: a.draft ? "Approved, Mimi sends it" : "Approved by you",
     ...decidedFields,
-  };
+  });
 }
 
 const STEP_ICONS: [RegExp, NonNullable<Extract<Message, { kind: "step" }>["icon"]>][] = [
@@ -1191,6 +1219,20 @@ export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | un
 export function routinesAnswerReadable(l: ApiRoutineList, rows: readonly Routine[]): boolean {
   if (!Array.isArray(l.routines)) return false;
   return l.routines.length === 0 || rows.length > 0;
+}
+
+/**
+ * The routine's own row inside a run answer, or null when the answer is not one. The console must
+ * never read a refusal, or a shape it does not know, as a run that happened: null here means "not
+ * started", whatever the HTTP status said. The scheduler answers with the row bare, under `routine`,
+ * or as a one-row `routines` list, because it is the same object the list sends.
+ */
+export function readRunRow(body: unknown): Routine | null {
+  const b = (body ?? {}) as ApiRoutineRun;
+  const one = b.routine ?? (Array.isArray(b.routines) ? b.routines[0] : b);
+  if (!one || typeof one !== "object") return null;
+  const rows = mapRoutines({ routines: [one] }, parseApiTime).routines;
+  return rows.length === 1 ? rows[0]! : null;
 }
 
 /* ---------- two books (GET /v1/books/agreement) ---------- */

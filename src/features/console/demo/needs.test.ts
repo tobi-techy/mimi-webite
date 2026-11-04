@@ -6,7 +6,10 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decidedItems, demoOnlyLine, needItems, needsHeadline, outcomeWords } from "./needs.ts";
+import { decidedItems, needItems, needsHeadline } from "./needs.ts";
+import { demoOnlyLine, outcomeWords } from "../content/decisions.ts";
+import { mapApprovalCard } from "../api/mappers.ts";
+import type { ApiApproval } from "../api/types.ts";
 import type { Conversation, DecisionCard, Message } from "./types.ts";
 
 const T0 = Date.UTC(2026, 10, 5, 9, 0);
@@ -79,7 +82,7 @@ test("one approved and one rejected approval: off all clear, both in the decided
     decided.map((d) => [outcomeWords(d.outcome), d.line, d.shop, d.amount, d.decidedAt]),
     [
       ["Declined", "Not recorded", "Mama Chidi Kiosk", 34950, at(30)],
-      ["Approved", "Recorded in Zoho", "Mama Chidi Kiosk", 34950, at(0)],
+      ["Approved", "Recorded in Zoho Books against the invoice", "Mama Chidi Kiosk", 34950, at(0)],
     ],
   );
 });
@@ -100,6 +103,41 @@ test("an approval taken back reads as undone, in the card's own words", () => {
   assert.equal(decided[0]!.outcome, "undone");
   assert.equal(outcomeWords("undone"), "Undone");
   assert.equal(decided[0]!.line, "Taken back out of Zoho");
+});
+
+test("the card and the decided row read the same words for one write", () => {
+  /* one approval, mapped once, read by both surfaces: the card's done line and the row's line */
+  const a: ApiApproval = {
+    approval_id: "apr-1",
+    status: "approved",
+    helper: "proof",
+    skill: "proof/confirm_payment",
+    shop_id: "shop-035",
+    thread_id: "demo-1:shop:shop-035",
+    turn_id: "t1",
+    tool: "record_zoho_payment",
+    intent_kind: "zoho_payment",
+    kind: "zoho_payment",
+    preview: "Record ₦34,950 from Mama Chidi Kiosk in Zoho Books",
+    payload: { kind: "zoho_payment", shop_name: "Mama Chidi Kiosk", amount_ngn: 34950 },
+    draft: null,
+    created_at: "2026-11-05T09:00:00+01:00",
+    decided_at: "2026-11-05T09:10:00+01:00",
+    decided_by: "owner",
+    note: "",
+    supersedes: null,
+    superseded_by: null,
+    result: { zoho_payment_id: "zfake_5f3a91", demo: true, undo_available: true },
+  };
+  const card = mapApprovalCard(a, "Mama Chidi Kiosk")!;
+  const row = decidedItems([conv([cardMsg("apr:apr-1", card)])])[0]!;
+  assert.equal(card.doneText, "Demo only: no real record changed.");
+  assert.equal(row.line, card.doneText);
+  assert.ok(!JSON.stringify(card).includes("Recorded in Zoho"));
+  /* and a real write, on the same path: the book it landed in, and what it went against */
+  const real = mapApprovalCard({ ...a, approval_id: "apr-2", result: { zoho_payment_id: "zp_1", undo_available: true } }, "Mama Chidi Kiosk")!;
+  assert.equal(real.doneText, "Recorded in Zoho Books against the invoice");
+  assert.equal(decidedItems([conv([cardMsg("apr:apr-2", real)])])[0]!.line, real.doneText);
 });
 
 test("a card still waiting on the owner stays in the pile, not in the decided list", () => {

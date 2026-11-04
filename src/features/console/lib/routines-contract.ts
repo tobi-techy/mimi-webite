@@ -37,6 +37,19 @@
  * `POST /v1/routines/{id}/pause` and `POST /v1/routines/{id}/resume` (owner key), each answering
  * `{ "id": "morning_brief", "name": "Morning briefing", "paused": true }`.
  *
+ * `POST /v1/routines/{id}/run` (owner key, 4 Nov 2026): start one routine now, for the owner who
+ * wants today's brief before its 8:00 AM tick. It answers **the routine's own row, in the shape the
+ * list sends it**; the console reads that row bare (`{id, name, …}`), under `routine`, or as a
+ * one-row `routines` list, because it is the same object. Anything else is **not** a success: the row
+ * keeps the API's state and the console says it could not start it, rather than showing a run that
+ * did not happen.
+ *
+ * The run is refused when the day's run already happened or the routine is paused. A refusal is shown
+ * in the API's own words (HTTP 4xx with a `detail` sentence, the shape every other route's error
+ * takes), never re-worded here: a refusal read as a success would claim a run that did not happen.
+ * A 404/405 with no sentence is this server not having the route at all, and the console then hides
+ * Run now on the whole rail instead of offering a control that cannot work.
+ *
  * An answer this console does not recognise reads as "not available yet", never as an empty rail: a
  * renamed `routines` field, or a list where no row could be read (no id, or a name that is a machine
  * token), is a shape we do not know, not "Mimi runs nothing". `{"routines": []}` is an honest empty
@@ -45,3 +58,4 @@
 export const ROUTINES_PATH = "/v1/routines";
 export const routinePausePath = (id: string): string => `${ROUTINES_PATH}/${encodeURIComponent(id)}/pause`;
 export const routineResumePath = (id: string): string => `${ROUTINES_PATH}/${encodeURIComponent(id)}/resume`;
+export const routineRunPath = (id: string): string => `${ROUTINES_PATH}/${encodeURIComponent(id)}/run`;

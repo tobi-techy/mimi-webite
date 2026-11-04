@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { liveSetRoutinePaused } from "@/features/console/api/actions";
+import { liveRunRoutine, liveSetRoutinePaused } from "@/features/console/api/actions";
 import { useRoutines } from "@/features/console/api/hooks";
 import { refresh } from "@/features/console/api/sync";
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
@@ -34,6 +34,10 @@ export function RoutinesView() {
   /* the times are worded once, when the screen opens: they are words, not a running clock */
   const [now] = useState(() => Date.now());
   const [busy, setBusy] = useState("");
+  /* what the API answered last time it refused a run, in its own words, per row */
+  const [refused, setRefused] = useState<{ id: string; text: string } | null>(null);
+  /* this server has no run route: the control goes away rather than sitting there unable to work */
+  const [noRun, setNoRun] = useState(false);
 
   if (loading) return <SkeletonRows count={4} />;
   if (missing) return <NotYet />;
@@ -57,8 +61,23 @@ export function RoutinesView() {
   const change = async (r: Routine) => {
     if (busy) return;
     setBusy(r.id);
+    setRefused(null);
     await liveSetRoutinePaused(r.id, !r.paused);
     setBusy("");
+  };
+  /*
+   * Run now: the owner who wants today's brief before its own tick. The row says it is running while
+   * the request is in flight, so it never looks inert and cannot be tapped twice; a refusal is shown
+   * in the API's own sentence, and a server without the route loses the control entirely.
+   */
+  const start = async (r: Routine) => {
+    if (busy) return;
+    setBusy(r.id);
+    setRefused(null);
+    const out = await liveRunRoutine(r.id);
+    setBusy("");
+    if (out.missing) setNoRun(true);
+    else if (!out.started) setRefused({ id: r.id, text: out.note });
   };
   const running = routines.filter((r) => !r.paused).length;
   /* a row that says "last ran at 8:00" without a date invites the argument a reconciliation needs a date for */
@@ -101,21 +120,38 @@ export function RoutinesView() {
                     </span>
                   )}
                   {r.paused && r.pausedReason && <span className="rt-line">Paused: {r.pausedReason}</span>}
+                  {refused?.id === r.id && <span className="rt-line rt-run__no">{refused.text}</span>}
                 </span>
                 <span className="rt-act v2-rows__r">
-                  <Pill tone={look.tone}>{look.label}</Pill>
-                  <Button size="sm" variant="ghost" disabled={busy === r.id} onClick={() => void change(r)}>
-                    {routineAction(r)}
-                  </Button>
+                  {busy === r.id ? (
+                    <span className="mc-nr__st mc-mono" role="status">
+                      <i className="mc-spin" aria-hidden="true" />
+                      Running
+                    </span>
+                  ) : (
+                    <>
+                      {!noRun && !r.paused && (
+                        <Button size="sm" variant="ghost" onClick={() => void start(r)} aria-label={`Run ${r.name} now`}>
+                          Run now
+                        </Button>
+                      )}
+                      <Pill tone={look.tone}>{look.label}</Pill>
+                      <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => void change(r)}>
+                        {routineAction(r)}
+                      </Button>
+                    </>
+                  )}
                 </span>
               </li>
             );
           })}
         </ul>
       </div>
+      {noRun && <p className="x-sub">This server can&apos;t start a routine by hand yet, so Run now is not offered.</p>}
       <p className="x-sub">
         A paused routine does not run, and it says why it was paused. Resuming puts it back on its
-        schedule. Nothing else on this screen changes what Mimi does.
+        schedule. Run now starts one straight away, and the API refuses it when the day&apos;s run
+        already happened or the routine is paused.
       </p>
     </>
   );
