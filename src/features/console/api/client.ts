@@ -2,6 +2,10 @@ import { MIMI_API_URL } from "@/features/console/api/config";
 import { errorKind, type ErrorKind } from "@/features/console/api/mappers";
 import type {
   ApiApprovalList,
+  ApiComputerKinds,
+  ApiComputerTask,
+  ApiComputerTaskIn,
+  ApiComputerTaskList,
   ApiConnect,
   ApiConnectorCallback, ApiConnectorList, ApiConnectorRead,
   ApiCredit,
@@ -229,6 +233,22 @@ export const mimiApi = {
   /** Credit exposure: the API's own ageing buckets and its age-weighted figure. */
   exposure: (token: string, o: Sig = {}) => call<ApiExposure>("/v1/credit/exposure", { token, ...o }),
 
+  /* ---- computer tasks: a hosted cloud browser, one per task (owner approves the whole task) ---- */
+  /** The list route is optional (the API may not have it yet): a 404/405 means "not available", not an error. */
+  computerTasks: (token: string, o: Sig = {}) => call<ApiComputerTaskList>("/v1/computer/tasks", { token, ...o }),
+  /** The kinds the service takes, with its own labels: the single source, never hardcoded here. */
+  computerKinds: (token: string, o: Sig = {}) => call<ApiComputerKinds>("/v1/computer/kinds", { token, ...o }),
+  computerTask: (token: string, id: string, o: Sig = {}) => call<ApiComputerTask>(`/v1/computer/tasks/${q(id)}`, { token, ...o }),
+  /** Proposes a task. Never retried: re-sending would start a second run. */
+  createComputerTask: (token: string, body: ApiComputerTaskIn) =>
+    call<ApiComputerTask>("/v1/computer/tasks", { method: "POST", token, body }),
+  /** The owner approves the whole task once; it then runs under hard guardrails. Never retried. */
+  approveComputerTask: (token: string, id: string) =>
+    call<ApiComputerTask>(`/v1/computer/tasks/${q(id)}/approve`, { method: "POST", token }),
+  /** Stops a running task. Never retried. */
+  stopComputerTask: (token: string, id: string) =>
+    call<ApiComputerTask>(`/v1/computer/tasks/${q(id)}/stop`, { method: "POST", token }),
+
   /* ---- demo wiring (writes never retry) ---- */
   /** The owner sets a shop's credit limit (whole naira). */
   setLimit: (token: string, shopId: string, amount: number, reason?: string) =>
@@ -253,3 +273,33 @@ export const mimiApi = {
 
 /** A route this API build does not have yet (an older demo host): the console falls back to its own copy. */
 export const missingRoute = (e: unknown): boolean => e instanceof MimiApiError && (e.status === 404 || e.status === 405) && (!e.detail || /^not found$/i.test(e.detail.trim()));
+
+/**
+ * Fetches an absolute URL as a Blob, so a computer task's step screenshot can be shown from a
+ * `blob:` URL and no bearer ever reaches an `<img src>`. The caller decides whether this URL needs
+ * the session token (only the API's own origin does); a URL that needs none is read without one.
+ */
+export async function fetchBlobAt(url: string, token: string | null, signal?: AbortSignal): Promise<Blob> {
+  const ctrl = new AbortController();
+  const onAbort = () => ctrl.abort();
+  signal?.addEventListener("abort", onAbort, { once: true });
+  const timer = setTimeout(() => ctrl.abort(), 30_000);
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: "*/*", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      signal: ctrl.signal,
+      cache: "no-store",
+      credentials: "omit",
+    });
+    if (!res.ok) throw new MimiApiError(res.status, "");
+    return await res.blob();
+  } catch (e) {
+    if (e instanceof MimiApiError) throw e;
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    throw new MimiApiError(0, "unreachable");
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+

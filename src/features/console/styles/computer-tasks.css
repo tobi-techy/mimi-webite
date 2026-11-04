@@ -1,0 +1,425 @@
+/*
+ * Computer tasks: one hosted cloud browser per task, approved once by the owner. Neutral surfaces
+ * and hairline rows, like the rest of the console; `#ee6018` stays for status marks only.
+ */
+
+/* ---------- not available yet ---------- */
+.x-ctna {
+  display: flex;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.x-ctna__i {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted);
+}
+.x-ctna__tx {
+  min-width: 0;
+}
+.x-ctna__tx h2 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.x-ctna__tx p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.x-ctna__tx p + p {
+  margin-top: 8px;
+}
+.x-ctna__keep {
+  color: var(--soft) !important;
+}
+
+/* ---------- the two things this prototype does not do ---------- */
+.x-ctny {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hair);
+}
+.x-ctny h2 {
+  margin: 0 0 12px;
+  font: 400 12px/1.5 var(--font-geist-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--soft);
+}
+.x-ctny ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.x-ctny li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink);
+}
+html[data-theme="dark"] .x-ctny li {
+  border-bottom-color: #1d1a18;
+}
+.x-ctny p {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---------- list ---------- */
+.x-ctskels {
+  margin-top: 24px;
+}
+.x-ctwarn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--red);
+}
+.x-ctwarn .i {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+}
+.x-ctrow__a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.x-ctrow__t {
+  color: var(--ink);
+}
+.x-ctrow__where {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 46ch;
+}
+
+/* ---------- detail: header ---------- */
+.x-ctdh {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.x-ctdh__t {
+  flex: 1;
+  min-width: 240px;
+  min-width: 0;
+}
+.x-ctdh h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.x-ctdh__m {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.x-ctdh__w {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.x-ctacts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+}
+.x-ctnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-lg);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--soft);
+}
+.x-ctnote .i {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--green);
+}
+
+/* ---------- detail: steps and side ---------- */
+.x-ctcols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  margin-top: 28px;
+}
+.x-ctside {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.x-ctempty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.x-ctsteps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hair);
+}
+.x-ctsteps > li {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+html[data-theme="dark"] .x-ctsteps > li {
+  border-bottom-color: #1d1a18;
+}
+.x-ctstep__n {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  margin-top: 1px;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-sm);
+  font: 400 11px/1 var(--font-geist-mono), ui-monospace, monospace;
+  color: var(--muted);
+}
+.x-ctstep__b {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.x-ctstep__a {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.x-ctstep__u {
+  margin: 0;
+  font: 400 11.5px/1.4 var(--font-geist-mono), ui-monospace, monospace;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.x-ctstep__nt {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--soft);
+  white-space: pre-wrap;
+}
+
+/* ---------- screenshots (blob: URLs only) ---------- */
+.x-ctss {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.x-ctss--none,
+.x-ctss--bad {
+  padding: 10px 12px;
+  border: 1px dashed var(--hair);
+  border-radius: var(--radius-sm);
+}
+.x-ctss--bad {
+  color: var(--red);
+  border-style: solid;
+}
+.x-ctss--load {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+  background: var(--tint);
+}
+.x-ctss__img {
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* ---------- plan and files ---------- */
+.x-ctplan {
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: decimal;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--soft);
+}
+.x-ctfiles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hair);
+}
+.x-ctfiles li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+}
+html[data-theme="dark"] .x-ctfiles li {
+  border-bottom-color: #1d1a18;
+}
+.x-ctfiles .i {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--muted);
+}
+.x-ctfiles a {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.x-ctfiles a:hover {
+  text-decoration: underline;
+}
+.x-ctfile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.x-ctfile .i {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--muted);
+}
+.x-ctfile__n {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.x-ctfile__b {
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.x-ctfile__b:hover:not(:disabled) {
+  color: var(--ink);
+}
+.x-ctfile__b:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.x-ctfile__bad {
+  flex: none;
+  font-size: 12px;
+  color: var(--soft);
+}
+.x-ctlive {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: underline;
+}
+.x-ctlive:hover {
+  text-decoration: none;
+}
+
+/* ---------- new task form ---------- */
+.x-ctform {
+  max-width: 700px;
+  margin-top: 28px;
+}
+.x-ctform__a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.x-ctfield {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.x-ctfield legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+.x-ctkinds {
+  margin-bottom: 22px;
+}
+.x-ctkinds .x-ach2 b {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink);
+}
+.x-ctnote--flat {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.x-ctnote--flat .i {
+  color: var(--muted);
+}
+
+@media (max-width: 899px) {
+  .x-ctcols {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .x-ctdh h1 {
+    font-size: 20px;
+  }
+  .x-ctrow__where {
+    max-width: 100%;
+  }
+}

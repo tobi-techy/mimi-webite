@@ -67,6 +67,7 @@ function paletteItems(lookBack: LookBack, live: PaletteItem[]): PaletteItem[] {
       ["Money at risk", "gauge", consoleRoutes.money],
       ["Returns", "package", consoleRoutes.returns],
       ["Automations", "refresh-cw", consoleRoutes.automations],
+      ["Computer tasks", "monitor", consoleRoutes.computers],
       ["Computers", "monitor", settingsHref("computers")],
     ] as const
   ).forEach(([title, icon, href]) =>

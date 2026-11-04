@@ -8,6 +8,7 @@ import { newSession, sessionToken, writeSession } from "@/features/console/api/s
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
 import { getDemo, isApiBacked, setApiConversations, setDemo } from "@/features/console/demo/store";
+import { taskStore } from "@/features/console/lib/computer-tasks-store";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
@@ -77,6 +78,8 @@ const keeps = (m: Message) => (m.kind === "photos" || m.kind === "voice" || m.ki
 
 export function resetCaches() {
   revokeLocal();
+  /* the computer tasks hold this session's rows, steps and files: a new session must not see them */
+  taskStore.reset();
   localMedia.clear();
   details.clear();
   approvals = [];
