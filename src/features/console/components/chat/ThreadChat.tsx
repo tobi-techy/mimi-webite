@@ -653,6 +653,7 @@ function ThreadChatView({
               )}
           </div>
           <div className="mc-hdr__r">
+            {conv.helper === "Mimi" && !focus && <LiveDemoNote inline />}
             {compHere && !panelOpen && (
               <button
                 type="button"
@@ -689,7 +690,6 @@ function ThreadChatView({
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
-            {conv.helper === "Mimi" && !focus && <LiveDemoNote />}
             {sections.map(({ c, lines, from, task }, i) => (
               <TaskSection
                 key={`${from ?? "own"}:${c.slug}`}

@@ -16,6 +16,17 @@ import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
 
+/** What each helper's inbox will hold once she has work: one line, said before there is any. */
+const willShow: Record<RosterName, string> = {
+  Mimi: "Every ask you send, and which helper took it.",
+  Order: "Each order a shop sends, what is in it and when it ships.",
+  Collector: "Each payment she chases: the shop, the amount and what they replied.",
+  Credit: "Each limit she would change, and why, for your yes.",
+  Stock: "Each count she takes, and any line that runs low.",
+  Brand: "Each sell-out report she sends a brand.",
+  Proof: "Each receipt or slip she checks against the bank.",
+};
+
 const naira = (n: number) => `₦${n.toLocaleString("en-US")}`;
 const runWord = { done: "Done", needs: "Waiting on you", failed: "Failed, retried", run: "Running" } as const;
 
@@ -79,7 +90,8 @@ export function HelperView({ name }: { name: RosterName }) {
         )}
       </div>
       <p className="x-sub">
-        {job}.{" "}
+        {name} {job.charAt(0).toLowerCase() + job.slice(1)}.{" "}
+        {threads.length === 0 && <b>No tasks yet.</b>}
         {threads.length > 0 && (
           <>
             <b>{threads.length}</b> {threads.length === 1 ? "task" : "tasks"}
@@ -93,6 +105,26 @@ export function HelperView({ name }: { name: RosterName }) {
           </>
         )}
       </p>
+      {threads.length === 0 && (USES_API || mine.length === 0) ? (
+        /* nothing yet: one column of facts on the title's edge, never a lone side panel beside an empty list */
+        <div className="mc-hv2 mc-hv2--empty">
+          <dl className="mc-hv__facts">
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className={cx("mc-hv2__st", row.state === "working" ? "is-working" : "is-done")}>
+                  <i aria-hidden="true" />
+                  {faceStateLabel[row.state]}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Will show</dt>
+              <dd>{willShow[name]}</dd>
+            </div>
+          </dl>
+        </div>
+      ) : (
       <div className="mc-hv2">
         <section className="mc-hv2__main" aria-label={`${name}'s tasks`}>
           {/* no tasks at all: four chips that all say 0 are noise (copy cut, 4 Nov) */}
@@ -261,6 +293,7 @@ export function HelperView({ name }: { name: RosterName }) {
           )}
         </aside>
       </div>
+      )}
     </div>
   );
 }

@@ -47,7 +47,7 @@ const part = () => {
 /** Opens the helper's conversation on this card. */
 const cardHref = (it: { conv: Conversation; messageId: string }) => `${conversationHref(it.conv)}#m-${it.messageId}`;
 
-function Row({ it }: { it: NeedItem }) {
+function Row({ it, lead = false }: { it: NeedItem; lead?: boolean }) {
   const sending = it.status === "sending";
   return (
     <li className={cx("mc-nr", sending && "is-sending")}>
@@ -59,7 +59,7 @@ function Row({ it }: { it: NeedItem }) {
           {[it.shop, it.why].filter(Boolean).join(" · ") || it.helper}
         </small>
       </Link>
-      <span className="mc-nr__amt">{it.amount !== undefined ? naira(it.amount) : ""}</span>
+      {/* the amount rides on the outcome button ("Approve ₦385,900"); saying it twice was noise */}
       <div className="mc-nr__act">
         {sending ? (
           <span className="mc-nr__st mc-mono" role="status">
@@ -71,19 +71,18 @@ function Row({ it }: { it: NeedItem }) {
             <button type="button" className="mc-ib mc-nr__x" aria-label={`Discard: ${it.what}`} onClick={() => declineCard(it.slug, it.messageId)}>
               <Icon name="x" />
             </button>
-            <Link className="mc-btn mc-nr__open" href={cardHref(it)} aria-label={`Open the ${it.helper} thread`}>
-              Open
-            </Link>
+            {/* the row's text already opens the thread: no separate Open button (pass 4) */}
             <button
               type="button"
-              className="mc-btn mc-btn--pri mc-nr__ok"
+              className={cx("mc-btn mc-nr__ok", lead && "mc-btn--pri")}
               onClick={() => {
                 const m = it.conv.messages.find((x) => x.id === it.messageId);
                 if (m?.kind === "card") decideCard(it.slug, m);
                 else approveCard(it.slug, it.messageId);
               }}
             >
-              {it.primary}
+              {/* the outcome with its amount: "Approve ₦385,900", not a bare "Approve" */}
+              {it.amount !== undefined ? `${it.primary} ${naira(it.amount)}` : it.primary}
             </button>
           </>
         )}
@@ -216,6 +215,8 @@ export function NeedsHome() {
           ) : (
             <>
               <h1 className="mc-nh__hi">{head}</h1>
+              {/* nothing waiting: one sentence says so, so the page still opens on its point */}
+              {waiting === 0 && items.length === 0 && <p className="mc-nh__sum">Nothing is waiting on your yes.</p>}
               {waiting > 0 && (
                 <p className="mc-nh__sum">
                   {withMoney.length > 0 && largest > 0 && (
@@ -229,8 +230,8 @@ export function NeedsHome() {
               {items.length > 0 && (
                 <section aria-label="Waiting on you">
                   <ul className="mc-nl">
-                    {shown.map((it) => (
-                      <Row key={it.key} it={it} />
+                    {shown.map((it, i) => (
+                      <Row key={it.key} it={it} lead={i === 0} />
                     ))}
                   </ul>
                   {items.length > VISIBLE && (
