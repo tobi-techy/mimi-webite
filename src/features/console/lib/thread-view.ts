@@ -229,3 +229,34 @@ export function typingMs(text: string, pace = 1, reduced = false): number {
   if (reduced) return 300;
   return Math.round(Math.min(1600, Math.max(600, 520 + text.length * 8)) * pace);
 }
+
+/* ---------- a thread screen with no conversation to show ---------- */
+
+/**
+ * Why a thread screen has nothing to open (Tobi, 4 Nov 2026). The route says whether it was opened
+ * with a thread id, because an empty slug means two different things: on `/threads/new` nothing was
+ * chosen, while on the home page it means the demo API turned this visitor away. Saying "Mimi can't
+ * be reached" for the first told a visitor the demo was down while every call it made was fine.
+ */
+export type NoThread = "connecting" | "not-chosen" | "turned-away" | "gone";
+
+/**
+ * The one line each of those states shows, so nothing else has to word them and a test can hold the
+ * text. Only "turned-away" is a failure, and only it offers a retry.
+ */
+export const NO_THREAD_TEXT: Record<Exclude<NoThread, "connecting">, string> = {
+  "not-chosen": "Not available yet. No thread was chosen.",
+  "turned-away": "Mimi can't be reached right now. Nothing is shown in her place.",
+  gone: "This thread isn't in the demo any more.",
+};
+
+/** Which empty state the screen is in, from the route's own signal and the live status. */
+export function noThreadState(input: { liveStatus: string; slug: string; openedWithoutId?: boolean }): NoThread {
+  if (input.liveStatus === "connecting") return "connecting";
+  /* the route said it opened with no id: nothing was chosen, whatever the slug says */
+  if (input.openedWithoutId) return "not-chosen";
+  return input.slug ? "gone" : "turned-away";
+}
+
+/** Only a page whose own API read failed offers a retry: a page that never tried is not a failure. */
+export const noThreadRetry = (state: NoThread): boolean => state === "turned-away";
