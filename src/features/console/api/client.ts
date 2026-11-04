@@ -13,6 +13,7 @@ import type {
   ApiDemoSession,
   ApiEventIn,
   ApiExposure,
+  ApiInboxList,
   ApiLimitChange,
   ApiMe,
   ApiMedia,
@@ -232,6 +233,18 @@ export const mimiApi = {
   returns: (token: string, o: Sig = {}) => call<ApiReturnList>(RETURNS_PATH, { token, ...o }),
   /** Credit exposure: the API's own ageing buckets and its age-weighted figure. */
   exposure: (token: string, o: Sig = {}) => call<ApiExposure>("/v1/credit/exposure", { token, ...o }),
+  /**
+   * The per-helper inbox. `helper` and `state` are the contract's own words, empty for all.
+   * Not on every server yet: a 404 reads as "not available", never as an empty inbox.
+   */
+  inbox: (token: string, p: { helper?: string; state?: string; limit?: number } = {}, o: Sig = {}) => {
+    const qs = new URLSearchParams();
+    if (p.helper) qs.set("helper", p.helper);
+    if (p.state) qs.set("state", p.state);
+    if (p.limit) qs.set("limit", String(p.limit));
+    const query = qs.toString();
+    return call<ApiInboxList>(query ? `/v1/inbox?${query}` : "/v1/inbox", { token, ...o });
+  },
 
   /* ---- computer tasks: a hosted cloud browser, one per task (owner approves the whole task) ---- */
   /** The list route is optional (the API may not have it yet): a 404/405 means "not available", not an error. */

@@ -450,6 +450,48 @@ export type ApiCreditRequest = {
 
 export type ApiCredit = { limits: ApiCreditLimit[]; requests: ApiCreditRequest[] };
 
+/**
+ * GET /v1/inbox (docs/HELPER-INBOX-CONTRACT.md, frozen 3 Nov 2026): a helper's tasks, newest
+ * first, read-only with the owner key. `from_helper` is "mimi" when the owner herself asked and
+ * Mimi routed it; otherwise it is the helper who handed the task over.
+ */
+export type ApiInboxItem = {
+  task_id: string;
+  contract: string;
+  from_helper: string;
+  from_title: string;
+  to_helper: string;
+  to_title: string;
+  skill: string;
+  shop_id: string;
+  shop_name: string;
+  /** The ask in words (never a code, never the shop's own words). */
+  ask: string;
+  /** queued | working | done | handed_back | failed | refused. */
+  state: string;
+  /** Why it sits where it sits, in words. May be blank. */
+  reason: string;
+  /** What the receiving helper came back with, in words. */
+  outcome: string;
+  /** The result of the whole chain, when there is one. */
+  result: string;
+  chain: unknown;
+  parent_task_id: string;
+  thread_id: string;
+  turn_id: string;
+  created_at: string;
+  finished_at: string;
+};
+
+/**
+ * One honest sentence per helper, derived by the API from her open turns and her open inbox items.
+ * It deliberately sends `open` and `waiting_on_owner` instead of a state word, so the console
+ * derives the face itself and the two can never drift apart.
+ */
+export type ApiHelperLine = { helper: string; helper_name: string; open: number; waiting_on_owner: number; outcome: string };
+
+export type ApiInboxList = { items: ApiInboxItem[]; total: number; by_state: Record<string, number>; helpers: ApiHelperLine[] };
+
 export type ApiDemoSession = {
   token: string;
   tenant_id: string;
