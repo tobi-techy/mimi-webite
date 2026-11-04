@@ -13,7 +13,7 @@ import { Note } from "@/features/console/components/ui/Note";
 import { Table } from "@/features/console/components/ui/Table";
 import { consoleRoutes, shopHref } from "@/features/console/config";
 import type { BooksAgreement } from "@/features/console/content/books";
-import { apartLine, apartShops, booksState, booksWhole, booksWords, orderedShops } from "@/features/console/lib/two-books";
+import { booksState, booksWhole, booksWords, orderedShops, shopSectionWords, summaryWords } from "@/features/console/lib/two-books";
 import { readWords } from "@/features/console/lib/routine-times";
 
 /**
@@ -58,18 +58,19 @@ export function BooksView() {
 /** The two books, side by side. Nothing on this screen is added up or subtracted by the console. */
 function Compared({ v, now }: { v: BooksAgreement; now: number }) {
   const shops = orderedShops(v);
-  const apart = apartShops(v);
   const read = readWords(v.asOf, parseApiTime, now);
   const total = booksState(v.total);
   /* whether the whole book can be compared at all: a shop Zoho has no figure for was not compared */
   const whole = booksWhole(v);
+  const summary = summaryWords(v);
+  const section = shopSectionWords(v);
 
   return (
     <>
-      {(read || whole.kind === "whole") && (
+      {(read || summary) && (
         <p className="x-sub">
           {read ? `${read} in Lagos time. ` : ""}
-          {whole.kind === "whole" ? apartLine(v) || "No shop is in both books yet." : null}
+          {summary}
         </p>
       )}
 
@@ -101,10 +102,8 @@ function Compared({ v, now }: { v: BooksAgreement; now: number }) {
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="store" />
-          <h2>Shops that do not agree</h2>
-          <span className="x-num">
-            {apart.length} of {v.shops.length}
-          </span>
+          <h2>{section.heading}</h2>
+          <span className="x-num">{section.count}</span>
         </div>
         {shops.length === 0 ? (
           <EmptyState>Neither book has a shop yet</EmptyState>

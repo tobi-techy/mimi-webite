@@ -109,15 +109,44 @@ export function orderedShops(v: BooksAgreement): BooksShop[] {
   });
 }
 
-/** "3 of 40 shops do not agree: Mama Sola Provisions, Ikeja Stores and Yaba Mart." Naming them is the point. */
+/**
+ * "3 of 40 shops do not agree: Mama Sola Provisions, Ikeja Stores and Yaba Mart." Naming them is the
+ * point. "" when nothing disagrees: agreement is said once, by the figures' own line and the section
+ * heading, rather than three times on one screen.
+ */
 export function apartLine(v: BooksAgreement, max = 3): string {
   const apart = apartShops(v);
-  if (apart.length === 0)
-    return v.shops.length === 0 ? "" : v.shops.length === 1 ? "The one shop in both books agrees" : `All ${v.shops.length} shops agree`;
+  if (apart.length === 0) return "";
   const names = apart.slice(0, max).map((s) => s.name);
   const rest = apart.length - names.length;
   const list = names.length === 1 ? names[0]! : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
   /* a list already joined by "and" takes the rest after a comma, so the line never says "and … and" */
   const more = rest > 0 ? (names.length === 1 ? ` and ${rest} more` : `, and ${rest} more`) : "";
   return `${apart.length} of ${v.shops.length} shops do not agree: ${list}${more}.`;
+}
+
+/**
+ * The line under the title (Tobi, 4 Nov 2026). The names worth looking at, when there are any; "" in
+ * the half-matched state, where the sentence in the figures' place says why nothing was compared; and
+ * the honest line for a book with no shops, which is not agreement and not a blank page.
+ */
+export function summaryWords(v: BooksAgreement): string {
+  if (v.shops.length === 0) return "No shop is in both books yet.";
+  if (booksWhole(v).kind === "part") return "";
+  return apartLine(v);
+}
+
+/**
+ * The section's heading and count. Never a verdict about shops that were not compared: at 25 of 25
+ * with one shop matched, "Shops that do not agree" would be judging the 23 nobody compared. The
+ * heading names the disagreement only when the whole book was compared and something disagrees; a
+ * book that agrees all the way down says so; a half-matched one is neutral.
+ */
+export function shopSectionWords(v: BooksAgreement): { heading: string; count: string } {
+  const n = v.shops.length;
+  const count = n === 1 ? "1 shop" : `${n} shops`;
+  if (booksWhole(v).kind === "part") return { heading: "Shops", count };
+  const apart = apartShops(v).length;
+  if (apart > 0) return { heading: "Shops that do not agree", count: `${apart} of ${n}` };
+  return { heading: "Every shop agrees", count };
 }

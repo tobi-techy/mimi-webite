@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { apartLine, apartShops, booksState, booksWhole, booksWords, notInZoho, orderedShops, zohoOnlyShops } from "./two-books.ts";
+import { apartLine, apartShops, booksState, booksWhole, booksWords, notInZoho, orderedShops, shopSectionWords, summaryWords, zohoOnlyShops } from "./two-books.ts";
 import type { BooksAgreement, BooksMoney, BooksShop } from "../content/books.ts";
 
 const money = (o: Partial<BooksMoney> = {}): BooksMoney => ({
@@ -118,7 +118,7 @@ test("the shops worth a look come first, biggest Mimi figure at the top", () => 
   assert.deepEqual(apartShops(v).map((s) => s.name), ["Big Gap", "Small Gap"]);
 });
 
-test("the summary line names the shops and counts them, and agreement is said plainly", () => {
+test("the summary line names the shops and counts them, and says nothing when none disagree", () => {
   const v = agreement([
     shop("Mama Sola Provisions", money({ mimi: "₦3,497,300", zoho: "₦3,400,000", difference: "₦97,300", mimiKobo: 349730000, zohoKobo: 340000000 })),
     shop("Ikeja Stores", money({ mimi: "₦80,000", zoho: "₦70,000", difference: "₦10,000", mimiKobo: 8000000, zohoKobo: 7000000 })),
@@ -129,8 +129,11 @@ test("the summary line names the shops and counts them, and agreement is said pl
     apartLine(v),
     "3 of 4 shops do not agree: Mama Sola Provisions, Ikeja Stores and Yaba Mart.",
   );
-  assert.equal(apartLine(agreement([shop("Surulere Depot", money({ mimi: "₦5,000", zoho: "₦5,000" }))])), "The one shop in both books agrees");
-  assert.equal(apartLine(agreement([])), "", "no shops is nothing to say, not agreement");
+  assert.equal(summaryWords(v), apartLine(v));
+  const oneShop = agreement([shop("Surulere Depot", money({ mimi: "₦5,000", zoho: "₦5,000" }))]);
+  assert.equal(apartLine(oneShop), "", "agreement is said once, by the figures' own line, not here too");
+  assert.equal(summaryWords(oneShop), "");
+  assert.equal(summaryWords(agreement([])), "No shop is in both books yet.");
 });
 
 test("more differing shops than the line names are counted, not dropped", () => {
@@ -220,4 +223,38 @@ test("when every row is comparable, the whole book renders as it always has, wit
   /* the rendering the screen has always had, unchanged */
   assert.equal(apartLine(v), "1 of 2 shops do not agree: Mama Sola Provisions.");
   assert.equal(booksWords(booksState(shop("Mama Sola Provisions", v.shops[0]!))), "Mimi is higher by ₦97,300");
+});
+
+test("the section heading never passes a verdict on shops that were not compared", () => {
+  /* 25 rows, one matched and disagreeing, 23 unmatched, one a Zoho customer Mimi does not have */
+  const live = liveBooks([
+    ...Array.from({ length: 23 }, (_, i) => liveRow(i + 1)),
+    { id: "shop-900", name: "Mama Sola Provisions", ...money({ mimi: "₦3,497,300", zoho: "₦100,000", difference: "₦3,397,300", mimiKobo: 349730000, zohoKobo: 10000000, differenceKobo: 339730000 }) },
+    { id: "zoho:4012", name: "Adeyemi Stores", ...money({ zoho: "₦540,000", zohoKobo: 54000000 }) },
+  ]);
+  assert.equal(live.shops.length, 25);
+  assert.deepEqual(shopSectionWords(live), { heading: "Shops", count: "25 shops" }, "no verdict on the 24 nobody compared");
+});
+
+test("the all-agree state says agreement once, in the heading and in the figures' own line", () => {
+  const all = [
+    { id: "shop-001", name: "Mama Sola Provisions", ...money({ mimi: "₦3,497,300", zoho: "₦3,497,300", difference: "₦0", differenceKobo: 0, mimiKobo: 349730000, zohoKobo: 349730000 }) },
+    { id: "shop-002", name: "Ikeja Stores", ...money({ mimi: "₦80,000", zoho: "₦80,000", difference: "₦0", differenceKobo: 0, mimiKobo: 8000000, zohoKobo: 8000000 }) },
+  ];
+  const v = { ...liveBooks(all), total: money({ mimi: "₦3,577,300", zoho: "₦3,577,300", difference: "₦0", differenceKobo: 0, mimiKobo: 357730000, zohoKobo: 357730000 }) };
+  assert.deepEqual(booksWhole(v), { kind: "whole" });
+  assert.deepEqual(shopSectionWords(v), { heading: "Every shop agrees", count: "2 shops" }, "never 'Shops that do not agree · 0 of 2'");
+  assert.equal(apartLine(v), "");
+  assert.equal(summaryWords(v), "", "no third sentence saying the same thing");
+  assert.equal(booksWords(booksState(v.total)), "Agreed", "the figures' own line carries it");
+  assert.deepEqual(shopSectionWords({ ...v, shops: [all[0]!] }), { heading: "Every shop agrees", count: "1 shop" });
+});
+
+test("a comparable book with one disagreement still names the shops and the count", () => {
+  const v = liveBooks([
+    { id: "shop-001", name: "Mama Sola Provisions", ...money({ mimi: "₦3,497,300", zoho: "₦3,400,000", difference: "₦97,300", mimiKobo: 349730000, zohoKobo: 340000000, differenceKobo: 9730000 }) },
+    { id: "shop-002", name: "Ikeja Stores", ...money({ mimi: "₦80,000", zoho: "₦80,000", difference: "₦0", differenceKobo: 0, mimiKobo: 8000000, zohoKobo: 8000000 }) },
+  ]);
+  assert.deepEqual(shopSectionWords(v), { heading: "Shops that do not agree", count: "1 of 2" });
+  assert.equal(summaryWords(v), "1 of 2 shops do not agree: Mama Sola Provisions.");
 });
