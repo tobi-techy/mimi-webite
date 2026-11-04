@@ -62,6 +62,45 @@ export function apartShops(v: BooksAgreement): BooksShop[] {
   return orderedShops(v).filter((s) => booksState(s).kind !== "agreed");
 }
 
+/**
+ * The rows Zoho Books has no figure for yet: the shop is not matched to a Zoho customer, so the API
+ * sends no Zoho figure and no difference for it. Read from the payload, never guessed.
+ */
+export function notInZoho(v: BooksAgreement): BooksShop[] {
+  return v.shops.filter((s) => !has(s.zoho) && !has(s.difference));
+}
+
+/** The other direction: a Zoho customer Mimi's book does not have. The API marks those `zoho:` ids. */
+export function zohoOnlyShops(v: BooksAgreement): BooksShop[] {
+  return v.shops.filter((s) => /^zoho:/i.test(s.id.trim()));
+}
+
+/**
+ * Whether the two books can be compared as a whole (Tobi, 4 Nov 2026). A row the Zoho side has no
+ * figure for is not a nought and not agreement: it was not compared, so a total difference across
+ * the book would be a figure for a comparison that did not happen. The screen then shows Mimi's own
+ * total and says in words why the other two figures are not there.
+ */
+export type BooksWhole = { kind: "whole" } | { kind: "part"; line: string; missing: number; elsewhere: number };
+
+export function booksWhole(v: BooksAgreement): BooksWhole {
+  const missing = notInZoho(v).length;
+  const elsewhere = zohoOnlyShops(v).length;
+  if (missing === 0 && elsewhere === 0) return { kind: "whole" };
+  return { kind: "part", line: wholeLine(missing, elsewhere), missing, elsewhere };
+}
+
+/** That sentence, in the owner's words, with no internal id in it. */
+export function wholeLine(missing: number, elsewhere: number): string {
+  const ours = missing === 1 ? "1 shop is not in Zoho Books yet" : `${missing} shops are not in Zoho Books yet`;
+  const theirs =
+    elsewhere === 1
+      ? "1 payment in Zoho Books belongs to a customer Mimi does not have"
+      : `${elsewhere} payments in Zoho Books belong to customers Mimi does not have`;
+  const why = [missing > 0 ? ours : "", elsewhere > 0 ? theirs : ""].filter(Boolean).join(", and ");
+  return `${why}, so the two books cannot be compared as a whole.`;
+}
+
 /** The rows in the order the screen shows them: anything that does not agree first, then by size. */
 export function orderedShops(v: BooksAgreement): BooksShop[] {
   return [...v.shops].sort((a, b) => {

@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { apartLine, apartShops, booksState, booksWords, orderedShops } from "./two-books.ts";
+import { apartLine, apartShops, booksState, booksWhole, booksWords, notInZoho, orderedShops, zohoOnlyShops } from "./two-books.ts";
 import type { BooksAgreement, BooksMoney, BooksShop } from "../content/books.ts";
 
 const money = (o: Partial<BooksMoney> = {}): BooksMoney => ({
@@ -136,4 +136,88 @@ test("the summary line names the shops and counts them, and agreement is said pl
 test("more differing shops than the line names are counted, not dropped", () => {
   const many = ["A", "B", "C", "D", "E"].map((n) => shop(n, money({ mimi: "₦9", zoho: "₦1", difference: "₦8" })));
   assert.equal(apartLine(agreement(many)), "5 of 5 shops do not agree: A, B and C, and 2 more.");
+});
+
+/* ---------- the two books when they cannot be compared as a whole ---------- */
+
+/* the live payload of 4 Nov 2026: Zoho connected, every shop unanswered on the Zoho side, and a total
+   that presents a difference as though both books had been compared */
+const liveRow = (n: number) => ({
+  id: `shop-${String(n).padStart(3, "0")}`,
+  name: `Shop ${n}`,
+  ...money({ mimi: "₦500,000", mimiKobo: 50000000 }),
+});
+
+const liveBooks = (shops: BooksShop[]): BooksAgreement => ({
+  asOf: "2026-11-04T15:08:59+00:00",
+  connected: true,
+  shops,
+  total: money({ mimi: "₦12,560,350", zoho: "₦0", difference: "₦12,560,350", mimiKobo: 1256035000, zohoKobo: 0, differenceKobo: 1256035000 }),
+  note: "Mimi minus Zoho: positive means Mimi's book is higher than what Zoho Books reports.",
+});
+
+/** The sentence the screen prints, asserted to be the not-comparable state first. */
+const partLine = (v: BooksAgreement): string => {
+  const w = booksWhole(v);
+  assert.equal(w.kind, "part");
+  return w.kind === "part" ? w.line : "";
+};
+
+test("a shop Zoho has no figure for is not comparable, and the whole book says so", () => {
+  const v = liveBooks(Array.from({ length: 24 }, (_, i) => liveRow(i + 1)));
+  assert.equal(notInZoho(v).length, 24, "read from the payload, never guessed");
+  assert.deepEqual(booksWhole(v), {
+    kind: "part",
+    missing: 24,
+    elsewhere: 0,
+    line: "24 shops are not in Zoho Books yet, so the two books cannot be compared as a whole.",
+  });
+});
+
+test("one shop not in Zoho Books is said in the singular", () => {
+  const v = liveBooks([liveRow(1), { id: "shop-002", name: "Shop 2", ...money({ mimi: "₦1,000", zoho: "₦1,000", difference: "₦0", differenceKobo: 0 }) }]);
+  assert.equal(partLine(v), "1 shop is not in Zoho Books yet, so the two books cannot be compared as a whole.");
+});
+
+test("a Zoho customer Mimi does not have is counted on its own, and both directions together", () => {
+  const zohoOnlyShop = (id: string) => ({ id, name: `Zoho ${id}`, ...money({ zoho: "₦540,000", zohoKobo: 54000000 }) });
+  const theirs = liveBooks([zohoOnlyShop("zoho:4012"), zohoOnlyShop("zoho:4013")]);
+  assert.equal(notInZoho(theirs).length, 0, "a shop with a Zoho figure is not the not-yet-matched case");
+  assert.equal(zohoOnlyShops(theirs).length, 2);
+  assert.equal(
+    partLine(theirs),
+    "2 payments in Zoho Books belong to customers Mimi does not have, so the two books cannot be compared as a whole.",
+  );
+  assert.equal(
+    partLine(liveBooks([zohoOnlyShop("zoho:4012")])),
+    "1 payment in Zoho Books belongs to a customer Mimi does not have, so the two books cannot be compared as a whole.",
+  );
+  const both = liveBooks([...Array.from({ length: 24 }, (_, i) => liveRow(i + 1)), zohoOnlyShop("zoho:4012"), zohoOnlyShop("zoho:4013")]);
+  assert.equal(
+    partLine(both),
+    "24 shops are not in Zoho Books yet, and 2 payments in Zoho Books belong to customers Mimi does not have, so the two books cannot be compared as a whole.",
+  );
+});
+
+test("the count is the rows with no Zoho figure and no difference: a figure on either side is a comparison", () => {
+  const noDiff = { id: "shop-003", name: "Shop 3", ...money({ mimi: "₦10", zoho: "₦4", mimiKobo: 1000, zohoKobo: 400 }) };
+  assert.equal(notInZoho(liveBooks([noDiff])).length, 0, "a Zoho figure with no difference amount is still a comparison");
+  const odd = { id: "shop-004", name: "Shop 4", ...money({ mimi: "₦10", difference: "₦5" }) };
+  assert.equal(notInZoho(liveBooks([odd])).length, 0, "a difference with no Zoho figure is not the not-yet-matched case");
+  /* a row neither book has a figure for cannot be compared either, so it counts the same way */
+  const silent = { id: "shop-005", name: "Shop 5", ...money() };
+  assert.equal(notInZoho(liveBooks([silent])).length, 1);
+});
+
+test("when every row is comparable, the whole book renders as it always has, with no sentence", () => {
+  const v = liveBooks([
+    { id: "shop-001", name: "Mama Sola Provisions", ...money({ mimi: "₦3,497,300", zoho: "₦3,400,000", difference: "₦97,300", mimiKobo: 349730000, zohoKobo: 340000000, differenceKobo: 9730000 }) },
+    { id: "shop-002", name: "Ikeja Stores", ...money({ mimi: "₦1,000,000", zoho: "₦1,000,000", difference: "₦0", mimiKobo: 100000000, zohoKobo: 100000000, differenceKobo: 0 }) },
+  ]);
+  assert.deepEqual(booksWhole(v), { kind: "whole" });
+  assert.equal(notInZoho(v).length, 0);
+  assert.equal(zohoOnlyShops(v).length, 0);
+  /* the rendering the screen has always had, unchanged */
+  assert.equal(apartLine(v), "1 of 2 shops do not agree: Mama Sola Provisions.");
+  assert.equal(booksWords(booksState(shop("Mama Sola Provisions", v.shops[0]!))), "Mimi is higher by ₦97,300");
 });

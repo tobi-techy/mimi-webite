@@ -13,7 +13,7 @@ import { Note } from "@/features/console/components/ui/Note";
 import { Table } from "@/features/console/components/ui/Table";
 import { consoleRoutes, shopHref } from "@/features/console/config";
 import type { BooksAgreement } from "@/features/console/content/books";
-import { apartLine, apartShops, booksState, booksWords, orderedShops } from "@/features/console/lib/two-books";
+import { apartLine, apartShops, booksState, booksWhole, booksWords, orderedShops } from "@/features/console/lib/two-books";
 import { readWords } from "@/features/console/lib/routine-times";
 
 /**
@@ -24,6 +24,11 @@ import { readWords } from "@/features/console/lib/routine-times";
  * up or subtracts anything, and it says which book is higher in words rather than showing a signed
  * number. When Zoho Books is not connected there is nothing to compare, so the screen says that and
  * shows no figure at all: a nought would be a claim about a real accounting system.
+ *
+ * The same rule covers a book that is only half matched: while the API sends no Zoho figure for a
+ * shop (not matched to a Zoho customer yet), the Zoho total and the difference are not shown at all,
+ * and the screen says why in words (lib/two-books.ts, `booksWhole`). A total difference there would
+ * be the figure for a comparison that did not happen.
  */
 export function BooksView() {
   const { agreed, loading, missing, failed } = useBooksAgreement();
@@ -56,26 +61,42 @@ function Compared({ v, now }: { v: BooksAgreement; now: number }) {
   const apart = apartShops(v);
   const read = readWords(v.asOf, parseApiTime, now);
   const total = booksState(v.total);
+  /* whether the whole book can be compared at all: a shop Zoho has no figure for was not compared */
+  const whole = booksWhole(v);
 
   return (
     <>
-      <p className="x-sub">
-        {read ? `${read} in Lagos time. ` : ""}
-        {apartLine(v) || "No shop is in both books yet."}
-      </p>
+      {(read || whole.kind === "whole") && (
+        <p className="x-sub">
+          {read ? `${read} in Lagos time. ` : ""}
+          {whole.kind === "whole" ? apartLine(v) || "No shop is in both books yet." : null}
+        </p>
+      )}
 
       <div className="x-kpis">
         <Figure value={v.total.mimi} what="Mimi's book" />
-        <Figure value={v.total.zoho} what="Zoho Books" />
-        <Figure value={v.total.difference} what="Difference" />
+        {whole.kind === "whole" ? (
+          <>
+            <Figure value={v.total.zoho} what="Zoho Books" />
+            <Figure value={v.total.difference} what="Difference" />
+          </>
+        ) : (
+          /* not comparable as a whole: the sentence takes the place of the two figures, so no figure
+             is shown for a comparison that did not happen */
+          <div className="x-kpi x-cmp-na">{whole.line}</div>
+        )}
       </div>
 
-      <p className="x-sub">
-        {total.kind === "agreed"
-          ? "Both books agree, every shop taken together."
-          : `All shops together, ${booksWords(total, "Zoho Books")}.`}
-        {v.note ? ` ${v.note}` : ""}
-      </p>
+      {whole.kind === "whole" ? (
+        <p className="x-sub">
+          {total.kind === "agreed"
+            ? "Both books agree, every shop taken together."
+            : `All shops together, ${booksWords(total, "Zoho Books")}.`}
+          {v.note ? ` ${v.note}` : ""}
+        </p>
+      ) : v.note ? (
+        <p className="x-sub">{v.note}</p>
+      ) : null}
 
       <div className="x-grp">
         <div className="x-gh">
@@ -124,8 +145,8 @@ function Compared({ v, now }: { v: BooksAgreement; now: number }) {
 
       <p className="x-sub">
         Mimi&apos;s book is what her own records say each shop owes. Zoho Books is what the accounting
-        system reports. Where the two disagree, the difference above is the API&apos;s own figure, and
-        the shop is worth a look before anything is promised.
+        system reports. Where the two disagree, the difference is the API&apos;s own figure, and the
+        shop is worth a look before anything is promised.
       </p>
     </>
   );
