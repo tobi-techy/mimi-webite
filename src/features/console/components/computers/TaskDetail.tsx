@@ -222,8 +222,9 @@ export function TaskDetail({ id }: { id: string }) {
       {signIn && (
         <p className="x-ctnote">
           <Icon name="monitor" />
-          Stopped at a sign-in. It is waiting for you and it kept its browser open, so you can sign in from the live
-          view below, when the service is offering one.
+          Stopped at a sign-in. It is waiting for you and it kept its browser open while it waits, so you can sign in
+          yourself from the live view below, when the service is offering one. A task that carries on runs in a fresh
+          browser without that sign-in in it, so it stops at this wall again and you may need to sign in once more.
         </p>
       )}
       {waiting && (

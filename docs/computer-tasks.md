@@ -44,6 +44,18 @@ The vocabulary is closed: `proposed`, `running`, `awaiting_owner`, `done`, `stop
 Anything beginning `stopped` reads as stopped, so a status of that family added later cannot slip
 through as unfinished. A finished task is never polled again and never offers a link or a stop.
 
+## Signing in
+
+A task parked at a sign-in wall keeps its session and its live view link while it waits, and the owner
+signs in themselves through that link: the console never types a password or a code, and this console
+has no field for one.
+
+The sign-in is not carried over. Every run is its own thread, so a task that carries on releases the
+paused session and opens a fresh browser with no cookies, which pauses at the same wall again with a
+new link. The screen says that to the owner in as many words, so nobody is left waiting for a resume
+that gets past a login. A session owned by one long-lived thread per task, which is what would keep a
+sign-in, is not built on the service side.
+
 ## Why it stopped: the sentence, never the code
 
 The service sends `stop_reason` (a code) and `note` (the sentence for a person) together. Only `note`

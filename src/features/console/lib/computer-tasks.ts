@@ -258,8 +258,10 @@ export function isListedKind(kind: string | null | undefined, kinds: TaskKindOpt
  * A signed link to watch the task's browser. The service mints it mid-run and lets it lapse when the
  * session closes, so the link is shown whenever the service hands one over, whatever the status: a
  * task parked at a sign-in keeps its session and its link on purpose, because that is the state where
- * the owner has to sign in. Once the service has finished with a task the link is never shown, even
- * if a merged answer still carries one, because the session behind it is gone.
+ * the owner has to sign in. A task that carries on afterwards runs in a fresh browser, so the sign-in
+ * is not carried over and it pauses at the same wall again. Once the service has finished with a task
+ * the link is never shown, even if a merged answer still carries one, because the session behind it is
+ * gone.
  */
 export function liveViewLink(task: ApiComputerTask | null | undefined): string | null {
   if (FINISHED_TONES.includes(taskTone(task?.status))) return null;
