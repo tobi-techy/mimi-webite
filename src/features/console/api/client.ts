@@ -3,15 +3,17 @@ import { errorKind, type ErrorKind } from "@/features/console/api/mappers";
 import type {
   ApiApprovalList,
   ApiConnect,
-  ApiConnectorList,
+  ApiConnectorCallback, ApiConnectorList, ApiConnectorRead,
   ApiCredit,
   ApiDecision,
   ApiDemoSession,
   ApiEventIn,
+  ApiExposure,
   ApiLimitChange,
   ApiMe,
   ApiMedia,
   ApiPolicy,
+  ApiReturnList,
   ApiShopDetail,
   ApiShopList,
   ApiThreadDetail,
@@ -19,6 +21,7 @@ import type {
   ApiTurn,
   ApiTurnIn,
 } from "@/features/console/api/types";
+import { RETURNS_PATH } from "@/features/console/lib/returns-contract";
 
 /**
  * The one typed client for the MIMI-AGENT API. Nothing else in the console calls fetch.
@@ -221,6 +224,10 @@ export const mimiApi = {
   shops: (token: string, o: Sig = {}) => call<ApiShopList>("/v1/shops", { token, ...o }),
   shop: (token: string, id: string, o: Sig = {}) => call<ApiShopDetail>(`/v1/shops/${q(id)}`, { token, ...o }),
   credit: (token: string, o: Sig = {}) => call<ApiCredit>("/v1/credit", { token, ...o }),
+  /** The returns ledger. Not on every server yet: a 404 reads as "not available", never as empty. */
+  returns: (token: string, o: Sig = {}) => call<ApiReturnList>(RETURNS_PATH, { token, ...o }),
+  /** Credit exposure: the API's own ageing buckets and its age-weighted figure. */
+  exposure: (token: string, o: Sig = {}) => call<ApiExposure>("/v1/credit/exposure", { token, ...o }),
 
   /* ---- demo wiring (writes never retry) ---- */
   /** The owner sets a shop's credit limit (whole naira). */
@@ -231,6 +238,13 @@ export const mimiApi = {
   undoApproval: (token: string, id: string) => call<ApiDecision>(`/v1/approvals/${q(id)}/undo`, { method: "POST", token }),
   connectors: (token: string, o: Sig = {}) => call<ApiConnectorList>("/v1/connectors", { token, ...o }),
   connect: (token: string, toolkit: string) => call<ApiConnect>(`/v1/connectors/${q(toolkit)}/connect`, { method: "POST", token, body: {} }),
+  connectorCallback: (token: string, p: { state: string; connected_account_id: string; status: string }) =>
+    call<ApiConnectorCallback>(
+      `/v1/connectors/callback?${new URLSearchParams({ state: p.state, connected_account_id: p.connected_account_id, ...(p.status ? { status: p.status } : {}) }).toString()}`,
+      /* it saves a connection: a write never retries, even though the API reads it as a GET */
+      { token, timeoutMs: 30_000, retries: 0 },
+    ),
+  connectorRead: (token: string, connectionId: string, o: Sig = {}) => call<ApiConnectorRead>(`/v1/connectors/${q(connectionId)}/read`, { token, timeoutMs: 30_000, ...o }),
   disconnect: (token: string, connectionId: string) => call<{ connection_id: string; status: string }>(`/v1/connectors/${q(connectionId)}`, { method: "DELETE", token }),
   policy: (token: string, o: Sig = {}) => call<ApiPolicy>("/v1/policy", { token, ...o }),
   /** A routine or webhook event (morning brief, bank credit). Deduped on event_id by the API. */

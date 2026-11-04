@@ -7,6 +7,8 @@
  * is marked through `Shop.live` and the screens show a dash instead.
  */
 import type { CreditLine, CreditRecommendation } from "../content/credit";
+import type { Exposure, ExposureShop } from "../content/exposure";
+import type { ShopReturn } from "../content/returns";
 import type { LiveShopExtra, Shop, ShopStatus } from "../content/shops";
 import type { ProofGrade } from "../lib/proof";
 import type { AnswerBlock, CardStatus, Conversation, DecisionCard, Folder, HelperName, Message, Reply, TableCell, ThreadState } from "../demo/types";
@@ -15,8 +17,12 @@ import type {
   ApiCard,
   ApiChip,
   ApiCredit,
+  ApiExposure,
+  ApiExposureRow,
   ApiMe,
   ApiMessage,
+  ApiReturn,
+  ApiReturnList,
   ApiShop,
   ApiShopDetail,
   ApiStep,
@@ -166,7 +172,8 @@ export function mapThreadSummary(t: ApiThreadSummary, now: number): Conversation
     working: state === "run",
     ago: agoLabel(at, now),
     created: true,
-    preview: nairaSign(t.last_text) || (t.messages === 0 ? "No messages yet" : t.title),
+    /* a shop's words never show: its thread previews as the task it is */
+    preview: t.kind !== "owner" ? `Task from ${t.shop_name || "a shop"}` : nairaSign(t.last_text) || (t.messages === 0 ? "No messages yet" : t.title),
     messages: at !== null ? [{ id: `api-d:${t.thread_id}`, kind: "date", label: dateLine(at, now) }] : [],
     api: { threadId: t.thread_id, kind: t.kind, shopId: t.shop_id, shopName: t.shop_name },
   };
@@ -175,6 +182,7 @@ export function mapThreadSummary(t: ApiThreadSummary, now: number): Conversation
 /** Which kind of decision card an approval's tool reads as. */
 export function cardKindOf(tool: string): DecisionCard["kind"] {
   const t = tool.toLowerCase();
+  if (t.includes("return") || t.includes("credit_note")) return "return";
   if (t.includes("flag_payment") || t.includes("proof")) return "flag";
   if (t.includes("restock") || t.includes("stock")) return "stock";
   if (t.includes("credit") || t.includes("allowance")) return "credit";
@@ -281,6 +289,18 @@ export function overLimitCard(p: OverLimitPayload, status: CardStatus, opts: { u
 function wiredCard(a: ApiApproval, status: CardStatus, sentAt: string | undefined, undone: ReadonlySet<string>): DecisionCard | null {
   const kind = a.kind || str(a.payload?.kind);
   const r = a.result ?? null;
+  if (kind === "return_credit") {
+    /* Undo follows `result.undo_available` from the API, never an assumption made here */
+    const undo: DecisionCard["undo"] =
+      status !== "sent"
+        ? undefined
+        : undone.has(a.approval_id) || r?.undone_at
+          ? { state: "done", text: "Credit taken back" }
+          : r?.undo_available
+            ? { state: "ready" }
+            : undefined;
+    return returnCreditCard(a, status, { undo, sentAt });
+  }
   if (kind === "zoho_payment") {
     const undo: DecisionCard["undo"] =
       status !== "sent" ? undefined : r?.undone_at || undone.has(a.approval_id) ? { state: "done", text: "Taken back out of Zoho" } : r?.undo_available ? { state: "ready" } : undefined;
@@ -456,6 +476,25 @@ function mapMessage(m: ApiMessage, from: Roster, shopName: string, local?: Reado
     return { id, kind: "ask", from, at, question: pause?.question ?? text, ...(pause ? { options: pause.options } : {}) };
   if (pause) return { id, kind: "text", from, text: pause.question, at };
   return { id, kind: "text", from, text: briefLines(text), at };
+}
+
+/**
+ * A message in a shop's or rep's thread, as a line in the helper's inbox: the shop's words never
+ * show. The first inbound message of a turn reads "Task from Mama Sola Stores"; a reply the helper
+ * sent reads "Collector replied to Mama Sola Stores". Exported for tests.
+ */
+export function taskLine(m: ApiMessage, from: Roster, shopName: string, tasked: Set<string>): Message | null {
+  const at = parseApiTime(m.at) ?? 0;
+  const turn = m.turn_id ?? undefined;
+  const who = shopName || "a shop";
+  if (m.direction === "in") {
+    const key = turn ?? m.message_id;
+    if (tasked.has(key)) return null;
+    tasked.add(key);
+    return { id: `api-t:${m.message_id}`, kind: "system", text: `Task from ${who}`, at, icon: "message-square", ...(turn ? { turn } : {}) };
+  }
+  if (!outShown(m)) return null;
+  return { id: `api-m:${m.message_id}`, kind: "system", text: `${from} replied to ${who}`, at, icon: "check", ...(turn ? { turn } : {}) };
 }
 
 /** A reply that also went as a voice note: the note itself, played through the API on tap. */
@@ -660,10 +699,14 @@ export function mapThread(
     if (runningTurns.has(turn)) for (const s of steps) out.push(mapStep(s, fromOf(turn)));
     else out.push(foldSteps(turn, steps, fromOf(turn)));
   };
+  /* a shop's (or rep's) own conversation never shows in the console (Tobi, 3 Nov 2026): each of
+     its turns is a task in the responsible helper's inbox, so its messages read as task lines */
+  const external = d.thread.kind !== "owner";
+  const tasked = new Set<string>();
   d.messages.forEach((m, i) => {
     const turn = m.turn_id ?? "";
     if (m.direction === "out" && turn) emitSteps(turn);
-    const raw = mapMessage(m, fromOf(m.turn_id), shopName, local);
+    const raw = external ? taskLine(m, fromOf(m.turn_id), shopName, tasked) : mapMessage(m, fromOf(m.turn_id), shopName, local);
     /* each line keeps its turn: the console files it in the chat of the helper who took the turn */
     const mapped = raw && turn && (raw.kind === "text" || raw.kind === "ask") ? { ...raw, turn } : raw;
     /* the same reply stored twice for one turn (a helper's answer and its relay) shows once */
@@ -672,7 +715,7 @@ export function mapThread(
     if (twice) return;
     if (mapped) out.push(mapped);
     if (mapped?.kind === "text" && m.direction === "out" && turn) lastReply.set(turn, out.length - 1);
-    const spoken = replyVoice(m, fromOf(m.turn_id));
+    const spoken = external ? null : replyVoice(m, fromOf(m.turn_id));
     if (spoken) out.push(spoken);
     /* a turn with no reply yet: its steps go right after its last inbound message */
     const next = d.messages[i + 1];
@@ -890,6 +933,145 @@ export function capFromMe(me: ApiMe | null | undefined): { kind: "capped" | "pau
   return null;
 }
 
+/* ---------- returns (GET /v1/returns; the contract lives in lib/returns-contract.ts) ---------- */
+
+/** One return as the console shows it. Status words are the API's; nothing is renamed here. */
+export function mapReturn(r: ApiReturn): ShopReturn {
+  return {
+    id: r.return_id,
+    shopId: r.shop_id,
+    shop: nairaSign(r.shop_name) || "A shop",
+    source: r.source,
+    reason: nairaSign(r.reason ?? ""),
+    status: r.status,
+    lines: (r.lines ?? []).map((l) => ({
+      item: nairaSign(l.item),
+      unit: l.unit ?? "",
+      drafted: l.quantity_drafted ?? 0,
+      collected: l.quantity_collected ?? 0,
+      returned: l.quantity_returned ?? 0,
+      reason: nairaSign(l.reason ?? ""),
+      condition: l.condition ?? "",
+      disposition: l.disposition ?? "",
+      ...(l.expires_on ? { expiresOn: l.expires_on } : {}),
+      ...(l.expiry_source ? { expirySource: l.expiry_source } : {}),
+    })),
+    drafted: koboToNaira(r.value_drafted_kobo),
+    collected: koboToNaira(r.value_collected_kobo),
+    returned: koboToNaira(r.value_returned_kobo),
+    credit: koboToNaira(r.credit_kobo),
+    creditApplied: koboToNaira(r.credit_applied_kobo),
+    creditOnAccount: koboToNaira(r.credit_on_account_kobo),
+    steps: (r.transitions ?? []).map((t) => ({ status: t.status, at: t.at, by: t.by ?? "", note: nairaSign(t.note ?? "") })),
+    updatedAt: r.updated_at,
+  };
+}
+
+export const mapReturns = (l: ApiReturnList): ShopReturn[] => (l.returns ?? []).map(mapReturn);
+
+/* ---------- credit exposure (GET /v1/credit/exposure) ---------- */
+
+/**
+ * One band's money on a row. The API names each band's field after the band key; when a name does
+ * not match, the band shows no figure rather than a made-up nought.
+ */
+const bandMoney = (row: ApiExposureRow | undefined, key: string): number | null => {
+  const buckets = row?.buckets ?? {};
+  for (const name of [key, `${key}_kobo`]) if (typeof buckets[name] === "number") return koboToNaira(buckets[name]);
+  return null;
+};
+
+export function mapExposure(e: ApiExposure): Exposure {
+  const bands = (e.buckets ?? []).map((b) => ({
+    key: b.key,
+    label: b.label,
+    fromDays: b.from_days ?? 0,
+    toDays: b.to_days ?? 0,
+    weightPct: b.weight_pct ?? 0,
+  }));
+  const money = (r: ApiExposureRow) => ({
+    owed: koboToNaira(r.outstanding_kobo),
+    overdue: koboToNaira(r.overdue_kobo),
+    oldest: r.oldest_days_overdue ?? 0,
+    openInvoices: r.open_invoices ?? 0,
+    band: Object.fromEntries(bands.map((b) => [b.key, bandMoney(r, b.key)])),
+    weighted: koboToNaira(r.exposure_kobo),
+    verified: koboToNaira(r.verified_paid_kobo),
+    shownNotCounted: koboToNaira(r.shown_not_counted_kobo),
+    ...(r.confidence ? { confidence: r.confidence } : {}),
+    ...(r.note ? { note: nairaSign(r.note) } : {}),
+  });
+  const shops: ExposureShop[] = (e.shops ?? []).map((s) => ({
+    id: s.shop_id ?? "",
+    name: nairaSign(s.shop_name ?? "") || "A shop",
+    ...money(s),
+  }));
+  return {
+    asOf: e.as_of ?? "",
+    ...(e.policy_version ? { policyVersion: e.policy_version } : {}),
+    bands,
+    shops,
+    total: money(e.total),
+  };
+}
+
+/* ---------- the returns credit (kind "return_credit" on GET /v1/approvals) ---------- */
+
+/**
+ * "Credit ₦34,950 to Mama Chidi": the same card as the Zoho record, because it is the same kind of
+ * decision. Approving applies the credit to the oldest invoices first; the API fills `result`, and
+ * the Undo button follows `result.undo_available`, never this code's assumption.
+ */
+export function returnCreditCard(
+  a: ApiApproval,
+  status: CardStatus,
+  opts: { undo?: DecisionCard["undo"]; sentAt?: string } = {},
+): DecisionCard {
+  const p = (a.payload ?? {}) as Record<string, unknown>;
+  const amount = koboToNaira(num(p.amount_kobo)) || Math.round(num(p.amount_ngn));
+  const shop = nairaSign(str(p.shop_name)) || "A shop";
+  const applied = koboToNaira(num(p.applied_kobo));
+  const onAccount = koboToNaira(num(p.on_account_kobo));
+  const r = a.result ?? null;
+  const appliedNow = koboToNaira(num(r?.applied_kobo)) || applied;
+  const onAccountNow = koboToNaira(num(r?.on_account_kobo)) || onAccount;
+  /* the invoice numbers are the book's keys: the owner reads the shop and the ₦, never a key */
+  const invoices = Array.isArray(p.invoices) ? (p.invoices as Array<Record<string, unknown>>) : [];
+  const rows = invoices
+    .map((inv) => ({ label: "Against their oldest open invoice", amount: koboToNaira(num(inv.amount_applied_kobo)) }))
+    .filter((x) => x.amount > 0)
+    .slice(0, 4);
+  const heldOnly = appliedNow === 0 && onAccountNow > 0;
+  return {
+    kind: "return",
+    tier: "Approve",
+    shop,
+    amount,
+    why: "Goods came back",
+    title: `Credit ${naira(amount)} to ${shop}`,
+    sub:
+      status === "needs"
+        ? "The depot checked what came back. Nothing is credited to the shop until you approve."
+        : "Goods that came back",
+    rows: [
+      /* the invoice rows above drop noughts; so must the fallback, or the card would claim
+         "Against their oldest open invoice ₦0" beside "Held on the account ₦12,000" */
+      ...(rows.length || appliedNow === 0 ? rows : [{ label: "Against their oldest open invoice", amount: appliedNow, note: undefined }]),
+      ...(onAccountNow > 0 ? [{ label: "Held on the account", amount: onAccountNow, note: "Nothing to set it against" }] : []),
+    ],
+    reasons: str(p.reason) ? [nairaSign(str(p.reason))] : undefined,
+    noTotal: true,
+    primary: "Approve credit",
+    secondary: "Decline",
+    labels: { primary: "Approve credit", secondary: "Not now" },
+    status,
+    sentAt: opts.sentAt,
+    doneText: heldOnly ? "Held on the account" : "Credit applied",
+    declinedText: "Not credited",
+    undo: opts.undo,
+  };
+}
+
 /* ---------- errors ---------- */
 
 export type ErrorKind = "unreachable" | "expired" | "unauthorized" | "refused" | "capped" | "sessions" | "paused" | "conflict" | "notfound" | "other";
@@ -911,7 +1093,7 @@ export function friendlyMessage(kind: ErrorKind, detail = ""): string {
   const d = detail.toLowerCase();
   switch (kind) {
     case "unreachable":
-      return "Mimi can't be reached right now, so you're seeing sample data.";
+      return "Mimi can't be reached right now.";
     case "expired":
       return "Your demo session ended, so Mimi started a fresh copy for you.";
     case "unauthorized":

@@ -24,7 +24,8 @@ domain `demo.userail.money`.
 3. `npx wrangler@4 deploy --config deploy/demo-console/wrangler.jsonc` (needs a Cloudflare login
    with access to the `userail.money` zone; the custom domain is created on first deploy).
 4. Open `https://demo.userail.money`: the first load should show skeletons, then
-   "Live demo: your own copy of Coral Lane Trading".
+   "Sandbox: your own copy of Coral Lane Trading, a sample distributor" on Mimi's chat. If Mimi
+   cannot be reached the console says so there and offers Retry: no sample data stands in.
 
 Rollback: `npx wrangler@4 rollback --config deploy/demo-console/wrangler.jsonc`, or remove the
 custom domain in the dashboard. The marketing site and console.userail.money are not touched.

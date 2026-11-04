@@ -12,6 +12,10 @@ export const consoleRoutes = {
   threads: consolePath("/threads"),
   shops: consolePath("/shops"),
   credit: consolePath("/credit"),
+  /** Money at risk: exposure, ageing and the shops carrying it (reads the book; API build only). */
+  money: consolePath("/money"),
+  /** Returns, and the credit that closes one. */
+  returns: consolePath("/returns"),
   /** Shop lists: one message, sent to each shop privately (demo data). */
   lists: consolePath("/lists"),
   automations: consolePath("/automations"),

@@ -15,6 +15,9 @@ import { shopLists } from "@/features/console/content/shop-lists";
 import { conversationHref } from "@/features/console/demo/engine";
 import { faceStateLabel, rosterNames, rosterRow, type RosterRow } from "@/features/console/demo/roster";
 import { owner } from "@/features/console/demo/seed";
+
+/* the API's /v1/me carries no name yet: the API build says who is signed in by role, not a sample name */
+const me = USES_API ? { initials: "OW", name: "Owner", company: "Sandbox" } : owner;
 import { useDemo } from "@/features/console/demo/store";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useShops } from "@/features/console/api/hooks";
@@ -224,9 +227,19 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <Link href={consoleRoutes.credit} className="mc-ib" aria-label="Credit" title="Credit">
           <Icon name="landmark" />
         </Link>
-        <Link href={consoleRoutes.automations} className="mc-ib" aria-label="Automations" title="Automations">
-          <Icon name="refresh-cw" />
+        {USES_API && (
+          <Link href={consoleRoutes.money} className="mc-ib" aria-label="Money at risk" title="Money at risk">
+            <Icon name="gauge" />
+          </Link>
+        )}
+        <Link href={consoleRoutes.returns} className="mc-ib" aria-label="Returns" title="Returns">
+          <Icon name="package" />
         </Link>
+        {!USES_API && (
+          <Link href={consoleRoutes.automations} className="mc-ib" aria-label="Automations" title="Automations">
+            <Icon name="refresh-cw" />
+          </Link>
+        )}
         <div className="mc-rail__faces" role="list" aria-label="Your team" aria-busy={waiting || undefined}>
           {waiting ? <RosterSkeleton rail /> : roster.map((r) => (
             <Link
@@ -245,10 +258,10 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <Link
           href={consoleRoutes.settings}
           className="mc-ini"
-          aria-label={`${owner.name}, settings`}
+          aria-label={`${me.name}, settings`}
           title="Settings"
         >
-          {owner.initials}
+          {me.initials}
         </Link>
       </div>
 
@@ -279,7 +292,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           <>
             <h1 className="mf-ptitle">Coral Lane</h1>
             <div className="mf-seg" role="tablist" aria-label="Show">
-              {FILTERS.map((f) => (
+              {FILTERS.filter((f) => !USES_API || f.key !== "lists").map((f) => (
                 <button
                   key={f.key}
                   type="button"
@@ -302,13 +315,31 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                 on={pathname.startsWith(consoleRoutes.shops)}
               />
               <NavRow href={consoleRoutes.credit} icon="landmark" label="Credit" on={pathname.startsWith(consoleRoutes.credit)} />
+              {/* money at risk reads the book, so it only exists where the API does */}
+              {USES_API && (
+                <NavRow
+                  href={consoleRoutes.money}
+                  icon="gauge"
+                  label="Money at risk"
+                  on={pathname.startsWith(consoleRoutes.money)}
+                />
+              )}
               <NavRow
-                href={consoleRoutes.automations}
-                icon="refresh-cw"
-                label="Automations"
-                count={autoCount}
-                on={pathname.startsWith(consoleRoutes.automations)}
+                href={consoleRoutes.returns}
+                icon="package"
+                label="Returns"
+                on={pathname.startsWith(consoleRoutes.returns)}
               />
+              {/* automations and shop lists are sample data: the API build has no routes for them yet */}
+              {!USES_API && (
+                <NavRow
+                  href={consoleRoutes.automations}
+                  icon="refresh-cw"
+                  label="Automations"
+                  count={autoCount}
+                  on={pathname.startsWith(consoleRoutes.automations)}
+                />
+              )}
             </nav>
             )}
             <div className="mc-side__scroll mc-side__team" data-filter={filter}>
@@ -320,7 +351,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                   </div>
                 </>
               )}
-              {filter !== "helpers" && (
+              {filter !== "helpers" && !USES_API && (
                 <>
                   <p className="mf-sec">Shop lists</p>
                   <div className="mc-roster" role="list" aria-label="Shop lists">
@@ -336,11 +367,11 @@ export function SideNav({ settings }: { settings: ReactNode }) {
 
         <div className="mc-me">
           <span className="mc-ini" aria-hidden="true">
-            {owner.initials}
+            {me.initials}
           </span>
-          <span className="mc-me__tx" title={`${owner.name} · ${owner.company}`}>
-            <span className="mc-me__nm">{owner.name}</span>
-            <small>{owner.company}</small>
+          <span className="mc-me__tx" title={`${me.name} · ${me.company}`}>
+            <span className="mc-me__nm">{me.name}</span>
+            <small>{me.company}</small>
           </span>
           <SoundToggle className="mc-ib" />
           <ThemeToggle className="mc-ib" />

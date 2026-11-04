@@ -73,7 +73,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (it.action === "playDemo") void playDemo((href) => router.push(href));
     if (it.action === "walkDemo") {
       stageStory();
-      /* the live demo has no sample story thread: stageStory starts the tour in Mimi's chat */
+      /* API build: there is no sample story thread, so stay on Mimi's chat */
       router.push(apiActive() ? consoleRoutes.home : threadHref(DEMO_SLUG));
     }
     if (it.action === "resetDemo") {

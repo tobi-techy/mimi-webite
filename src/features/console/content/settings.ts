@@ -1,4 +1,5 @@
 import type { IconName } from "@/features/console/components/ui/icon-paths";
+import { USES_API } from "@/features/console/api/config";
 import { consoleRoutes } from "@/features/console/config";
 
 export type SettingsControl =
@@ -376,10 +377,23 @@ export const settingsSections: readonly SettingsSection[] = [
 ];
 
 /** Sidebar groups for settings (usage opens from Billing, so it is not listed). */
-export const settingsNav: ReadonlyArray<{ title: string; ids: readonly SettingsSectionId[] }> = [
-  { title: "Account", ids: ["general", "appearance", "connectors", "computers", "support"] },
-  { title: "Workspace (Coral Lane)", ids: ["organization", "members", "shops", "billing"] },
-];
+/**
+ * The settings the API-backed console (sandbox and production) can really do today: each reads and
+ * writes through the MIMI-AGENT API or, for Appearance, this browser. Every other section is
+ * static copy with buttons that only showed a toast, so the API build leaves it out.
+ */
+export const apiSettingsIds: readonly SettingsSectionId[] = ["connectors", "policy", "appearance"];
+
+/** True when a settings section is real in this build. */
+export const settingsAvailable = (id: string): boolean =>
+  !USES_API || (apiSettingsIds as readonly string[]).includes(id);
+
+export const settingsNav: ReadonlyArray<{ title: string; ids: readonly SettingsSectionId[] }> = USES_API
+  ? [{ title: "Account", ids: apiSettingsIds }]
+  : [
+      { title: "Account", ids: ["general", "appearance", "connectors", "computers", "support"] },
+      { title: "Workspace (Coral Lane)", ids: ["organization", "members", "shops", "billing"] },
+    ];
 
 export const findSettingsSection = (id: string): SettingsSection | undefined =>
   settingsSections.find((s) => s.id === id);

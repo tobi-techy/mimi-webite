@@ -231,3 +231,19 @@ html:not([data-theme="dark"]) .mc-app .mf-ls__scrim { background: color-mix(in s
 .mc-app button.mc-gs { background: transparent; font: inherit; font-size: 13px; cursor: pointer; }
 .mc-app button.mc-gs:hover { background: var(--tint); }
 .mc-app .mc-empty-thread__acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+/* Connected tools on the API (LiveConnectorsView): the same row, with real actions and a live read under it */
+.x-app--live { flex-wrap: wrap; cursor: default; }
+.x-app--live small { white-space: normal; }
+.x-app--live:hover { background: inherit; }
+.x-app__acts { display: flex; gap: 6px; margin-left: auto; flex: none; }
+.x-app__read { flex-basis: 100%; padding: 8px 0 0 40px; color: var(--soft); font-size: var(--rf-text); }
+.x-app__read p { margin: 0; }
+.x-app__read ul { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.x-app__read li span { opacity: 0.7; }
+.x-void-wrap { display: grid; justify-items: center; gap: 12px; }
+@media (max-width: 640px) {
+  .x-app--live small { flex-basis: 100%; order: 3; white-space: normal; }
+  .x-app--live .x-app__acts { order: 4; flex-basis: 100%; justify-content: flex-end; }
+  .x-app__read { order: 5; padding-left: 0; }
+}

@@ -18,6 +18,9 @@ import {
   mapApprovalCard,
   mapCreditLines,
   mapCreditRecs,
+  mapExposure,
+  mapReturn,
+  mapReturns,
   mapShop,
   mapThread,
   mapThreadSummary,
@@ -26,6 +29,8 @@ import {
   shopStatusOf,
   stateOf,
 } from "./mappers.ts";
+import { personOf } from "../content/returns.ts";
+import type { ApiExposure, ApiReturn } from "./types.ts";
 import type { ApiApproval, ApiCredit, ApiShop, ApiShopDetail, ApiThreadDetail, ApiThreadSummary } from "./types.ts";
 
 const NOW = Date.UTC(2026, 9, 29, 9, 45); // 10:45 WAT
@@ -221,17 +226,19 @@ const detail: ApiThreadDetail = {
   ],
 };
 
-test("mapThread orders shop message, folded work, reply, then the approval card", () => {
+test("mapThread files a shop thread as a task: task line, folded work, reply line, then the approval card", () => {
   const c = mapThread(detail, [approval], NOW);
   const kinds = c.messages.map((m) => m.kind);
-  assert.deepEqual(kinds, ["date", "system", "thought", "text", "card"]);
+  assert.deepEqual(kinds, ["date", "system", "thought", "system", "card"]);
   const [, shopMsg, work, reply, card] = c.messages;
-  assert.ok(shopMsg?.kind === "system" && shopMsg.text.startsWith("Mama Sola Provisions: "));
+  /* the shop's own words never show in the console (Tobi, 3 Nov 2026) */
+  assert.ok(shopMsg?.kind === "system" && shopMsg.text === "Task from Mama Sola Provisions");
+  assert.ok(!JSON.stringify(c.messages).includes("I don pay 50k"));
   assert.ok(work?.kind === "thought" && work.from === "Proof" && work.secs === 1 && work.text === "- Checked the screenshot against the bank feed");
-  assert.ok(reply?.kind === "text" && reply.from === "Proof");
+  assert.ok(reply?.kind === "system" && reply.text === "Proof replied to Mama Sola Provisions");
   assert.ok(card?.kind === "card" && card.id === "apr:apr_1" && card.card.status === "needs" && card.card.kind === "flag");
-  /* the drafted reply waits in the card, not as a sent bubble */
-  assert.equal(c.messages.filter((m) => m.kind === "text").length, 1);
+  /* the drafted reply waits in the card, not as a line */
+  assert.equal(c.messages.filter((m) => m.kind === "system").length, 2);
   assert.equal(c.state, "needs");
 });
 
@@ -355,8 +362,10 @@ const ownerMsg = (over: Partial<ApiThreadDetail["messages"][number]>): ApiThread
 });
 
 test("a reply that went as a voice note gets a playable note under its text, fetched by message id", () => {
-  const spoken = { ...detail.messages[1]!, channel: "shop_whatsapp", voice: true };
-  const c = mapThread({ ...detail, messages: [detail.messages[0]!, spoken] }, [], NOW);
+  const spoken = { ...detail.messages[1]!, channel: "owner_console", voice: true };
+  /* a voice note to a shop is part of the shop's conversation: it never shows */
+  assert.equal(mapThread({ ...detail, messages: [detail.messages[0]!, spoken] }, [], NOW).messages.filter((m) => m.kind === "voice").length, 0);
+  const c = mapThread({ ...detail, thread: ownerThread, messages: [detail.messages[0]!, spoken] }, [], NOW);
   const i = c.messages.findIndex((m) => m.kind === "text");
   const note = c.messages[i + 1];
   assert.ok(note?.kind === "voice" && note.from === "Proof");
@@ -472,4 +481,160 @@ test("outShown: a shop sees only ready replies; drafts and declined ones never s
   assert.equal(outShown({ direction: "out", channel: "owner_console", status: "ready" }), true);
   assert.equal(outShown({ direction: "out", channel: "owner_console", status: "rejected" }), false);
   assert.equal(outShown({ direction: "in", channel: "", status: "received" }), true);
+});
+
+/* ---------- returns and exposure (contract published 3 Nov 2026) ---------- */
+
+const credit = (over: Partial<ApiApproval> & { payload?: Record<string, unknown> } = {}): ApiApproval => ({
+  ...approval,
+  kind: "return_credit",
+  tool: "return_credit",
+  ...over,
+});
+
+test("a return_credit approval is a plain credit card, the same shape as the Zoho record", () => {
+  const a = credit({
+    payload: {
+      kind: "return_credit",
+      shop_name: "Mama Chidi Kiosk",
+      amount_kobo: 3495000,
+      amount_ngn: 34950,
+      reason: "Six cartons came back dented.",
+      applied_kobo: 2000000,
+      on_account_kobo: 1495000,
+      invoices: [{ invoice_number: "INV-56-9034", amount_applied_kobo: 2000000 }],
+      date: "2026-11-03",
+    },
+  });
+  const pending = mapApprovalCard({ ...a, status: "pending" }, "")!;
+  assert.equal(pending.kind, "return");
+  assert.equal(pending.title, "Credit ₦34,950 to Mama Chidi Kiosk");
+  assert.deepEqual(pending.labels, { primary: "Approve credit", secondary: "Not now" });
+  assert.deepEqual(pending.reasons, ["Six cartons came back dented."]);
+  assert.equal(pending.undo, undefined, "nothing to undo until the owner approves");
+  assert.ok(!JSON.stringify(pending).includes("INV-56-9034"), "the invoice key is never shown");
+  const done = mapApprovalCard(
+    { ...a, status: "approved", result: { credit_id: "cr_1", applied_kobo: 2000000, on_account_kobo: 1495000, undo_available: true, applied_at: "2026-11-03T09:00:00Z" } },
+    "",
+  )!;
+  assert.equal(done.status, "sent");
+  assert.equal(done.doneText, "Credit applied");
+  assert.deepEqual(done.undo, { state: "ready" });
+  const back = mapApprovalCard(
+    { ...a, status: "approved", result: { credit_id: "cr_1", applied_kobo: 2000000, on_account_kobo: 1495000, undo_available: false, undone_at: "2026-11-03T10:00:00Z" } },
+    "",
+  )!;
+  assert.equal(back.undo?.state, "done");
+});
+
+test("a credit with nothing to set it against is held on the account, never called applied", () => {
+  const a = credit({ payload: { kind: "return_credit", shop_name: "Yemisi & Sons", amount_kobo: 1200000, applied_kobo: 0, on_account_kobo: 1200000, invoices: [] } });
+  const done = mapApprovalCard(
+    { ...a, status: "approved", result: { credit_id: "cr_2", applied_kobo: 0, on_account_kobo: 1200000, undo_available: true } },
+    "",
+  )!;
+  assert.equal(done.doneText, "Held on the account");
+  assert.ok(done.rows.some((r) => r.label === "Held on the account" && r.amount === 12000));
+  /* and no nought row claiming it went against an invoice */
+  assert.equal(done.rows.some((r) => r.label.includes("oldest open invoice")), false);
+});
+
+test("no Undo button unless the API says the credit can still be taken back", () => {
+  const a = credit({ payload: { kind: "return_credit", shop_name: "Sule & Co", amount_kobo: 500000, applied_kobo: 500000, on_account_kobo: 0 } });
+  const done = mapApprovalCard({ ...a, status: "approved", result: { credit_id: "cr_3", applied_kobo: 500000, on_account_kobo: 0, undo_available: false } }, "")!;
+  assert.equal(done.undo, undefined);
+});
+
+test("cardKindOf reads a returns credit as its own kind, not as a credit limit", () => {
+  assert.equal(cardKindOf("return_credit"), "return");
+  assert.equal(cardKindOf("apply_credit_note"), "return");
+  assert.equal(cardKindOf("set_credit_limit"), "credit");
+});
+
+const apiReturn: ApiReturn = {
+  return_id: "ret_1",
+  shop_id: "shop-001",
+  shop_name: "Mama Sola Provisions",
+  source: "slow_stock",
+  reason: "Eight cartons expired before they sold.",
+  status: "inspected",
+  lines: [
+    {
+      item: "Indomie Super Pack",
+      unit: "carton",
+      quantity_drafted: 10,
+      quantity_collected: 9,
+      quantity_returned: 8,
+      reason: "Expired",
+      unit_price_kobo: 1500000,
+      value_drafted_kobo: 15000000,
+      value_returned_kobo: 12000000,
+      condition: "expired",
+      disposition: "write_off",
+      expires_on: "2026-10-20",
+      expiry_source: "invoice",
+      batch: "B7",
+    },
+  ],
+  value_drafted_kobo: 15000000,
+  value_collected_kobo: 13500000,
+  value_returned_kobo: 12000000,
+  credit_kobo: 12000000,
+  credit_applied_kobo: 0,
+  credit_on_account_kobo: 0,
+  transitions: [{ status: "drafted", at: "2026-11-01T08:00:00Z", by: "rep-1", note: "" }],
+  created_at: "2026-11-01T08:00:00Z",
+  updated_at: "2026-11-02T08:00:00Z",
+};
+
+test("mapReturn keeps the API's status word, its three quantities and where the expiry came from", () => {
+  const r = mapReturn(apiReturn);
+  assert.equal(r.status, "inspected", "the API's own word, never a renamed one");
+  assert.equal(r.drafted, 150000);
+  assert.equal(r.collected, 135000);
+  assert.equal(r.returned, 120000);
+  assert.equal(r.shop, "Mama Sola Provisions");
+  assert.equal(r.lines[0]!.drafted, 10);
+  assert.equal(r.lines[0]!.collected, 9);
+  assert.equal(r.lines[0]!.returned, 8);
+  assert.equal(r.lines[0]!.expirySource, "invoice", "a fact off the invoice is not an estimate");
+  assert.equal(personOf(r.steps[0]!.by), "", "an internal id is never shown as a person");
+  assert.deepEqual(mapReturns({ returns: [apiReturn], total: 1 }).map((x) => x.id), ["ret_1"]);
+  assert.deepEqual(mapReturns({ returns: [], total: 0 }), [], "an empty ledger stays empty");
+});
+
+const exposure: ApiExposure = {
+  as_of: "2026-11-03T07:00:00Z",
+  policy_version: "exp-1",
+  buckets: [
+    { key: "d1_30", label: "1 to 30 days", from_days: 1, to_days: 30, weight_pct: 125 },
+    { key: "d90", label: "Over 90 days", from_days: 91, to_days: 400, weight_pct: 200 },
+  ],
+  shops: [],
+  total: {
+    outstanding_kobo: 400000000,
+    overdue_kobo: 190000000,
+    oldest_days_overdue: 133,
+    buckets: { d1_30: 50000000 },
+    exposure_kobo: 380000000,
+    verified_paid_kobo: 25000000,
+    shown_not_counted_kobo: 7000000,
+    open_invoices: 61,
+    confidence: "high",
+    note: "Read from the book.",
+  },
+};
+
+test("mapExposure reads the API's buckets and invents no figure for a band it did not send", () => {
+  const e = mapExposure(exposure);
+  assert.equal(e.policyVersion, "exp-1");
+  assert.equal(e.bands[1]!.weightPct, 200, "the weight is shown, so the weighted figure is never bare");
+  assert.equal(e.total.owed, 4000000);
+  assert.equal(e.total.overdue, 1900000);
+  assert.equal(e.total.band.d1_30, 500000);
+  assert.equal(e.total.band.d90, null, "no figure rather than a made-up nought");
+  assert.equal(e.total.weighted, 3800000);
+  assert.equal(e.total.verified, 250000);
+  assert.equal(e.total.shownNotCounted, 70000);
+  assert.equal(e.total.oldest, 133);
 });

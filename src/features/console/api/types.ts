@@ -223,6 +223,11 @@ export type ApiApprovalResult = {
   undo_available?: boolean;
   undone_at?: string;
   demo?: boolean;
+  /* a `return_credit`: the credit the approve applied, and where the rest went */
+  credit_id?: string;
+  applied_kobo?: number;
+  on_account_kobo?: number;
+  applied_at?: string;
 };
 
 /** POST /v1/credit/{shop_id}/limit and POST /v1/credit/changes/{change_id}/undo. */
@@ -232,7 +237,20 @@ export type ApiLimitChange = { shop_id: string; old_limit_ngn: number; new_limit
 export type ApiProofGrade = "verified" | "estimated" | "unverified";
 
 export type ApiConnectorConnection = { connection_id: string; status: string; region: string; connected_at: string; revoked_at: string | null };
-export type ApiConnectorToolkit = { toolkit: string; label: string; blurb: string; reads: string[]; writes: string[]; connections: ApiConnectorConnection[] };
+export type ApiConnectorToolkit = {
+  toolkit: string;
+  label: string;
+  blurb: string;
+  reads: string[];
+  writes: string[];
+  connections: ApiConnectorConnection[];
+  /** Whether this server can start a real connect flow for the toolkit (absent on older APIs: not available). */
+  connect?: { available: boolean; reason?: string };
+};
+/** GET /v1/connectors/callback: the connection saved after consent. */
+export type ApiConnectorCallback = { connection_id: string; status: string; next?: string };
+/** GET /v1/connectors/{id}/read: a live read from the connected account, proving Mimi can see it. */
+export type ApiConnectorRead = { connection_id: string; toolkit: string; read_at: string; summary: string; items: { label: string; detail?: string }[] };
 export type ApiConnectorList = { connectors: ApiConnectorToolkit[] };
 export type ApiConnect = { redirect_url: string; state: string };
 
@@ -278,7 +296,14 @@ export type ApiShop = {
   outstanding_ngn?: number;
 };
 
-export type ApiShopList = { shops: ApiShop[] };
+export type ApiShopList = {
+  shops: ApiShop[];
+  /** The API's own sums (mimi/owed.py): the book's definition of owed and overdue. */
+  owed_total_kobo?: number;
+  owed_total_naira?: string;
+  overdue_total_kobo?: number;
+  overdue_total_naira?: string;
+};
 
 export type ApiReceivable = {
   delivery_id: string;
@@ -328,6 +353,88 @@ export type ApiCreditLimit = {
   outstanding_ngn?: number;
   overdue_ngn?: number;
   overdue_days?: number;
+};
+
+/* ---------- returns (GET /v1/returns; the console's one wiring point is lib/returns-contract.ts) ---------- */
+
+export type ApiReturnLine = {
+  item: string;
+  unit: string;
+  quantity_drafted: number;
+  quantity_collected: number;
+  quantity_returned: number;
+  reason: string;
+  unit_price_kobo: number;
+  value_drafted_kobo: number;
+  value_returned_kobo: number;
+  /** resellable | damaged | expired */
+  condition: string;
+  /** resell | write_off | return_to_supplier */
+  disposition: string;
+  expires_on?: string;
+  /** invoice | estimated: a fact off the distributor's invoice, or our guess */
+  expiry_source?: string;
+  batch?: string;
+};
+
+export type ApiReturnTransition = { status: string; at: string; by: string; note: string };
+
+export type ApiReturn = {
+  return_id: string;
+  shop_id: string;
+  shop_name: string;
+  /** slow_stock | manual */
+  source: string;
+  approval_id?: string;
+  /** A plain sentence; never an id. */
+  reason: string;
+  /** drafted | approved | collected | inspected | settled | cancelled */
+  status: string;
+  lines: ApiReturnLine[];
+  value_drafted_kobo: number;
+  value_collected_kobo: number;
+  value_returned_kobo: number;
+  credit_kobo: number;
+  credit_approval_id?: string;
+  credit_applied_kobo: number;
+  credit_on_account_kobo: number;
+  transitions: ApiReturnTransition[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type ApiReturnList = { returns: ApiReturn[]; total: number };
+
+/* ---------- exposure (GET /v1/credit/exposure) ---------- */
+
+export type ApiExposureBucket = { key: string; label: string; from_days: number; to_days: number; weight_pct: number };
+
+export type ApiExposureRow = {
+  shop_id?: string;
+  shop_name?: string;
+  outstanding_kobo: number;
+  outstanding_naira?: string;
+  overdue_kobo: number;
+  overdue_naira?: string;
+  oldest_days_overdue: number;
+  /** One money field per bucket key (kobo). */
+  buckets: Record<string, number>;
+  /** The age-weighted figure: an assumption, not money anyone owes. */
+  exposure_kobo: number;
+  exposure_naira?: string;
+  verified_paid_kobo: number;
+  shown_not_counted_kobo: number;
+  open_invoices: number;
+  confidence?: string;
+  note?: string;
+};
+
+export type ApiExposure = {
+  as_of: string;
+  policy_version?: string;
+  buckets: ApiExposureBucket[];
+  shops: ApiExposureRow[];
+  total: ApiExposureRow;
 };
 
 export type ApiCreditRequest = {
