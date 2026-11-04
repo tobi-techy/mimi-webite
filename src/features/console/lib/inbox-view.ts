@@ -1,5 +1,6 @@
 /**
- * Helper inboxes, read from GET /v1/inbox (docs/HELPER-INBOX-CONTRACT.md, frozen 3 Nov 2026).
+ * Helper inboxes, read from GET /v1/inbox (docs/HELPER-INBOX-CONTRACT.md,
+ * `helper-inbox-2026-11-04.1`).
  *
  * There is no board (Grok Bot lesson): one item is a dated line inside the conversation of the
  * helper who received it ("Task from Collector"), and its result is a line inside the conversation
@@ -8,9 +9,13 @@
  * The owner's own asks arrive as `from_helper: "mimi"`, and they read as her own assignment, never
  * as "from Mimi" to a helper.
  *
- * Three rules hold in this file:
+ * Four rules hold in this file:
  * - nothing is invented: an item the API did not send never renders, and a value that could be a
  *   machine word is dropped rather than printed as a code (`sentence` below);
+ * - a state is a code and is never printed: a stopped item shows the contract's own `reason`, and
+ *   an empty `reason` falls back to `outcome` (never to the state in words of our own);
+ * - `chain` is machine data and is not rendered (the contract says so: it is the job tree, not
+ *   something a wholesaler reads);
  * - the face state is derived here, from `open` and `waiting_on_owner`, so it cannot drift from a
  *   state word the API might one day send;
  * - nothing is required: when this server has no /v1/inbox the console keeps exactly the screens it
@@ -25,20 +30,16 @@ import type { HelperName, Message, Worker } from "../demo/types";
 
 export type InboxState = "queued" | "working" | "done" | "handed_back" | "failed" | "refused";
 
-/** The states in words, for a line that has to say where a task sits. */
-export const stateWords: Record<InboxState, string> = {
-  queued: "Waiting to start",
-  working: "Working on it",
-  done: "Done",
-  handed_back: "Handed back to you",
-  failed: "Failed",
-  refused: "Refused",
-};
+/** The six state codes, kept to validate what the API sent. A state is never printed (contract 1a). */
+const STATE_CODES = ["queued", "working", "done", "handed_back", "failed", "refused"] as const;
 
 const stateOf = (s: string | null | undefined): InboxState | null => {
   const k = (s ?? "").trim().toLowerCase();
-  return k in stateWords ? (k as InboxState) : null;
+  return (STATE_CODES as readonly string[]).includes(k) ? (k as InboxState) : null;
 };
+
+/** The states that stopped without a result: their `reason` is the sentence that says why. */
+const STOPPED: readonly InboxState[] = ["handed_back", "failed", "refused"];
 
 /** The closed set of helpers, by their contract id. `mimi` is the owner, not a helper. */
 const HELPER_IDS: Record<string, HelperName> = {
@@ -76,7 +77,7 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trim
 
 /* ---------- one item ---------- */
 
-/** One inbox item, with every code already turned into words (or dropped). */
+/** One inbox item, with every code kept as a code (never printed) and every sentence as written. */
 export type InboxItem = {
   taskId: string;
   /** When it was asked, as epoch ms (0 when the API's time is unreadable). */
@@ -89,43 +90,58 @@ export type InboxItem = {
   /** The helper who sent it, when a helper did. */
   from: HelperName | null;
   fromTitle: string;
+  /** The state code, read only to decide whether a result exists and whether the item stopped. */
   state: InboxState | null;
   /** The ask, in the sender's own words. Empty when the API sent none. */
   ask: string;
-  /** What came back, in the API's own words. Empty while there is nothing to report. */
+  /** The contract's `reason`, as written: the ack, or why a handoff was refused. Never a code. */
+  reason: string;
+  /** The contract's `outcome`: one sentence for the sidebar. The API never sends it empty. */
+  outcome: string;
+  /** What came back, only when the item is `done`. Empty before that. */
   result: string;
+  /** The item stopped without a result (refused, failed, handed back): its `reason` says why. */
+  stopped: boolean;
   threadId: string;
   turnId: string;
 };
 
-/** What a finished item came back with: the API's own words, never a code, never a sum we made up. */
-function resultOf(state: InboxState | null, outcome: string, result: string, reason: string): string {
-  const said = sentence(outcome) ?? sentence(result);
-  if (said) return said;
-  if (!reason) return "";
-  if (state === "handed_back") return `handed it back: ${reason}`;
-  if (state === "failed" || state === "refused") return `could not finish it: ${reason}`;
-  return reason;
-}
-
 /** The raw item shape the mapper accepts (the client's ApiInboxItem, typed loosely on purpose). */
 export type RawInboxItem = {
   task_id?: string;
+  contract?: string;
   from_helper?: string;
   from_title?: string;
   to_helper?: string;
   to_title?: string;
   skill?: string;
+  shop_id?: string;
   shop_name?: string;
   ask?: string;
   state?: string;
   reason?: string;
   outcome?: string;
   result?: string;
+  parent_task_id?: string;
   thread_id?: string;
   turn_id?: string;
   created_at?: string;
   finished_at?: string;
+};
+
+/**
+ * The contract's own rule (4 Nov 2026): `reason` is a **sentence written by code**, never a code,
+ * never a state word, never an id and never JSON, so it is rendered as written. When it is empty
+ * (an item with no receiver) the fallback is `outcome`, which is never empty. The state code is
+ * never turned into words of our own: the API already sent the sentence, and wording the state here
+ * would be a second, weaker voice saying the same thing.
+ */
+const reasonOf = (raw: RawInboxItem): string => sentence(raw.reason) ?? sentence(raw.outcome) ?? "";
+
+/** What came back: the contract sets `result` only when the item is `done`, and it is empty before. */
+const resultOf = (state: InboxState | null, raw: RawInboxItem): string => {
+  if (state !== "done") return "";
+  return sentence(raw.result) ?? sentence(raw.outcome) ?? "";
 };
 
 /** One item, mapped. `at` is epoch ms and comes from the API's own time; a bad time is 0, never "now". */
@@ -135,7 +151,6 @@ export function mapInboxItem(raw: RawInboxItem, parseTime: (s: string | null | u
   /* an item we cannot place in a chat is dropped rather than shown in the wrong one */
   if (!taskId || !to) return null;
   const state = stateOf(raw.state);
-  const reason = sentence(raw.reason) ?? "";
   return {
     taskId,
     at: parseTime(raw.created_at) ?? parseTime(raw.finished_at) ?? 0,
@@ -146,7 +161,10 @@ export function mapInboxItem(raw: RawInboxItem, parseTime: (s: string | null | u
     fromTitle: (raw.from_title ?? "").trim() || helperIdOf(raw.from_helper) || "a helper",
     state,
     ask: sentence(raw.ask) ?? "",
-    result: resultOf(state, raw.outcome ?? "", raw.result ?? "", reason),
+    reason: reasonOf(raw),
+    outcome: sentence(raw.outcome) ?? "",
+    result: resultOf(state, raw),
+    stopped: state !== null && STOPPED.includes(state),
     threadId: (raw.thread_id ?? "").trim(),
     turnId: (raw.turn_id ?? "").trim(),
   };
@@ -180,13 +198,22 @@ export function taskLineFor(item: InboxItem): Message | null {
 }
 
 /**
+ * The sentence a sender's chat shows under the handoff line. The contract's `reason` is rendered as
+ * written, but only where it carries something the line has not already said: a stopped item (its
+ * `reason` is why), or one that finished without a result. An open item's `reason` is the ack
+ * ("Asking Proof"), which would only repeat "Handed to Proof".
+ */
+const backOf = (item: InboxItem): string => item.result || (item.stopped ? item.reason : "");
+
+/**
  * The line in the sender's chat when a helper sent the task: "Handed to Proof: check the
- * screenshot", with the one line that came back under it. `to` is the helper who did the work, so
- * the line opens her chat, where the work is.
+ * screenshot", with the one sentence that came back under it. `to` is the helper who did the work,
+ * so the line opens her chat, where the work is.
  */
 export function handoffLineFor(item: InboxItem): Message | null {
   if (!item.to || item.fromMimi) return null;
   const from = item.from ?? item.to;
+  const back = backOf(item);
   return {
     id: `api-ib:${item.taskId}:out`,
     kind: "step",
@@ -196,17 +223,18 @@ export function handoffLineFor(item: InboxItem): Message | null {
     state: "done",
     at: item.at,
     text: item.ask ? clip(`Handed to ${item.toTitle}: ${item.ask}`, 110) : `Handed to ${item.toTitle}`,
-    ...(item.result ? { result: item.result } : {}),
+    ...(back ? { result: back } : {}),
     ...(item.turnId ? { turn: item.turnId } : {}),
   };
 }
 
 /**
- * The line in Mimi's chat for one of the owner's own asks: the helper's name and what came back,
- * exactly the shape the shop task updates already take there.
+ * The line in Mimi's chat for one of the owner's own asks: the helper's name and what came back (or
+ * why she stopped), exactly the shape the shop task updates already take there.
  */
 export function updateLineFor(item: InboxItem): Message | null {
-  if (!item.to || !item.fromMimi || !item.result) return null;
+  const back = backOf(item);
+  if (!item.to || !item.fromMimi || !back) return null;
   return {
     id: `api-ib:${item.taskId}:back`,
     kind: "step",
@@ -215,7 +243,7 @@ export function updateLineFor(item: InboxItem): Message | null {
     variant: "handoff",
     state: "done",
     at: item.at,
-    text: clip(`${item.to}: ${item.result}`, 110),
+    text: clip(`${item.to}: ${back}`, 110),
     ...(item.turnId ? { turn: item.turnId } : {}),
   };
 }

@@ -147,13 +147,43 @@ test("a machine word is never printed as a code", () => {
   assert.equal(sentence("₦160,000"), "₦160,000", "a figure is not a code");
 });
 
-test("a failed item says what came back in words; a code reason is dropped, not shown", () => {
-  const failed = item({ state: "failed", outcome: "", result: "", reason: "the statement did not open" });
-  assert.equal(failed.result, "could not finish it: the statement did not open");
+test("a stopped item says why in the API's own sentence, and never in words we invent", () => {
+  const failed = item({ state: "failed", outcome: "", result: "", reason: "The statement did not open." });
+  assert.equal(failed.result, "", "a failed item has no result: the contract sets one only when done");
+  assert.equal(failed.reason, "The statement did not open.");
+  assert.equal(failed.stopped, true);
+  const line = inboxChatLines([failed], "Collector").find((m) => m.kind === "step" && m.id.endsWith(":out"));
+  assert.ok(line, "the sender's chat carries the handoff line");
+  assert.equal(resultOf(line!), "The statement did not open.", "the reason is the line under the handoff, as written");
+  assert.doesNotMatch(textOf(line!), /failed|refused/i, "the state never becomes words of ours");
+
   const coded = item({ state: "failed", outcome: "", result: "", reason: "statement_unreadable" });
-  assert.equal(coded.result, "", "a code alone is not a sentence, so the line says nothing extra");
-  const back = item({ state: "handed_back", outcome: "", result: "", reason: "needs your approval" });
-  assert.equal(back.result, "handed it back: needs your approval");
+  assert.equal(coded.reason, "", "a code is not a sentence, so it is dropped rather than shown");
+  assert.equal(resultOf(inboxChatLines([coded], "Collector").find((m) => m.kind === "step")!), undefined);
+
+  const back = item({ state: "handed_back", outcome: "", result: "", reason: "Proof needs your approval first" });
+  assert.equal(back.stopped, true);
+  assert.equal(back.reason, "Proof needs your approval first");
+});
+
+test("reason is rendered before outcome, and outcome is the fallback when reason is empty", () => {
+  const both = item({ state: "refused", reason: "Proof is already working on this; handing it back would loop." });
+  assert.equal(both.reason, "Proof is already working on this; handing it back would loop.", "reason wins over outcome");
+  assert.equal(both.outcome, "no bank credit matches, likely fake");
+  const refused = item({ state: "refused", outcome: "", reason: "" });
+  assert.equal(refused.reason, "", "with neither, the line says nothing extra");
+  const owner = item({ from_helper: "mimi", state: "failed", outcome: "", result: "", reason: "The alert could not be opened." });
+  const update = inboxMimiLines([owner])[0];
+  assert.ok(update, "a stopped owner ask still reports back");
+  assert.equal(textOf(update!), "Proof: The alert could not be opened.");
+  assert.doesNotMatch(textOf(update!), /failed|refused/i);
+});
+
+test("an open item's ack is not repeated under the handoff line, but a done item's result is", () => {
+  const open = item({ state: "working", reason: "Asking Proof", outcome: "Checking Mama Sola's screenshot", result: "" });
+  assert.equal(resultOf(inboxChatLines([open], "Collector").find((m) => m.kind === "step")!), undefined, '"Handed to Proof" already says it');
+  const done = item({ state: "done", reason: "Asking Proof", outcome: "Checked it: no match", result: "No bank credit matches." });
+  assert.equal(resultOf(inboxChatLines([done], "Collector").find((m) => m.kind === "step")!), "No bank credit matches.");
 });
 
 /* ---------- the closed set of states ---------- */

@@ -241,6 +241,11 @@ const INBOX_LIMIT = 200;
  * The per-helper inbox. It arrives with the API's next release: until this server has the route the
  * 404 reads as "not available yet" (every chat keeps exactly the lines it had, and no task is
  * invented), and it is never announced as an error.
+ *
+ * This book pass is the console's ONE read of the inbox. `ThreadDetail.inbox` (a helper's own
+ * thread, received and sent) is deliberately not read: it carries the same items, so reading both
+ * and merging would draw one handoff twice. The book pass also carries `helpers[]`, which is what
+ * the sidebar, the helper screens and the thread header show, and the thread read does not.
  */
 async function refreshInbox(t: string, signal?: AbortSignal) {
   try {
