@@ -15,8 +15,8 @@ export const consolePath = (path = ""): string => `${CONSOLE_BASE}${path}` || "/
 export const routes = {
   home: "/",
   console: consolePath(),
-  /** Public address of the console demo (the console-only build, see scripts/build-console.mjs). */
-  consoleUrl: process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.userail.money",
+  /** Public address of the live demo console (demo.userail.money, see deploy/demo-console). */
+  consoleUrl: process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://demo.userail.money",
   signup: "/signup",
   login: "/login",
   contact: "/contact",

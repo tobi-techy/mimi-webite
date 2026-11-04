@@ -27,7 +27,7 @@ Mimi is built by Rail Technology Concepts Ltd (RC 9322751), Ado-Ekiti, Nigeria. 
 Mimi routes each ask to one of six helpers: Order (takes orders), Collector (chases payments), Credit (watches limits), Stock (counts stock), Brand (reports to brands) and Proof (checks receipts).
 
 ## The console
-Distributor teams work with Mimi in a web console (live demo with sample data: https://console.userail.money):
+Distributor teams work with Mimi in a web console (live demo, your own copy of a made-up distributor: https://demo.userail.money):
 - Threads: ask Mimi in plain language (collections, restock, onboarding, credit) and follow each run step by step, including what its cloud computer is doing on screen.
 - Approvals: every payment plan, restock order or brand email waits as a draft until a person approves it.
 - Shops: each shop's sell-through, outstanding balance, payments (verified or self-reported) and credit score.
