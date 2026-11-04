@@ -36,6 +36,11 @@
  *
  * `POST /v1/routines/{id}/pause` and `POST /v1/routines/{id}/resume` (owner key), each answering
  * `{ "id": "morning_brief", "name": "Morning briefing", "paused": true }`.
+ *
+ * An answer this console does not recognise reads as "not available yet", never as an empty rail: a
+ * renamed `routines` field, or a list where no row could be read (no id, or a name that is a machine
+ * token), is a shape we do not know, not "Mimi runs nothing". `{"routines": []}` is an honest empty
+ * list and does show "Mimi has nothing running yet".
  */
 export const ROUTINES_PATH = "/v1/routines";
 export const routinePausePath = (id: string): string => `${ROUTINES_PATH}/${encodeURIComponent(id)}/pause`;

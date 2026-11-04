@@ -30,7 +30,7 @@ import { readWords, routineLine } from "@/features/console/lib/routine-times";
  * that instead, with the same Try again the other book pages offer.
  */
 export function RoutinesView() {
-  const { routines, asOf, loading, missing, failed } = useRoutines();
+  const { routines, asOf, ready, loading, missing, failed } = useRoutines();
   /* the times are worded once, when the screen opens: they are words, not a running clock */
   const [now] = useState(() => Date.now());
   const [busy, setBusy] = useState("");
@@ -49,6 +49,8 @@ export function RoutinesView() {
         </Note>
       </>
     );
+  /* no list was read: the honest note, never an empty rail that would read as "Mimi runs nothing" */
+  if (!ready) return <NotYet />;
   if (routines.length === 0) return <EmptyState>Mimi has nothing running yet</EmptyState>;
 
   /* a write changes the row only after the API answers, so one at a time, and the row says so */

@@ -1176,6 +1176,16 @@ export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | un
   return { asOf: figure(l.as_of), routines: out };
 }
 
+/**
+ * True when the answer carries the list this console reads. A renamed field must not read as "Mimi
+ * runs nothing": an answer we do not recognise is "not available yet", and so is a list where no row
+ * could be read at all, which is a shape we do not know rather than an empty rail.
+ */
+export function routinesAnswerReadable(l: ApiRoutineList, rows: readonly Routine[]): boolean {
+  if (!Array.isArray(l.routines)) return false;
+  return l.routines.length === 0 || rows.length > 0;
+}
+
 /* ---------- two books (GET /v1/books/agreement) ---------- */
 
 /** A formatted figure exactly as the API sent it. "" when it sent none: the console builds no figure. */
@@ -1207,9 +1217,27 @@ export function mapBooksAgreement(a: ApiBooksAgreement): BooksAgreement {
   }
   return {
     asOf: figure(a.as_of),
-    connected: a.zoho_connected === true,
+    /* true, false, or null when the API did not say: the console never claims a connection it was not told about */
+    connected: a.zoho_connected === true ? true : a.zoho_connected === false ? false : null,
     shops,
     total: booksMoney(a.total),
     note: words(a.note),
   };
+}
+
+/** Any figure at all on a money block: a string the console renders, or the kobo behind it. */
+const hasFigure = (m: ApiBooksMoney | null | undefined): boolean =>
+  !!m && [m.mimi_outstanding_naira, m.zoho_outstanding_naira, m.difference_naira, m.mimi_outstanding_kobo, m.zoho_outstanding_kobo, m.difference_kobo].some((v) => v !== null && v !== undefined && v !== "");
+
+/**
+ * True when the answer carries a comparison this console reads: the shops list, a total with a
+ * figure, or the API's own word on whether Zoho Books is connected. A renamed field must not read as
+ * "neither book has a shop yet" or as two books that agree, and a shops list where no row could be
+ * read is a shape we do not know rather than an empty book.
+ */
+export function booksAnswerReadable(a: ApiBooksAgreement, shops: readonly BooksShop[]): boolean {
+  if (Array.isArray(a.shops) && a.shops.length > 0 && shops.length === 0) return false;
+  if (Array.isArray(a.shops)) return true;
+  if (typeof a.zoho_connected === "boolean") return true;
+  return hasFigure(a.total);
 }

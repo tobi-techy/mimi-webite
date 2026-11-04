@@ -27,8 +27,12 @@ export type BooksTotal = BooksMoney;
 export type BooksAgreement = {
   /** When the API read both books, ISO with zone. "" when it sent none. */
   asOf: string;
-  /** False when Zoho Books is not connected: the screen says so and shows no figure at all. */
-  connected: boolean;
+  /**
+   * False only when the API says Zoho Books is not connected, so the screen says so and shows no
+   * figure at all. Null when it did not say, which is not the same thing and is never rendered as
+   * "not connected".
+   */
+  connected: boolean | null;
   shops: BooksShop[];
   total: BooksTotal;
   /** The API's own note about the comparison, when it sends one. */

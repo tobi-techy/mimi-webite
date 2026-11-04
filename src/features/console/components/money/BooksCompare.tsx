@@ -31,8 +31,8 @@ export function BooksView() {
 
   if (loading) return <SkeletonRows count={5} />;
   if (missing) return <NotYet />;
-  /* no comparison was read: not connected, and not agreement either */
-  if (failed || !agreed)
+  /* a read that failed says so, and is not the same as "not connected" */
+  if (failed)
     return (
       <>
         <EmptyState>Mimi couldn&apos;t read both books just now.</EmptyState>
@@ -44,7 +44,9 @@ export function BooksView() {
         </Note>
       </>
     );
-  if (!agreed.connected) return <NotConnected />;
+  /* nothing readable: the honest note, never an empty comparison that would read as agreement */
+  if (!agreed) return <NotYet />;
+  if (agreed.connected === false) return <NotConnected />;
   return <Compared v={agreed} now={now} />;
 }
 
@@ -140,8 +142,8 @@ function Figure({ value, what }: { value: string; what: string }) {
 }
 
 /**
- * Zoho Books is not connected, so there is nothing to compare. No figure appears on this screen at
- * all: a nought would read as an empty book, and this is a real accounting system.
+ * Zoho Books is not connected, and the API said so. No figure appears on this screen at all: a
+ * nought would read as an empty book, and this is a real accounting system.
  */
 function NotConnected() {
   return (
@@ -161,15 +163,18 @@ function NotConnected() {
 }
 
 /**
- * The API has no two books read yet. Nothing here is a row of data: it is what the screen will show,
- * in plain words, so the visitor is told the truth rather than shown a comparison that would pass
- * for a real one. The call behind it lives in lib/two-books-contract.ts.
+ * The API has no two books read yet, or answered with a shape this console does not know. Nothing
+ * here is a row of data: it is what the screen will show, in plain words, so the visitor is told the
+ * truth rather than shown a comparison that would pass for a real one. The call behind it lives in
+ * lib/two-books-contract.ts. The wording makes no claim about Zoho Books: whether it is connected is
+ * the API's to say, and it says it through `zoho_connected`.
  */
 function NotYet() {
   return (
     <>
       <p className="x-sub">
-        Not available yet. Zoho Books isn&apos;t connected to Mimi, so nothing here would be compared.
+        Not available yet. This console can&apos;t read the two books yet, so nothing here would be
+        compared.
       </p>
       <div className="x-grp">
         <div className="x-gh">

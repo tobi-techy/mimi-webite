@@ -37,7 +37,13 @@
  * never formatted from kobo.
  *
  * `zoho_connected: false` gates the whole screen: Zoho Books is not connected, so there is nothing
- * to compare and no figure is shown at all. A shop only one book knows carries `null` (and a "") on
- * the other side and is its own state on the screen.
+ * to compare and no figure is shown at all. Only an explicit `false` says that: absent is not the
+ * same as false, and the console makes no claim it was not given. A shop only one book knows carries
+ * `null` (and a "") on the other side and is its own state on the screen.
+ *
+ * An answer this console does not recognise reads as "not available yet", never as an empty book and
+ * never as two books that agree: renamed fields, or a shops list where no row could be read, is a
+ * shape we do not know. `{"shops": []}` is an honest empty comparison, and a total with a figure is a
+ * comparison even with no shops in it.
  */
 export const BOOKS_PATH = "/v1/books/agreement";

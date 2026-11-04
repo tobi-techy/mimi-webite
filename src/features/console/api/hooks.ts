@@ -142,17 +142,19 @@ const NO_ROUTINES: readonly Routine[] = [];
 
 /**
  * Mimi's routines, with the as-of time the API read them. `missing` is true when this server has no
- * routines route yet, which the screen shows as "not available yet": an empty rail would read as
- * "Mimi runs nothing", and that is a lie.
+ * routines route yet, and also when it answered with a shape this console does not know; `ready` is
+ * false when no list was read at all, so the screen can tell "nothing running" from "nothing read".
  */
-export function useRoutines(): { routines: readonly Routine[]; asOf: string; loading: boolean; missing: boolean; failed: boolean } {
+export function useRoutines(): { routines: readonly Routine[]; asOf: string; ready: boolean; loading: boolean; missing: boolean; failed: boolean } {
   const status = useLive((s) => s.status);
   const list = useLive((s) => s.routines);
   const read = useLive((s) => s.ledger.routines);
-  if (status === "connecting") return { routines: NO_ROUTINES, asOf: "", loading: true, missing: false, failed: false };
+  if (status === "connecting")
+    return { routines: NO_ROUTINES, asOf: "", ready: false, loading: true, missing: false, failed: false };
   return {
     routines: list?.routines ?? NO_ROUTINES,
     asOf: list?.asOf ?? "",
+    ready: list !== null,
     loading: false,
     missing: read === "missing",
     failed: read === "error",

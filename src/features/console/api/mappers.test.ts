@@ -19,6 +19,8 @@ import {
   mapCreditLines,
   mapCreditRecs,
   mapBooksAgreement,
+  booksAnswerReadable,
+  routinesAnswerReadable,
   mapExposure,
   mapReturn,
   mapReturns,
@@ -854,4 +856,37 @@ test("Zoho not connected is a flag, and it stays false rather than reading as ag
   assert.deepEqual(v.shops, []);
   assert.equal(v.total.mimi, "");
   assert.equal(v.total.difference, "");
+});
+
+test("an answer the console does not know reads as not available, never as empty", () => {
+  /* routines */
+  assert.equal(routinesAnswerReadable({}, []), false, "no list in the answer is not an empty rail");
+  assert.equal(routinesAnswerReadable({ routines: [] }, []), true, "an honest empty list is still a list");
+  const renamed = { routines: [{ id: "r", name: "row_1" }] };
+  assert.equal(
+    routinesAnswerReadable(renamed, mapRoutines(renamed, parseApiTime).routines),
+    false,
+    "a list no row could be read from is a shape we do not know, not 'Mimi runs nothing'",
+  );
+  const real = { routines: [{ id: "r", name: "Real routine" }] };
+  assert.equal(routinesAnswerReadable(real, mapRoutines(real, parseApiTime).routines), true);
+
+  /* two books */
+  const unknown = { rows: [] } as unknown as ApiBooksAgreement;
+  assert.equal(booksAnswerReadable(unknown, []), false, "renamed fields are not an empty book");
+  assert.equal(booksAnswerReadable({}, []), false, "an answer with nothing in it is not a comparison");
+  assert.equal(booksAnswerReadable({ shops: [] }, []), true, "an honest empty shops list is a comparison");
+  assert.equal(booksAnswerReadable({ zoho_connected: false }, []), true, "the API's word on the connection is enough");
+  assert.equal(booksAnswerReadable({ total: { mimi_outstanding_naira: "₦1" } }, []), true, "a total with a figure is enough");
+  assert.equal(
+    booksAnswerReadable({ shops: [{ shop_id: "s", shop_name: "shop_1" }] }, []),
+    false,
+    "shops no row could be read from is not two books that agree",
+  );
+});
+
+test("Zoho is only 'not connected' when the API says so", () => {
+  assert.equal(mapBooksAgreement({}).connected, null, "no word on the connection is not a claim that it is off");
+  assert.equal(mapBooksAgreement({ zoho_connected: false }).connected, false);
+  assert.equal(mapBooksAgreement({ zoho_connected: true }).connected, true);
 });

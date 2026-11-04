@@ -3,7 +3,7 @@
 import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
 import { getLive, notify, setLive, type LedgerRead } from "@/features/console/api/live-store";
-import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapBooksAgreement, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapRoutines, mapShop, mapThread, mapThreadSummary, parseApiTime } from "@/features/console/api/mappers";
+import { booksAnswerReadable, capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapBooksAgreement, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapRoutines, mapShop, mapThread, mapThreadSummary, parseApiTime, routinesAnswerReadable } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
@@ -270,14 +270,19 @@ async function refreshLedger(t: string, signal?: AbortSignal) {
  * Mimi's routines (GET /v1/routines) and the two books comparison (GET /v1/books/agreement). Both
  * arrive with the API's next release: until this server has the routes the 404 reads as "not
  * available yet" on the screen, which is the honest state, and is never an empty success.
+ *
+ * An answer whose shape this console does not know (a renamed field, say) reads as "not available"
+ * too, and never as an empty rail or as two books that agree. The last good read is kept, so a
+ * regression in the answer does not throw away the figures already on screen.
  */
 export async function refreshRoutines(t: string, signal?: AbortSignal): Promise<void> {
   const verdict = (e: unknown): LedgerRead => (missingRoute(e) ? "missing" : "error");
   const read = (r: LedgerRead) => setLive({ ledger: { ...getLive().ledger, routines: r } });
   try {
     const l = await mimiApi.routines(t, { signal });
-    /* a failed read keeps the last good list: the screen still has something true to show */
-    setLive({ routines: mapRoutines(l, parseApiTime) });
+    const list = mapRoutines(l, parseApiTime);
+    if (!routinesAnswerReadable(l, list.routines)) return read("missing");
+    setLive({ routines: list });
     read("unread");
   } catch (e) {
     if (isAbort(e)) return;
@@ -291,7 +296,10 @@ export async function refreshBooks(t: string, signal?: AbortSignal): Promise<voi
   const verdict = (e: unknown): LedgerRead => (missingRoute(e) ? "missing" : "error");
   const read = (r: LedgerRead) => setLive({ ledger: { ...getLive().ledger, books: r } });
   try {
-    setLive({ books: mapBooksAgreement(await mimiApi.booksAgreement(t, { signal })) });
+    const a = await mimiApi.booksAgreement(t, { signal });
+    const mapped = mapBooksAgreement(a);
+    if (!booksAnswerReadable(a, mapped.shops)) return read("missing");
+    setLive({ books: mapped });
     read("unread");
   } catch (e) {
     if (isAbort(e)) return;
