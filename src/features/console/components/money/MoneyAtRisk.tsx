@@ -13,8 +13,7 @@ import { useBookTotals, useExposure, useShops, useUnreachable } from "@/features
 import type { Exposure } from "@/features/console/content/exposure";
 import type { Shop } from "@/features/console/content/shops";
 import { ageingOf, reasonOf } from "@/features/console/lib/ageing";
-import { bandSubline } from "@/features/console/lib/exposure-bands";
-import { naira, nairaShort } from "@/features/console/lib/format";
+import { naira } from "@/features/console/lib/format";
 
 const TILES = ["Total at risk", "Past due", "Shops carrying it", "Oldest"] as const;
 
@@ -42,26 +41,40 @@ export function MoneyAtRisk() {
       </>
     );
   }
-  return exposure ? <FromApi e={exposure} /> : <FromBook shops={shops} totals={totals} />;
+  return exposure ? <FromApi e={exposure} shopCount={shops.length} /> : <FromBook shops={shops} totals={totals} />;
 }
 
-function Kpis({ values, labels = TILES }: { values: Array<string | null>; labels?: readonly string[] }) {
+/** The four tiles. A note gives a figure its context (share of the total, out of how many shops); it is only shown when it can be read off figures already on screen. */
+function Kpis({
+  values,
+  notes = [],
+  labels = TILES,
+}: {
+  values: Array<string | null>;
+  notes?: Array<string | null>;
+  labels?: readonly string[];
+}) {
   return (
     <div className="x-kpis">
       {values.map((value, i) => (
         <div key={labels[i]} className="x-kpi">
           <b>{value ?? <SkeletonNum />}</b>
           <span>{labels[i]}</span>
+          {notes[i] ? <small>{notes[i]}</small> : null}
         </div>
       ))}
     </div>
   );
 }
 
+/** "58% of the total", or null when there is no total to take a share of. */
+const shareOf = (part: number, whole: number) => (whole > 0 && part > 0 ? `${Math.round((part / whole) * 100)}% of the total` : null);
+/** "of 40 shops", or null before the shop list is read. */
+const ofShops = (n: number) => (n > 0 ? `of ${n} ${n === 1 ? "shop" : "shops"}` : null);
+
 /** The API's exposure endpoint: its buckets, its ageing, its weighted figure, labelled as such. */
-function FromApi({ e }: { e: Exposure }) {
+function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
   const { total } = e;
-  const readable = e.bands.some((b) => total.band[b.key] !== null);
   /* one set of shops behind the tile, the section heading and the rows: they can never disagree */
   const rows = e.shops
     .filter((s) => s.owed > 0 || s.overdue > 0)
@@ -76,13 +89,13 @@ function FromApi({ e }: { e: Exposure }) {
           String(rows.length),
           total.oldest > 0 ? `${total.oldest} ${total.oldest === 1 ? "day" : "days"}` : "None",
         ]}
+        notes={[null, shareOf(total.overdue, total.owed), ofShops(shopCount), null]}
       />
 
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="clock" />
           <h2>How old the money is</h2>
-          <span className="x-num">{nairaShort(total.overdue)}</span>
         </div>
         <ul className="v2-rows">
           {e.bands.map((b) => {
@@ -91,7 +104,6 @@ function FromApi({ e }: { e: Exposure }) {
               <li key={b.key}>
                 <span className="v2-rows__l">
                   <span>{b.label}</span>
-                  <span className="v2-rows__sub">{bandSubline(b)}</span>
                 </span>
                 <span className="v2-rows__r">
                   {money !== null && total.overdue > 0 && <MiniBar percent={(money / total.overdue) * 100} />}
@@ -101,10 +113,6 @@ function FromApi({ e }: { e: Exposure }) {
             );
           })}
         </ul>
-        <p className="x-sub">
-          Risk weighted {naira(total.weighted)} at the weights above. That is an assumption about age,
-          not money anyone owes, so the outstanding figure is the one to go by.
-        </p>
       </div>
 
       <div className="x-grp">
@@ -137,7 +145,7 @@ function FromApi({ e }: { e: Exposure }) {
                 <tr key={s.id} className="is-link">
                   <td>
                     <Link href={shopHref(s.id)} scroll={false} aria-label={`Open ${s.name}`}>
-                      <Identity name={s.name} sub={s.note || s.confidence || ""} />
+                      <Identity name={s.name} />
                     </Link>
                   </td>
                   <td className="r x-ink">{naira(s.owed)}</td>
@@ -153,10 +161,6 @@ function FromApi({ e }: { e: Exposure }) {
         )}
       </div>
 
-      <p className="x-sub">
-        {naira(total.verified)} confirmed by the bank · {naira(total.shownNotCounted)} shown but not
-        counted yet. From Coral Lane&apos;s book{readable ? "" : ", and this server sends no money per band"}.
-      </p>
     </>
   );
 }
@@ -181,13 +185,13 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
               ? "Not given"
               : "None",
         ]}
+        notes={[null, shareOf(age.overdue, age.owed), ofShops(shops.length), null]}
       />
 
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="clock" />
           <h2>How old the money is</h2>
-          <span className="x-num">{nairaShort(age.overdue)}</span>
         </div>
         {age.overdue > 0 ? (
           <ul className="v2-rows">
@@ -211,8 +215,7 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
         )}
         {age.undated > 0 && (
           <p className="x-sub">
-            {naira(age.undated)} of this is past due with no day count on the book, so it is not in a
-            band above. The book is the only place ageing comes from.
+            {naira(age.undated)} past due has no day count, so it is in no band.
           </p>
         )}
       </div>
@@ -264,10 +267,6 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
         )}
       </div>
 
-      <p className="x-sub">
-        From Coral Lane&apos;s book. The age is each shop&apos;s oldest unpaid invoice, so a shop sits
-        in the band its oldest money falls in.
-      </p>
     </>
   );
 }

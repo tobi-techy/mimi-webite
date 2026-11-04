@@ -40,10 +40,10 @@ export const creditRecommendations: readonly CreditRecommendation[] = [
   },
 ];
 
-/* notes follow from the sample book itself (48 shops, ₦4.82m outstanding): no invented comparisons */
+/* notes follow from the sample book itself (48 shops, ₦4,820,000 outstanding): no invented comparisons */
 export const creditKpis = [
-  { value: "₦4.82m", label: "Outstanding", note: "across 48 shops" },
-  { value: "₦1.1m", label: "Overdue", note: "23% of outstanding" },
+  { value: "₦4,820,000", label: "Outstanding", note: "across 48 shops" },
+  { value: "₦1,100,000", label: "Overdue", note: "23% of outstanding" },
   { value: "92%", label: "Repaid on time" },
   { value: "38", label: "Shops eligible", note: "of 48 shops" },
 ] as const;

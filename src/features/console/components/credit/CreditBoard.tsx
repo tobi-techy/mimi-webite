@@ -7,7 +7,7 @@ import { ActionGroup } from "@/features/console/components/ui/ActionGroup";
 import { Avatar, Identity } from "@/features/console/components/ui/Avatar";
 import { BookUnreachable } from "@/features/console/components/live/BookUnreachable";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { MiniBar } from "@/features/console/components/ui/Meter";
+import { MiniBar, ScoreTicks } from "@/features/console/components/ui/Meter";
 import { SearchField } from "@/features/console/components/ui/SearchField";
 import { Segmented } from "@/features/console/components/ui/Segmented";
 import { shopHref } from "@/features/console/config";
@@ -89,17 +89,21 @@ export function CreditBoard() {
   /* the API has no credit score: show the column only when a line in the book really has one */
   const showScore = useMemo(() => lines.some((l) => !l.shop.live), [lines]);
 
+  const open = recs.filter((r) => set[r.shopId]?.limit !== r.to).length;
+
   return (
     <>
       <div className="x-card x-recs">
+        {/* the count only when there is something to count: "· 0" beside "Nothing to review" said it twice */}
         <p className="x-rh">
-          Recommended changes <span className="x-num">· {recs.filter((r) => set[r.shopId]?.limit !== r.to).length}</span>
+          Recommended changes
+          {open > 0 && <span className="x-num"> · {open}</span>}
         </p>
         {book.loading && <SkeletonRows count={2} />}
         {!book.loading && recs.length === 0 && (
           <div className="x-ri">
             <div>
-              <small>No changes to review. Mimi checks again tomorrow.</small>
+              <small>Nothing to review.</small>
             </div>
           </div>
         )}
@@ -195,10 +199,7 @@ export function CreditBoard() {
                       {l.shop.live ? (
                         <span className="x-mu">—</span>
                       ) : (
-                        <>
-                          <span className="x-ink">{l.shop.score}</span>
-                          <span className="x-mu">/100</span>
-                        </>
+                        <ScoreTicks score={l.shop.score} />
                       )}
                     </td>
                   )}

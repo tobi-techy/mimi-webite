@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Identity } from "@/features/console/components/ui/Avatar";
 import { BookUnreachable } from "@/features/console/components/live/BookUnreachable";
-import { MiniBar } from "@/features/console/components/ui/Meter";
+import { MiniBar, ScoreTicks } from "@/features/console/components/ui/Meter";
 import { Picker } from "@/features/console/components/ui/Picker";
 import { Pill } from "@/features/console/components/ui/Pill";
 import { SearchField } from "@/features/console/components/ui/SearchField";
@@ -151,10 +151,7 @@ export function ShopsTable() {
                     {s.live ? (
                       <span className="x-mu">—</span>
                     ) : (
-                      <>
-                        <span className="x-ink">{s.score}</span>
-                        <span className="x-mu">/100</span>
-                      </>
+                      <ScoreTicks score={s.score} />
                     )}
                   </td>
                 )}

@@ -87,8 +87,9 @@
   border-bottom: 1px solid var(--hair);
 }
 .mc-app .c-table .x-dt td {
-  height: 52px;
-  padding: 8px 12px;
+  /* 44px rows (Rico's table spec, 4 Nov): a name with its sub-line still fits, 2 more shops per screen */
+  height: 44px;
+  padding: 4px 12px;
   border-top: 1px solid var(--line);
 }
 .mc-app .c-table .x-dt tbody tr:first-child td { border-top: 0; }
@@ -326,3 +327,13 @@ html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi {
 /* Settings keeps its 12px rows, but a table's cells read at the console's table size */
 .mc-app .x-set .c-table .x-dt td { font-size: 13px; }
 .mc-app .x-set .c-table .x-dt td .c-identity__name { font-size: 13px; }
+
+/* the sandbox line at the top of Mimi's thread: one word and Reset, centred under her name (copy cut, 4 Nov) */
+.mc-app .mc-feed .mc-col > .x-note { justify-content: center; margin: 0 0 8px; padding: 0; border: 0; color: var(--f-dim, var(--muted)); }
+
+/* score: the number, then 11 ticks 8px tall with 2px gaps; filled in ink, empty in a dark grey (one accent rule: no green, yellow or blue) */
+.mc-app .x-score { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.mc-app .x-score__n { min-width: 2ch; text-align: right; color: var(--f-text, var(--ink)); }
+.mc-app .x-score__t { display: inline-flex; gap: 2px; }
+.mc-app .x-score__t i { width: 4px; height: 8px; border-radius: 1px; background: var(--f-raised, var(--hair)); }
+.mc-app .x-score__t i.is-on { background: var(--f-text, var(--ink)); }
