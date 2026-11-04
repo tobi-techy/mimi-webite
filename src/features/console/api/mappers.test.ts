@@ -608,7 +608,7 @@ const exposure: ApiExposure = {
   policy_version: "exp-1",
   buckets: [
     { key: "d1_30", label: "1 to 30 days", from_days: 1, to_days: 30, weight_pct: 125 },
-    { key: "d90", label: "Over 90 days", from_days: 91, to_days: 400, weight_pct: 200 },
+    { key: "d90", label: "Over 90 days", from_days: 91, to_days: null, weight_pct: 200 },
   ],
   shops: [],
   total: {
@@ -629,6 +629,7 @@ test("mapExposure reads the API's buckets and invents no figure for a band it di
   const e = mapExposure(exposure);
   assert.equal(e.policyVersion, "exp-1");
   assert.equal(e.bands[1]!.weightPct, 200, "the weight is shown, so the weighted figure is never bare");
+  assert.equal(e.bands[1]!.toDays, null, "an open end stays absent, rather than becoming a nought");
   assert.equal(e.total.owed, 4000000);
   assert.equal(e.total.overdue, 1900000);
   assert.equal(e.total.band.d1_30, 500000);
@@ -637,4 +638,52 @@ test("mapExposure reads the API's buckets and invents no figure for a band it di
   assert.equal(e.total.verified, 250000);
   assert.equal(e.total.shownNotCounted, 70000);
   assert.equal(e.total.oldest, 133);
+});
+
+/* the live shape, read from GET /v1/credit/exposure on 4 Nov 2026: two bands have an open end */
+const liveExposure: ApiExposure = {
+  as_of: "2026-10-26T00:00:00Z",
+  policy_version: "exposure-v0.1",
+  buckets: [
+    { key: "current", label: "Not yet due", from_days: null, to_days: 0, weight_pct: 100 },
+    { key: "days_1_30", label: "1 to 30 days", from_days: 1, to_days: 30, weight_pct: 125 },
+    { key: "days_31_60", label: "31 to 60 days", from_days: 31, to_days: 60, weight_pct: 150 },
+    { key: "days_over_60", label: "Over 60 days", from_days: 61, to_days: null, weight_pct: 200 },
+  ],
+  shops: [],
+  total: {
+    outstanding_kobo: 1256035000,
+    overdue_kobo: 723100000,
+    oldest_days_overdue: 49,
+    buckets: { current_kobo: 532935000, days_1_30_kobo: 656760000, days_31_60_kobo: 66340000, days_over_60_kobo: 0 },
+    exposure_kobo: 1453395000,
+    verified_paid_kobo: 4431805000,
+    shown_not_counted_kobo: 1046105000,
+    open_invoices: 134,
+    confidence: "low",
+    note: "Read from the book.",
+  },
+};
+
+test("the live buckets: both open ends stay absent, and every naira figure is carried through", () => {
+  const e = mapExposure(liveExposure);
+  assert.deepEqual(
+    e.bands.map((b) => [b.key, b.fromDays, b.toDays]),
+    [
+      ["current", null, 0],
+      ["days_1_30", 1, 30],
+      ["days_31_60", 31, 60],
+      ["days_over_60", 61, null],
+    ],
+    "the current band has no lower bound and the oldest has no upper one",
+  );
+  assert.equal(e.total.owed, 12560350);
+  assert.equal(e.total.overdue, 7231000);
+  assert.equal(e.total.weighted, 14533950);
+  assert.deepEqual(
+    e.bands.map((b) => e.total.band[b.key]),
+    [5329350, 6567600, 663400, 0],
+    "a band the API sends a nought for is a nought of money, not a missing bound",
+  );
+  assert.equal(e.total.oldest, 49);
 });

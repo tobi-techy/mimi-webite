@@ -985,8 +985,9 @@ export function mapExposure(e: ApiExposure): Exposure {
   const bands = (e.buckets ?? []).map((b) => ({
     key: b.key,
     label: b.label,
-    fromDays: b.from_days ?? 0,
-    toDays: b.to_days ?? 0,
+    /* an open end stays absent: a nought here would print as "0 to 0 days" on the money screen */
+    fromDays: b.from_days ?? null,
+    toDays: b.to_days ?? null,
     weightPct: b.weight_pct ?? 0,
   }));
   const money = (r: ApiExposureRow) => ({
