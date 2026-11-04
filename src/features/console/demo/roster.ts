@@ -1,5 +1,6 @@
 import { agoLabel } from "@/features/console/api/mappers";
 import { USES_API } from "@/features/console/api/config";
+import { faceStateOf, type HelperLine } from "@/features/console/lib/inbox-view";
 import { helperActivity, needsLine } from "@/features/console/lib/helper-activity";
 import type { Conversation, DemoState, HelperName } from "@/features/console/demo/types";
 
@@ -135,6 +136,8 @@ export function rosterRow(
   name: RosterName,
   /** Live demo: when the owner last saw this helper's lines (unread counts after it). */
   seen: number = Number.POSITIVE_INFINITY,
+  /** The API's own line for this helper (GET /v1/inbox). Absent when this server has no route. */
+  api?: HelperLine | null,
   now: number = Date.now(),
 ): RosterRow {
   const seed = rosterSeed[name];
@@ -182,6 +185,14 @@ export function rosterRow(
     if (name === "Mimi") preview = total ? needsLine(total) : act.last?.text ?? "Ask me anything";
     else preview = act.last?.text ?? thread?.preview ?? "Nothing yet";
     if (!live) step = cards > 0 ? "Waiting on you" : act.last && name !== "Mimi" ? "Waiting for your next message" : where ? `${where.status.charAt(0).toUpperCase()}${where.status.slice(1)}` : "Waiting for work";
+    /* the API's own counts and sentence win when it sent them: the face is derived here from
+       `open` and `waiting_on_owner` (the API sends no state word, so the two cannot drift), the
+       line is its outcome, and the hover line is a count, never a percentage */
+    if (api) {
+      state = faceStateOf(api);
+      if (api.outcome) preview = api.outcome;
+      step = api.open > 0 ? `${api.open} open${api.waitingOnOwner > 0 ? `, ${api.waitingOnOwner} waiting on you` : ""}` : "Nothing open";
+    }
     const ago = act.last ? agoLabel(act.last.at, now) : thread?.ago ?? "";
     return { name, state, needs: cards, preview, step, ago, costToday: 0, steps: 0, thread: where, unread: act.unread, shared };
   }

@@ -22,6 +22,7 @@ import { useDemo } from "@/features/console/demo/store";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useShops } from "@/features/console/api/hooks";
 import { seenAt, useLive } from "@/features/console/api/live-store";
+import { helperLineIn } from "@/features/console/lib/inbox-view";
 import { USES_API } from "@/features/console/api/config";
 import { cx } from "@/lib/cx";
 
@@ -200,7 +201,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
   /* the live demo before its first API answer: a neutral skeleton, never the sample previews */
   const waiting = USES_API && live.status === "connecting";
   const roster = useMemo(
-    () => rosterNames.map((n) => rosterRow({ conversations, typing, computer }, n, seenAt(live, n))),
+    () => rosterNames.map((n) => rosterRow({ conversations, typing, computer }, n, seenAt(live, n), helperLineIn(live.helperLines, n))),
     [conversations, typing, computer, live],
   );
   const inSettings = pathname.startsWith(consoleRoutes.settings);

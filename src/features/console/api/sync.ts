@@ -3,10 +3,11 @@
 import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
 import { getLive, notify, setLive, type LedgerRead } from "@/features/console/api/live-store";
-import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
+import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapShop, mapThread, mapThreadSummary, parseApiTime } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
+import { mapInbox } from "@/features/console/lib/inbox-view";
 import { getDemo, isApiBacked, setApiConversations, setDemo } from "@/features/console/demo/store";
 import { taskStore } from "@/features/console/lib/computer-tasks-store";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
@@ -230,7 +231,31 @@ async function refreshBook(t: string, signal?: AbortSignal) {
       : null;
   credit = c;
   publishBook();
-  await refreshLedger(t, signal);
+  await Promise.all([refreshLedger(t, signal), refreshInbox(t, signal)]);
+}
+
+/** The contract's own ceiling for one read (limit 1..200, default 50). */
+const INBOX_LIMIT = 200;
+
+/**
+ * The per-helper inbox. It arrives with the API's next release: until this server has the route the
+ * 404 reads as "not available yet" (every chat keeps exactly the lines it had, and no task is
+ * invented), and it is never announced as an error.
+ *
+ * This book pass is the console's ONE read of the inbox. `ThreadDetail.inbox` (a helper's own
+ * thread, received and sent) is deliberately not read: it carries the same items, so reading both
+ * and merging would draw one handoff twice. The book pass also carries `helpers[]`, which is what
+ * the sidebar, the helper screens and the thread header show, and the thread read does not.
+ */
+async function refreshInbox(t: string, signal?: AbortSignal) {
+  try {
+    const { items, helpers } = mapInbox(await mimiApi.inbox(t, { limit: INBOX_LIMIT }, { signal }), parseApiTime);
+    setLive({ inbox: items, helperLines: helpers, ledger: { ...getLive().ledger, inbox: "unread" } });
+  } catch (e) {
+    if (isAbort(e)) return;
+    setLive({ ledger: { ...getLive().ledger, inbox: missingRoute(e) ? "missing" : "error" } });
+    if (!missingRoute(e)) report(e);
+  }
 }
 
 /**

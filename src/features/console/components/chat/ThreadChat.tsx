@@ -14,6 +14,8 @@ import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePan
 import { retryLive } from "@/features/console/api/sync";
 import { markViewed, setFocus, useLive } from "@/features/console/api/live-store";
 import { asksIn, assignFor, borrowedChat, mimiFeed, ownChat, shopTaskLines, type ShopTask } from "@/features/console/lib/chat-view";
+import { helperLineIn, inboxChatLines, inboxMimiLines, mergeByTime } from "@/features/console/lib/inbox-view";
+import { useInbox } from "@/features/console/api/hooks";
 import { NeedsYou } from "@/features/console/components/chat/Ask";
 import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
 import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
@@ -197,6 +199,11 @@ function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focu
   const [quiet, setQuiet] = useState<{ kind: "steps" | "memory" } | { kind: "task"; slug: string } | null>(null);
   const liveStatus = useLive((s) => s.status);
   const answers = useLive((s) => s.answers);
+  /* the API's own one-line sentence per helper (GET /v1/inbox); null while this server has no route */
+  const helperLines = useLive((s) => s.helperLines);
+  /* the API's own inbox: a task she was given and the result of a task she handed over are lines in
+     her own conversation. Empty when this server has no route, and then nothing is added at all. */
+  const inboxItems = useInbox().items;
   const { toggleSidebar } = useShell();
   const host = useRef<HTMLDivElement>(null);
   const feed = useRef<HTMLDivElement>(null);
@@ -413,16 +420,29 @@ function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focu
   /* Mimi's one quiet indicator: an orange dot and a muted "N waiting" in the status line, opening the pile */
   const waitingAll = isMimi ? needs.length : 0;
   /* the header face follows the helper's real state: working while a task runs, waiting on an approval, a done pop when it finishes */
-  const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper);
+  const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper, Number.POSITIVE_INFINITY, helperLineIn(helperLines, conv.helper));
   /* one conversation per helper: every task she has worked on, the open one last, each read as her
      own chat (work she handed over folds into one line). Live: the shared thread seen as `who`'s chat */
   /* API build: shop tasks live in the responsible helper's inbox; Mimi's chat gets one line each */
   const tasks = conv.api ? conversations.filter(isTask) : [];
+  /* the API's own inbox: a task she was given and the result of a task she handed over are lines in
+     her own conversation. Empty when this server has no route, and then nothing is added: the chat
+     renders exactly the lines it rendered before. */
+  const addInbox = (lines: Message[], c: Conversation): Message[] => {
+    if (!c.api || c.slug !== slug || !inboxItems.length) return lines;
+    if (focus) return mergeByTime(lines, inboxChatLines(inboxItems, focus as HelperName));
+    const who = c.helper;
+    if (who === "Mimi") return mergeByTime(lines, inboxMimiLines(inboxItems));
+    return mergeByTime(lines, inboxChatLines(inboxItems, who));
+  };
   const own = helperSections(conversations, conv.helper, slug)
     .filter((c) => !isTask(c))
     .map((c) => ({
       c,
-      lines: c.api ? (focus ? passedOn(borrowedChat(c.messages, focus as HelperName), answers) : mimiFeed(c.messages, tasks.map(asTask))) : ownChat(c.messages, c.helper),
+      lines: addInbox(
+        c.api ? (focus ? passedOn(borrowedChat(c.messages, focus as HelperName), answers) : mimiFeed(c.messages, tasks.map(asTask))) : ownChat(c.messages, c.helper),
+        c,
+      ),
       from: undefined as Worker | undefined,
       task: false,
     }));
