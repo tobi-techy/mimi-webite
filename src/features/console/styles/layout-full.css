@@ -339,3 +339,90 @@ html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi {
 .mc-app .x-score__t { display: inline-flex; gap: 2px; }
 .mc-app .x-score__t i { width: 4px; height: 8px; border-radius: 1px; background: var(--f-raised, var(--hair)); }
 .mc-app .x-score__t i.is-on { background: var(--f-text, var(--ink)); }
+
+/* ================= pass 4 (4 Nov, evening) ================= */
+
+/* KPI strip: open figures, no box. Hairlines only between figures (Westline), first figure on the page's left edge */
+.mc-app .x-kpis {
+  border: 0; border-radius: 0; overflow: visible;
+  margin: 32px 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.mc-app .x-kpis > .x-kpi,
+.mc-app .x-kpis > .x-kpi:first-child,
+html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi { padding: 0 24px; }
+.mc-app .x-kpis > .x-kpi:first-child { padding-left: 0; }
+.mc-app .x-kpis > .x-kpi + .x-kpi { border-left: 1px solid var(--hair); }
+@media (max-width: 899px) {
+  .mc-app .x-kpis { grid-template-columns: 1fr 1fr; row-gap: 24px; }
+  .mc-app .x-kpis > .x-kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .mc-app .x-kpis > .x-kpi:nth-child(n + 3) { border-top: 0; }
+  .mc-app .x-kpis > .x-kpi:nth-child(even) { padding-right: 0; }
+}
+
+/* lists and tables: hairlines end where the text ends (they ran 12px past both edges) */
+.mc-app .c-table,
+.mc-app .c-table.c-table--bare,
+.mc-app .x-atbl,
+.mc-app .mc-nh .mc-nl,
+.mc-app .mc-hv2__list { margin-inline: 0; }
+.mc-app .c-table .x-dt :is(th, td):first-child { padding-left: 0; }
+.mc-app .c-table .x-dt :is(th, td):last-child { padding-right: 0; }
+.mc-app .mc-nh .mc-nr,
+.mc-app .mc-hv2__row,
+.mc-app .x-recs .x-ri { padding-inline: 0; }
+.mc-app .x-recs .x-ri { margin-inline: 0; }
+@media (min-width: 1101px) { .mc-app .x-atbl__h, .mc-app .x-atbl__r { padding: 0; } }
+/* row hover keeps its tint a little wider than the text without moving the hairline */
+.mc-app .mc-nh .mc-nr:hover,
+.mc-app .mc-hv2__row:hover,
+.mc-app .x-recs .x-ri:hover { box-shadow: -12px 0 0 var(--tint), 12px 0 0 var(--tint); }
+
+/* empty states inside a page: one plain grey line, no box, no face */
+.mc-app .c-page .x-void {
+  display: block; padding: 16px 0; border: 0; border-radius: 0; background: transparent;
+  text-align: left; font-size: 14px; line-height: 20px; color: var(--muted);
+}
+.mc-app .c-page .x-void > :not(p) { display: none; }
+.mc-app .c-page .x-void p { margin: 0; }
+
+/* routine state: grey words; only a problem gets a colour */
+.mc-app .rt-state { font-size: 13px; line-height: 20px; color: var(--muted); white-space: nowrap; padding: 0 8px; }
+
+/* a helper with nothing yet: one column of facts on the title's edge, no lone side panel */
+.mc-app .mc-hv2.mc-hv2--empty { grid-template-columns: minmax(0, 640px); }
+.mc-app .mc-hv2--empty .mc-hv__facts { border-top: 1px solid var(--hair); border-bottom: 1px solid var(--line); }
+.mc-app .mc-hv2--empty .mc-hv__facts > div { grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 12px 0; }
+.mc-app .mc-hv2--empty .mc-hv__facts dt { font: 400 13px/20px var(--font-geist-sans), system-ui, sans-serif; text-transform: none; color: var(--muted); }
+.mc-app .mc-hv2--empty .mc-hv__facts dd { font-size: 14px; line-height: 20px; }
+.mc-app .mc-hv2--empty .mc-hv2__st { display: inline-flex; }
+
+/* Mimi's header: the sandbox and its reset sit on the top bar, not mid-thread */
+.mc-app .mc-sbx { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; line-height: 20px; color: var(--muted); white-space: nowrap; }
+.mc-app .mc-sbx .i { width: 14px; height: 14px; }
+.mc-app .mc-sbx > span { margin-right: 4px; }
+
+/* Needs you: quiet row actions, one primary at most (the top row) */
+.mc-app .mc-nh .mc-nr__ok:not(.mc-btn--pri) { min-width: 0; }
+
+/* Credit: Set limit is one quiet action per row, shown on hover or focus (always on touch) */
+@media (hover: hover) {
+  .mc-app .x-rowact > * { opacity: 0; transition: opacity .12s var(--mech); }
+  .mc-app tr:hover .x-rowact > *, .mc-app tr:focus-within .x-rowact > * { opacity: 1; }
+}
+.mc-app .mc-sbx > span { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; }
+/* Needs you: the other rows' outcome buttons read as quiet text until hovered, so only one button is solid */
+.mc-app .mc-nh .mc-nr__ok:not(.mc-btn--pri) { border-color: transparent; background: transparent; color: var(--soft); }
+.mc-app .mc-nh .mc-nr:hover .mc-nr__ok:not(.mc-btn--pri),
+.mc-app .mc-nh .mc-nr__ok:not(.mc-btn--pri):focus-visible { border-color: var(--hair); color: var(--ink); }
+.mc-app .mc-nh .mc-nr__act { min-width: 0; }
+.mc-app .mc-hv2--empty .mc-hv__facts dd .mc-hv2__st { margin: 0; }
+@media (max-width: 899px) {
+  /* Mimi's header on a phone: the reset only; the word would sit on Mimi's face */
+  .mc-app .mc-sbx > .i, .mc-app .mc-sbx > span { display: none; }
+  /* Routines on a phone: the controls go under the name, so the name never truncates */
+  .mc-app .c-page .v2-rows li:has(.rt-act) { flex-wrap: wrap; }
+  .mc-app .c-page .v2-rows li:has(.rt-act) > .v2-rows__l { flex: 1 1 100%; }
+  .mc-app .c-page .v2-rows .rt-act { flex: 1 1 100%; justify-content: flex-start; margin-left: -8px; }
+  .mc-app .c-page .v2-rows .rt-act .rt-state { order: -1; padding-left: 8px; }
+}

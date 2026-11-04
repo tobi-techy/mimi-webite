@@ -69,6 +69,12 @@ function Kpis({
 
 /** "58% of the total", or null when there is no total to take a share of. */
 const shareOf = (part: number, whole: number) => (whole > 0 && part > 0 ? `${Math.round((part / whole) * 100)}% of the total` : null);
+/** "₦5,329,350 not yet due": the part of the total that is not late, or null when none of it is. */
+const notDue = (owed: number, overdue: number) => (owed - overdue > 0 ? `${naira(owed - overdue)} not yet due` : null);
+/** The shop behind the oldest figure ("at Funke & Sons Mini Mart"), or null when nothing is late. */
+function oldestAt<T extends { name: string }>(s: T | undefined, days: (s: T) => number): string | null {
+  return s && days(s) > 0 ? `at ${s.name}` : null;
+}
 /** "of 40 shops", or null before the shop list is read. */
 const ofShops = (n: number) => (n > 0 ? `of ${n} ${n === 1 ? "shop" : "shops"}` : null);
 
@@ -126,7 +132,12 @@ function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
           String(rows.length),
           total.oldest > 0 ? `${total.oldest} ${total.oldest === 1 ? "day" : "days"}` : "None",
         ]}
-        notes={[null, shareOf(total.overdue, total.owed), ofShops(shopCount), null]}
+        notes={[
+          notDue(total.owed, total.overdue),
+          shareOf(total.overdue, total.owed),
+          ofShops(shopCount),
+          oldestAt([...rows].sort((a, b) => b.oldest - a.oldest)[0], (s) => s.oldest),
+        ]}
       />
 
       <div className="x-grp">
@@ -225,7 +236,15 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
               ? "Not given"
               : "None",
         ]}
-        notes={[null, shareOf(age.overdue, age.owed), ofShops(shops.length), null]}
+        notes={[
+          notDue(age.owed, age.overdue),
+          shareOf(age.overdue, age.owed),
+          ofShops(shops.length),
+          oldestAt(
+            [...debtors].sort((a, b) => (b.live?.overdueDays ?? 0) - (a.live?.overdueDays ?? 0))[0],
+            (s) => s.live?.overdueDays ?? 0,
+          ),
+        ]}
       />
 
       <div className="x-grp">
