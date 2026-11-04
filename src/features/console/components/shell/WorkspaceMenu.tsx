@@ -12,7 +12,7 @@ import { sfx } from "@/lib/sound";
 
 /** Demo workspaces. Only the first one is real; the others show a toast. */
 const WORKSPACES = [
-  { name: owner.company, detail: "48 shops · Ikeja", initials: "WT" },
+  { name: owner.company, detail: "12 shops · Ikeja", initials: "WT" },
   { name: "Funmi Distribution", detail: "22 shops · Ibadan", initials: "FD" },
   { name: "Lagos Mainland Depot", detail: "31 shops · Yaba", initials: "LM" },
 ] as const;

@@ -17,7 +17,7 @@ import {
   type Shop,
   type ShopStatus,
 } from "@/features/console/content/shops";
-import { naira, nairaShort } from "@/features/console/lib/format";
+import { naira } from "@/features/console/lib/format";
 import { ButtonLink } from "@/features/console/components/ui/Button";
 import { BankLogo } from "@/features/console/components/ui/BankLogo";
 
@@ -77,7 +77,7 @@ export function ShopDetail({ shop }: { shop: Shop }) {
           <dl className="v2-stats v2-stats--rec">
             <div>
               <dt>Sales this week</dt>
-              <dd>{nairaShort(shop.salesThisWeek)}</dd>
+              <dd>{naira(shop.salesThisWeek)}</dd>
             </div>
             <div>
               <dt>Sell-through</dt>

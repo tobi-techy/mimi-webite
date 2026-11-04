@@ -118,7 +118,7 @@ const OLD: Old[] = [
     dateLabel: "Monday 9:00 AM",
     ask: "Collect from the Mushin route every Monday.",
     lines: [
-      ["Collector", "Monday run done: ₦1.9m collected from 14 shops."],
+      ["Collector", "Monday run done: ₦1,900,000 collected from 14 shops."],
       ["Collector", "Every payment matched to GTB. Next run is Monday at 9am."],
     ],
   },
@@ -136,7 +136,7 @@ const OLD: Old[] = [
     ask: "Plan the restock for the Mushin route.",
     lines: [
       ["Stock", "Counting 22 Mushin shops from this week's orders."],
-      ["Stock", "So far: 312 cartons, about ₦8.4m. I'll bring you the order before anything is placed."],
+      ["Stock", "So far: 312 cartons, about ₦8,400,000. I'll bring you the order before anything is placed."],
     ],
     replies: [{ label: "Any update?", step: "gen.update" }],
   },
@@ -164,13 +164,13 @@ const OLD: Old[] = [
     folder: "Orders",
     code: "RST-3",
     state: "done",
-    status: "41 of 48 read",
+    status: "10 of 12 read",
     ago: "3d",
     day: 20,
     dateLabel: "Tuesday 10:00 AM",
     ask: "Tell every shop about the new Indomie price.",
     lines: [
-      ["Order", "Sent the new Indomie price to all 48 shops on WhatsApp."],
+      ["Order", "Sent the new Indomie price to all 12 shops on WhatsApp."],
       ["Order", "41 have read it. No complaints so far."],
     ],
   },
@@ -229,12 +229,12 @@ const OLD: Old[] = [
     code: "ONB-3",
     state: "done",
     status: "46 signed",
-    proof: "Signed · 46 of 48 forms",
+    proof: "Signed · 11 of 12 forms",
     ago: "1w",
     day: 16,
     dateLabel: "Last Friday 11:00 AM",
     ask: "Collect consent forms from every shop.",
-    lines: [["Mimi", "46 of 48 shops signed. 2 opted out, so I won't message them."]],
+    lines: [["Mimi", "11 of 12 shops signed. 1 opted out, so I won't message them."]],
   },
 ];
 

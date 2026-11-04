@@ -4,6 +4,7 @@ import { liveReset } from "@/features/console/api/actions";
 import { useLive } from "@/features/console/api/live-store";
 import { retryLive } from "@/features/console/api/sync";
 import { Button } from "@/features/console/components/ui/Button";
+import { Icon } from "@/features/console/components/ui/Icon";
 import { Note } from "@/features/console/components/ui/Note";
 
 /**
@@ -12,10 +13,29 @@ import { Note } from "@/features/console/components/ui/Note";
  * session renewed) and Reset. When Mimi can't be reached it says so and offers Retry; no sample
  * data stands in. Renders nothing in the sample build.
  */
-export function LiveDemoNote() {
+export function LiveDemoNote({ inline = false }: { inline?: boolean }) {
   const status = useLive((s) => s.status);
   const notice = useLive((s) => s.notice);
   if (status === "off" || status === "connecting") return null;
+  /* in the top bar (pass 4): one quiet word and its control, never a row floating mid-thread */
+  if (inline) {
+    const warn = status !== "fallback" && notice && notice.kind !== "info" ? notice.text : null;
+    return (
+      <span className="mc-sbx">
+        <Icon name="shield-check" />
+        <span>{status === "fallback" ? "Offline" : (warn ?? "Sandbox")}</span>
+        {status === "fallback" ? (
+          <Button size="sm" variant="ghost" onClick={() => void retryLive()}>
+            Retry
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={() => void liveReset()}>
+            Reset sandbox
+          </Button>
+        )}
+      </span>
+    );
+  }
   if (status === "fallback")
     return (
       <Note>
@@ -29,8 +49,8 @@ export function LiveDemoNote() {
   return (
     <Note>
       <span>
-        {warn ??
-          "Sandbox: your own copy of Coral Lane Trading, a sample distributor. Same console and Mimi as production."}
+        {/* one word, not the explainer sentence (copy cut, 4 Nov): the footer and the reset say the rest */}
+        {warn ?? "Sandbox"}
       </span>
       <Button size="sm" variant="ghost" onClick={() => void liveReset()}>
         Reset sandbox

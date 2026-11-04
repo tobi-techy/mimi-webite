@@ -13,7 +13,7 @@ export function ConsoleView({
   children: ReactNode;
 }) {
   return (
-    <PageTransition>
+    <PageTransition kind="console">
       <section className={cx("x-view", className)} aria-label={label}>
         {children}
       </section>

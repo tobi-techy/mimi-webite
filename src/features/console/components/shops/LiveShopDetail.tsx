@@ -8,7 +8,7 @@ import { Pill, type PillTone } from "@/features/console/components/ui/Pill";
 import { proofWords, type ProofGrade } from "@/features/console/lib/proof";
 import { consoleRoutes } from "@/features/console/config";
 import type { Shop } from "@/features/console/content/shops";
-import { naira, nairaShort } from "@/features/console/lib/format";
+import { naira } from "@/features/console/lib/format";
 
 const TITLE_ID = "shop-title";
 
@@ -58,7 +58,7 @@ export function LiveShopDetail({ shop, live }: { shop: Shop; live: NonNullable<S
           <span>Overdue</span>
         </div>
         <div>
-          <b>{nairaShort(limit)}</b>
+          <b>{naira(limit)}</b>
           <span>Credit limit</span>
         </div>
       </div>

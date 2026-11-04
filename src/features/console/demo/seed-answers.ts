@@ -60,7 +60,7 @@ const ikejaAnswer = (): Message => ({
       type: "stats",
       items: [
         { label: "Ikeja route", value: "₦433,000", delta: "−₦374,000", tone: "bad", spark: [142, 168, 131, 176, 190, 184, 151, 38, 129, 31, 84], markFrom: 7, caption: "12 → 23 Oct · Mon to Sat" },
-        { label: "Mushin route", value: "₦1.13m", delta: "+₦18,000", tone: "good", spark: [218, 231, 204, 226, 240, 191, 222, 236, 211, 229, 230], caption: "12 → 23 Oct · Mon to Sat" },
+        { label: "Mushin route", value: "₦1,130,000", delta: "+₦18,000", tone: "good", spark: [218, 231, 204, 226, 240, 191, 222, 236, 211, 229, 230], caption: "12 → 23 Oct · Mon to Sat" },
         { label: "Oshodi route", value: "₦968,500", delta: "−₦12,500", tone: "flat", spark: [190, 201, 188, 197, 205, 176, 192, 199, 184, 196, 197], caption: "12 → 23 Oct · Mon to Sat" },
       ],
     },
@@ -87,7 +87,7 @@ const ikejaAnswer = (): Message => ({
 
 const riskWork = (): WorkLine[] => [
   { id: "rk-w1", kind: "step", from: "Credit", at: T(8, 51), variant: "tool", icon: "file-text", state: "done", text: "Read **credit-rules.md**" },
-  { id: "rk-w2", kind: "step", from: "Credit", at: T(8, 51), variant: "tool", icon: "landmark", state: "done", text: "Checked GTBank for late payments", meta: "· 48 shops" },
+  { id: "rk-w2", kind: "step", from: "Credit", at: T(8, 51), variant: "tool", icon: "landmark", state: "done", text: "Checked GTBank for late payments", meta: "· 12 shops" },
   { id: "rk-w3", kind: "step", from: "Credit", at: T(8, 52), variant: "tool", icon: "message-square", state: "done", text: "Read promise history on WhatsApp", meta: "· 19 chats" },
   {
     id: "rk-w4",
@@ -241,8 +241,8 @@ Oregun Wholesale,Ikeja · Oregun,Transfer,94000,94000,0`;
 const riskCsv = `Shop,Route,Credit score,Owes (₦),Days late,Why
 Joy Provisions,Ikeja,44,259000,33,Two broken promises
 Ade & Kemi Ventures,Oshodi,49,336900,35,Two broken promises
-Alhaji Musa & Sons,Oshodi,58,412000,29,Over 21 days on ₦300k+
-Sule & Co Wholesale,Mushin,61,488000,22,Over 21 days on ₦300k+`;
+Alhaji Musa & Sons,Oshodi,58,412000,29,Over 21 days on ₦300,000+
+Sule & Co Wholesale,Mushin,61,488000,22,Over 21 days on ₦300,000+`;
 
 const hypoShopsCsv = `Shop,Area,Cartons,Last week,Change
 Olumide Mini Mart,Mushin,38,34,+12%

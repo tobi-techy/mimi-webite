@@ -14,7 +14,7 @@ export const autonomy: readonly LevelOption[] = [
 ];
 
 export const workspaces = ["Coral Lane Trading", "Coral Lane Ikeja branch"] as const;
-export const shopScopes = ["All 48 shops", "Oshodi · 6", "Mushin · 3", "Ikeja · 3"] as const;
+export const shopScopes = ["All 12 shops", "Oshodi · 6", "Mushin · 3", "Ikeja · 3"] as const;
 export const computerChoices = [
   { value: "Computer: Auto", detail: "Mimi picks a free computer" },
   { value: "coral-01", detail: "Payments" },

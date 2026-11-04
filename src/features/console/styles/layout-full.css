@@ -1,0 +1,428 @@
+/* =====================================================================================
+ * Full-width console layout (4 Nov 2026). Loaded last; layout only, no colour or font changes.
+ *
+ * Tobi: on a 15-inch MacBook Air every page sat in a 1080px column with wide empty gutters.
+ * One frame for every sidebar page, one header, one table language:
+ *  - frame: the full main pane, padding-inline clamp(24px, 4vw, 64px), capped at 1600px only
+ *    on ultra-wide screens;
+ *  - one left edge: title, sentence, toolbar, table text and section titles share the same x
+ *    (tables lose their box and hang their hover 12px outside the edge instead);
+ *  - spacing on the 4/8 scale: 4 title to sentence, 24 header to toolbar, 16 toolbar to table,
+ *    40 between sections; rows 52px.
+ * ===================================================================================== */
+
+/* ---------- frame ---------- */
+.mc-app .c-page,
+.mc-app .c-page.c-page--wide,
+.mc-app .c-page.x-set,
+.mc-app .c-page.x-auto {
+  --page-px: clamp(24px, 4vw, 64px);
+  width: 100%;
+  max-width: calc(1600px + 2 * var(--page-px));
+  margin-inline: auto;
+  padding: 32px var(--page-px) 64px;
+}
+
+/* ---------- header: title, one sentence, one primary action ---------- */
+.mc-app h1.x-title,
+.mc-app .x-alh__t,
+.mc-app .x-set h1.x-title,
+.mc-app .x-set .x-shead h1,
+.mc-app .x-set .x-uh h1 {
+  margin: 0;
+  font: 400 20px/28px var(--font-geist-sans), system-ui, sans-serif !important;
+  letter-spacing: -0.015em !important;
+  color: var(--ink);
+}
+.mc-app .x-lhd,
+.mc-app .x-alh,
+.mc-app .x-set .x-shead { display: flex; align-items: center; gap: 8px; min-height: 32px; margin: 0; }
+/* the first button after the title block goes to the right edge; the rest follow it */
+.mc-app .x-lhd > .x-btn:not(.x-btn ~ .x-btn),
+.mc-app .x-set .x-shead > .x-btn:not(.x-btn ~ .x-btn) { margin-left: auto; }
+.mc-app .x-lhd > .x-btn ~ .x-btn { margin-left: 0; }
+.mc-app .x-sub,
+.mc-app .x-set .x-sub,
+.mc-app .x-set .x-uh p {
+  margin: 4px 0 0;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.mc-app .x-sub b { font-weight: 400; color: var(--ink); }
+.mc-app .x-sub a { color: inherit; text-decoration: underline; text-decoration-color: var(--hair); text-underline-offset: 3px; }
+.mc-app .x-sub a:hover { color: var(--ink); }
+
+/* ---------- toolbar: one row, tools on the right ---------- */
+.mc-app .x-ltools { margin: 24px 0 16px; gap: 8px; }
+.mc-app .x-tbar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin: 24px 0 16px;
+}
+.mc-app .x-tbar > .x-atabs { margin: 0; border-bottom: 0; }
+.mc-app .x-tbar > .x-atools { margin: 0 0 0 auto; }
+.mc-app .x-alh + .x-tbar { margin-top: 24px; }
+
+/* ---------- tables: no box, hairline rows, quiet sentence-case headers ---------- */
+.mc-app .c-table,
+.mc-app .c-table.c-table--bare {
+  border: 0;
+  border-radius: 0;
+  margin-inline: -12px;
+  overflow-x: auto;
+}
+.mc-app .c-table .x-dt { min-width: 880px; }
+.mc-app .c-table .x-dt.x-dt--fit { min-width: 0; }
+/* phones: a table whose secondary columns hide (mc-hide-phone) fits the screen, no sideways scroll */
+@media (max-width: 899px) { .mc-app .c-table .x-dt.x-dt--phone-fit { min-width: 0; } }
+.mc-app .c-table .x-dt th {
+  height: 40px;
+  padding: 0 12px;
+  text-align: left;
+  vertical-align: middle;
+  /* theme.css sets every th in mono uppercase with !important; table headers are words here */
+  font: 400 13px/1 var(--font-geist-sans), system-ui, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--muted);
+  border-bottom: 1px solid var(--hair);
+}
+.mc-app .c-table .x-dt td {
+  /* 44px rows (Rico's table spec, 4 Nov): a name with its sub-line still fits, 2 more shops per screen */
+  height: 44px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--line);
+}
+.mc-app .c-table .x-dt tbody tr:first-child td { border-top: 0; }
+.mc-app .c-table .x-dt tbody tr:last-child td { border-bottom: 1px solid var(--line); }
+.mc-app .c-table .x-dt th.r,
+.mc-app .c-table .x-dt td.r { text-align: right; font-variant-numeric: tabular-nums; }
+.mc-app .c-table .x-dt :is(th, td):first-child { padding-left: 12px; }
+.mc-app .c-table .x-dt :is(th, td):last-child { padding-right: 12px; }
+.mc-app .c-table .x-dt tbody tr:hover { background: var(--tint); }
+
+/* status pill: a word in sentence case with a dot of its tone (colour is never the only cue) */
+.mc-app .x-pill {
+  gap: 6px; height: 22px; padding: 0 8px;
+  font: 400 12px/1 var(--font-geist-sans), system-ui, sans-serif !important;
+  text-transform: none; letter-spacing: 0 !important;
+}
+.mc-app .x-pill::before { content: ""; width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
+
+/* the count-and-sort line under a list: the sort is part of the answer */
+.mc-app .x-tfoot {
+  display: flex; align-items: center; gap: 8px; min-height: 40px; margin: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.mc-app .x-tfoot b { font-weight: 400; color: var(--soft); }
+
+/* section titles inside a page: title + one grey line, 40 above */
+.mc-app .c-page .x-sh { margin: 40px 0 12px; min-height: 24px; }
+.mc-app .c-page .x-sh h2 { font-size: 15px; line-height: 24px; color: var(--ink); }
+
+/* ---------- KPI strip: one hairline box, tiles split by hairlines (no filled cards) ---------- */
+.mc-app .x-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+  margin: 24px 0 0;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+.mc-app .x-kpis > .x-kpi,
+.mc-app .x-kpis > .x-kpi:first-child,
+html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px 20px 20px;
+  border: 0;
+  border-left: 1px solid var(--hair);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mc-app .x-kpis > .x-kpi:first-child { border-left: 0; }
+.mc-app .x-kpi > span { order: -1; font-size: 13px; line-height: 20px; color: var(--muted); }
+.mc-app .x-kpi > b {
+  margin-top: 4px;
+  font-size: 28px; line-height: 36px; font-weight: 400; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.mc-app .x-kpi > small { order: 1; font-size: 13px; line-height: 20px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mc-app .x-kpi > small b { font-size: inherit; line-height: inherit; font-weight: 400; color: var(--soft); margin: 0; letter-spacing: 0; }
+.mc-app .x-kpis + .x-sh,
+.mc-app .x-kpis + section { margin-top: 40px; }
+
+/* ---------- Automations: the list in the shared table language ---------- */
+.mc-app .x-atbl { border-top: 0; margin-inline: -12px; }
+.mc-app .x-atbl__h {
+  height: 40px;
+  font: 400 13px/1 var(--font-geist-sans), system-ui, sans-serif;
+  text-transform: none; letter-spacing: 0; color: var(--muted);
+  border-bottom: 1px solid var(--hair);
+}
+.mc-app .x-atbl__r { min-height: 56px; }
+/* the five-column grid only where all five fit; below 1100px automations.css keeps its own */
+@media (min-width: 1101px) {
+  .mc-app .x-atbl__h, .mc-app .x-atbl__r {
+    grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, 1.1fr) 104px;
+    gap: 24px;
+    padding: 0 12px;
+  }
+}
+.mc-app .x-atbl__r > span { font-size: 14px; }
+.mc-app .x-atbl__r small { font-size: 13px; margin-top: 2px; }
+.mc-app .x-anote { margin-top: 40px; }
+
+/* ---------- Needs you: summary on top, full-width list, composer at the bottom ---------- */
+.mc-app .mc-nh .mc-col,
+.mc-app .mc-nh .mc-nh__cmp {
+  --page-px: clamp(24px, 4vw, 64px);
+  max-width: calc(1600px + 2 * var(--page-px));
+  padding-inline: var(--page-px);
+}
+.mc-app .mc-nh__in { margin-block: 0; padding-top: 32px; padding-bottom: 32px; }
+.mc-app .mc-nh__hi {
+  margin: 0;
+  /* same 32px title row as every other page, so the title never shifts between tabs */
+  display: flex; align-items: center; min-height: 32px;
+  font: 400 20px/28px var(--font-geist-sans), system-ui, sans-serif;
+  letter-spacing: -0.015em;
+}
+.mc-app .mc-nh__sum { margin: 4px 0 24px; font-size: 14px; line-height: 20px; color: var(--muted); }
+.mc-app .mc-nh__sum b { font-weight: 400; color: var(--ink); }
+.mc-app .mc-nh__hi + section, .mc-app .mc-nh__hi + .mc-sk { margin-top: 24px; }
+.mc-app .mc-nh__sub { margin: 4px 0 24px; font-size: 14px; line-height: 20px; }
+.mc-app .mc-nh .mc-nl { border: 0; border-radius: 0; overflow: visible; margin-inline: -12px; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--line); }
+.mc-app .mc-nh .mc-nr { gap: 16px; min-height: 64px; padding: 12px; }
+.mc-app .mc-nh .mc-nr:hover { background: var(--tint); }
+.mc-app .mc-nh .mc-nr__what { font-size: 14px; line-height: 20px; }
+.mc-app .mc-nh .mc-nr__why { font-size: 13px; line-height: 20px; }
+.mc-app .mc-nr__amt {
+  flex: none; width: 136px; text-align: right;
+  font-size: 14px; line-height: 20px; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.mc-app .mc-nr__amt:empty::after { content: ""; }
+.mc-app .mc-nh .mc-nr__act { min-width: 232px; justify-content: flex-end; }
+.mc-app .mc-nh .mc-nl__more { margin: 12px 0 0; }
+.mc-app .mc-nh .mc-nl__hd { margin: 40px 0 12px; font-size: 15px; line-height: 24px; color: var(--ink); }
+
+/* ---------- a helper's inbox: task list | helper panel ---------- */
+.mc-app .mc-hv { max-width: none; margin: 0; padding: 0; }
+.mc-app .mc-hv2 {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  gap: 48px;
+  align-items: start;
+}
+.mc-app .mc-hv2__head { display: flex; align-items: center; gap: 12px; min-height: 32px; }
+.mc-app .mc-hv2__head .mc-face { flex: none; }
+.mc-app .mc-hv2__head h1 { margin: 0; font: 400 20px/28px var(--font-geist-sans), system-ui, sans-serif; letter-spacing: -0.015em; color: var(--ink); }
+.mc-app .mc-hv2__head .mc-btn { margin-left: auto; }
+.mc-app .mc-hv2 .x-sub { margin-top: 4px; }
+.mc-app .mc-hv2__chips { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; min-height: 32px; margin: 0 0 12px; }
+.mc-app .mc-hv2__chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border-radius: var(--radius-sm); font-size: 13px; color: var(--muted);
+  transition: background-color .15s var(--mech), color .15s var(--mech);
+}
+.mc-app .mc-hv2__chip span { font-variant-numeric: tabular-nums; color: var(--muted); }
+.mc-app .mc-hv2__chip:hover { color: var(--ink); background: var(--tint); }
+.mc-app .mc-hv2__chip[aria-pressed="true"] { color: var(--ink); background: var(--tint2); }
+.mc-app .mc-hv2__list { list-style: none; margin: 0 -12px; padding: 0; border-top: 1px solid var(--hair); }
+.mc-app .mc-hv2__list > li { border-bottom: 1px solid var(--line); }
+.mc-app .mc-hv2__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 24px; align-items: center;
+  min-height: 64px; padding: 12px;
+  transition: background-color .15s var(--mech);
+}
+.mc-app .mc-hv2__row:hover { background: var(--tint); }
+.mc-app .mc-hv2__t { font-size: 14px; line-height: 20px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-app .mc-hv2__p { grid-column: 1; font-size: 13px; line-height: 20px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-app .mc-hv2__meta { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+.mc-app .mc-hv2__ago { min-width: 32px; text-align: right; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mc-app .mc-hv2__st { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.mc-app .mc-hv2__st i { width: 6px; height: 6px; border-radius: 50%; background: var(--hair); }
+.mc-app .mc-hv2__st.is-needs { color: var(--ink); }
+.mc-app .mc-hv2__st.is-needs i { background: var(--color-signal-orange); }
+.mc-app .mc-hv2__st.is-working i { background: var(--soft); }
+.mc-app .mc-hv2__empty { margin: 0; padding: 24px 0; font-size: 14px; color: var(--muted); }
+
+.mc-app .mc-hv2__side { position: sticky; top: 32px; display: flex; flex-direction: column; gap: 0; }
+.mc-app .mc-hv2__sh { margin: 4px 0 12px; font-size: 15px; line-height: 24px; font-weight: 400; color: var(--ink); }
+.mc-app .mc-hv2__side .mc-hv__facts { border-top: 1px solid var(--hair); border-bottom: 1px solid var(--line); }
+.mc-app .mc-hv2__side .mc-hv__facts > div { grid-template-columns: 80px minmax(0, 1fr); gap: 16px; padding: 12px 0; }
+.mc-app .mc-hv2__side .mc-hv__facts dt { font: 400 13px/20px var(--font-geist-sans), system-ui, sans-serif; text-transform: none; color: var(--muted); }
+.mc-app .mc-hv2__side .mc-hv__facts dd { font-size: 14px; line-height: 20px; }
+.mc-app .mc-hv2__side .mc-hv2__sh + .mc-hv__list,
+.mc-app .mc-hv2__side .mc-hv2__sh + .mc-hv__none { margin-top: 0; }
+.mc-app .mc-hv2__side .mc-hv2__sec { margin-top: 40px; }
+.mc-app .mc-hv2__side .mc-hv__list { border: 0; border-radius: 0; border-top: 1px solid var(--hair); }
+.mc-app .mc-hv2__side .mc-hv__list > li { border-bottom: 1px solid var(--line); }
+.mc-app .mc-hv2__side .mc-hv__list > li + li { border-top: 0; }
+.mc-app .mc-hv2__side .mc-rt { padding: 12px 0; align-items: flex-start; }
+.mc-app .mc-hv2__side .mc-rt > .i { margin-top: 2px; }
+.mc-app .mc-hv2__side .mc-hv__none { border: 0; padding: 12px 0; border-top: 1px solid var(--hair); }
+.mc-app .mc-hv2__side .mc-hv__all { margin-top: 12px; }
+
+/* ---------- mobile ---------- */
+@media (max-width: 1100px) {
+  .mc-app .mc-hv2 { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .mc-app .mc-hv2__side { position: static; }
+}
+@media (max-width: 899px) {
+  .mc-app .c-page,
+  .mc-app .c-page.c-page--wide,
+  .mc-app .c-page.x-set,
+  .mc-app .c-page.x-auto { --page-px: 16px; padding-block: 24px 48px; }
+  .mc-app .mc-nh .mc-col,
+  .mc-app .mc-nh .mc-nh__cmp { --page-px: 16px; }
+  .mc-app .x-tbar { gap: 12px; }
+  .mc-app .x-tbar > .x-atools { margin-left: 0; width: 100%; }
+  .mc-app .x-kpis { grid-template-columns: 1fr 1fr; }
+  .mc-app .x-kpis > .x-kpi:nth-child(odd) { border-left: 0; }
+  .mc-app .x-kpis > .x-kpi:nth-child(n + 3) { border-top: 1px solid var(--hair); }
+  .mc-app .x-kpi > b { font-size: 24px; line-height: 32px; }
+  .mc-app .mc-nr__amt { width: auto; }
+  .mc-app .mc-nh .mc-nr { flex-wrap: wrap; }
+  .mc-app .mc-nh .mc-nr__act { min-width: 0; }
+  /* the Message button stays on the title row: a full-width bar would split the title from its line */
+  .mc-app .mc-hv2__head .mc-btn { margin-left: auto; width: auto; }
+}
+
+/* ---------- Connected tools: the app grid fills the frame (3 across on a laptop, 2 below) ---------- */
+.mc-app .x-set .x-ag__grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+@media (max-width: 899px) { .mc-app .x-set .x-ag__grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Credit: recommendations are a decision list, not a card ---------- */
+.mc-app .x-card.x-recs {
+  margin: 40px 0 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible;
+}
+.mc-app .x-recs .x-rh { margin: 0 0 12px; padding: 0; font-size: 15px; line-height: 24px; color: var(--ink); }
+.mc-app .x-recs .x-ri {
+  margin-inline: -12px; padding: 12px; min-height: 64px;
+  border: 0; border-top: 1px solid var(--line);
+}
+.mc-app .x-recs .x-rh + .x-ri, .mc-app .x-recs .x-rh + * + .x-ri { border-top-color: var(--hair); }
+.mc-app .x-recs .x-ri:last-child { border-bottom: 1px solid var(--line); }
+.mc-app .x-recs .x-ri:hover { background: var(--tint); }
+.mc-app .x-recs .x-ri b { font-size: 14px; line-height: 20px; font-weight: 400; }
+.mc-app .x-recs .x-ri small { font-size: 13px; line-height: 20px; }
+.mc-app .c-page .x-grp { margin-top: 40px; }
+.mc-app .c-page .x-gh { margin: 0; min-height: 24px; }
+.mc-app .c-page .x-gh > .i { display: none; }
+.mc-app .c-page .x-gh h2 { font-size: 15px; line-height: 24px; font-weight: 400; }
+.mc-app .c-page .x-grp .x-ltools { margin: 16px 0; }
+
+/* ---------- helper inbox: the Now status reads like the list's status (dot + words) ---------- */
+.mc-app .mc-hv2__side .mc-hv2__st { display: flex; width: fit-content; margin-bottom: 4px; }
+.mc-app .mc-hv2__side .mc-hv2__sh { margin: 4px 0 16px; }
+.mc-app .mc-hv2__side .mc-hv2__sec .mc-hv2__sh { margin-top: 0; }
+
+/* ---------- Needs you: every row's buttons end on the same edge ---------- */
+.mc-app .mc-nh .mc-nr__ok { min-width: 88px; justify-content: center; }
+
+/* Settings keeps its 12px rows, but a table's cells read at the console's table size */
+.mc-app .x-set .c-table .x-dt td { font-size: 13px; }
+.mc-app .x-set .c-table .x-dt td .c-identity__name { font-size: 13px; }
+
+/* the sandbox line at the top of Mimi's thread: one word and Reset, centred under her name (copy cut, 4 Nov) */
+.mc-app .mc-feed .mc-col > .x-note { justify-content: center; margin: 0 0 8px; padding: 0; border: 0; color: var(--f-dim, var(--muted)); }
+
+/* score: the number, then 11 ticks 8px tall with 2px gaps; filled in ink, empty in a dark grey (one accent rule: no green, yellow or blue) */
+.mc-app .x-score { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.mc-app .x-score__n { min-width: 2ch; text-align: right; color: var(--f-text, var(--ink)); }
+.mc-app .x-score__t { display: inline-flex; gap: 2px; }
+.mc-app .x-score__t i { width: 4px; height: 8px; border-radius: 1px; background: var(--f-raised, var(--hair)); }
+.mc-app .x-score__t i.is-on { background: var(--f-text, var(--ink)); }
+
+/* ================= pass 4 (4 Nov, evening) ================= */
+
+/* KPI strip: open figures, no box. Hairlines only between figures (Westline), first figure on the page's left edge */
+.mc-app .x-kpis {
+  border: 0; border-radius: 0; overflow: visible;
+  margin: 32px 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.mc-app .x-kpis > .x-kpi,
+.mc-app .x-kpis > .x-kpi:first-child,
+html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi { padding: 0 24px; }
+.mc-app .x-kpis > .x-kpi:first-child { padding-left: 0; }
+.mc-app .x-kpis > .x-kpi + .x-kpi { border-left: 1px solid var(--hair); }
+@media (max-width: 899px) {
+  .mc-app .x-kpis { grid-template-columns: 1fr 1fr; row-gap: 24px; }
+  .mc-app .x-kpis > .x-kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .mc-app .x-kpis > .x-kpi:nth-child(n + 3) { border-top: 0; }
+  .mc-app .x-kpis > .x-kpi:nth-child(even) { padding-right: 0; }
+}
+
+/* lists and tables: hairlines end where the text ends (they ran 12px past both edges) */
+.mc-app .c-table,
+.mc-app .c-table.c-table--bare,
+.mc-app .x-atbl,
+.mc-app .mc-nh .mc-nl,
+.mc-app .mc-hv2__list { margin-inline: 0; }
+.mc-app .c-table .x-dt :is(th, td):first-child { padding-left: 0; }
+.mc-app .c-table .x-dt :is(th, td):last-child { padding-right: 0; }
+.mc-app .mc-nh .mc-nr,
+.mc-app .mc-hv2__row,
+.mc-app .x-recs .x-ri { padding-inline: 0; }
+.mc-app .x-recs .x-ri { margin-inline: 0; }
+@media (min-width: 1101px) { .mc-app .x-atbl__h, .mc-app .x-atbl__r { padding: 0; } }
+/* row hover keeps its tint a little wider than the text without moving the hairline */
+.mc-app .mc-nh .mc-nr:hover,
+.mc-app .mc-hv2__row:hover,
+.mc-app .x-recs .x-ri:hover { box-shadow: -12px 0 0 var(--tint), 12px 0 0 var(--tint); }
+
+/* empty states inside a page: one plain grey line, no box, no face */
+.mc-app .c-page .x-void {
+  display: block; padding: 16px 0; border: 0; border-radius: 0; background: transparent;
+  text-align: left; font-size: 14px; line-height: 20px; color: var(--muted);
+}
+.mc-app .c-page .x-void > :not(p) { display: none; }
+.mc-app .c-page .x-void p { margin: 0; }
+
+/* routine state: grey words; only a problem gets a colour */
+.mc-app .rt-state { font-size: 13px; line-height: 20px; color: var(--muted); white-space: nowrap; padding: 0 8px; }
+
+/* a helper with nothing yet: one column of facts on the title's edge, no lone side panel */
+.mc-app .mc-hv2.mc-hv2--empty { grid-template-columns: minmax(0, 640px); }
+.mc-app .mc-hv2--empty .mc-hv__facts { border-top: 1px solid var(--hair); border-bottom: 1px solid var(--line); }
+.mc-app .mc-hv2--empty .mc-hv__facts > div { grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 12px 0; }
+.mc-app .mc-hv2--empty .mc-hv__facts dt { font: 400 13px/20px var(--font-geist-sans), system-ui, sans-serif; text-transform: none; color: var(--muted); }
+.mc-app .mc-hv2--empty .mc-hv__facts dd { font-size: 14px; line-height: 20px; }
+.mc-app .mc-hv2--empty .mc-hv2__st { display: inline-flex; }
+
+/* Mimi's header: the sandbox and its reset sit on the top bar, not mid-thread */
+.mc-app .mc-sbx { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; line-height: 20px; color: var(--muted); white-space: nowrap; }
+.mc-app .mc-sbx .i { width: 14px; height: 14px; }
+.mc-app .mc-sbx > span { margin-right: 4px; }
+
+/* Needs you: quiet row actions, one primary at most (the top row) */
+.mc-app .mc-nh .mc-nr__ok:not(.mc-btn--pri) { min-width: 0; }
+
+/* Credit: Set limit is one quiet action per row, shown on hover or focus (always on touch) */
+@media (hover: hover) {
+  .mc-app .x-rowact > * { opacity: 0; transition: opacity .12s var(--mech); }
+  .mc-app tr:hover .x-rowact > *, .mc-app tr:focus-within .x-rowact > * { opacity: 1; }
+}
+.mc-app .mc-sbx > span { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; }
+/* Needs you: the other rows' outcome buttons read as quiet text until hovered, so only one button is solid */
+.mc-app .mc-nh .mc-nr__ok:not(.mc-btn--pri) { border-color: transparent; background: transparent; color: var(--soft); }
+.mc-app .mc-nh .mc-nr:hover .mc-nr__ok:not(.mc-btn--pri),
+.mc-app .mc-nh .mc-nr__ok:not(.mc-btn--pri):focus-visible { border-color: var(--hair); color: var(--ink); }
+.mc-app .mc-nh .mc-nr__act { min-width: 0; }
+.mc-app .mc-hv2--empty .mc-hv__facts dd .mc-hv2__st { margin: 0; }
+@media (max-width: 899px) {
+  /* Mimi's header on a phone: the reset only; the word would sit on Mimi's face */
+  .mc-app .mc-sbx > .i, .mc-app .mc-sbx > span { display: none; }
+  /* Routines on a phone: the controls go under the name, so the name never truncates */
+  .mc-app .c-page .v2-rows li:has(.rt-act) { flex-wrap: wrap; }
+  .mc-app .c-page .v2-rows li:has(.rt-act) > .v2-rows__l { flex: 1 1 100%; }
+  .mc-app .c-page .v2-rows .rt-act { flex: 1 1 100%; justify-content: flex-start; margin-left: -8px; }
+  .mc-app .c-page .v2-rows .rt-act .rt-state { order: -1; padding-left: 8px; }
+}

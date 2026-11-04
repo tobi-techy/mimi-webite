@@ -29,7 +29,7 @@ test("the sidebar has no Computer tasks destination, and no way back to it", () 
 
 test("the other destinations are still there: removing the row left no hole", () => {
   const nav = code(SIDE_NAV);
-  for (const label of ["Shops", "Credit", "Money at risk", "Returns", "Two books", "Routines", "Back to app"]) {
+  for (const label of ["Shops", "Credit limits", "Money at risk", "Returns", "Two books", "Routines", "Back to app"]) {
     assert.ok(nav.includes(`label="${label}"`), `the ${label} destination is still in the sidebar`);
   }
 });

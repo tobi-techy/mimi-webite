@@ -7,7 +7,7 @@ import { ActionGroup } from "@/features/console/components/ui/ActionGroup";
 import { Avatar, Identity } from "@/features/console/components/ui/Avatar";
 import { BookUnreachable } from "@/features/console/components/live/BookUnreachable";
 import { Icon } from "@/features/console/components/ui/Icon";
-import { MiniBar } from "@/features/console/components/ui/Meter";
+import { MiniBar, ScoreTicks } from "@/features/console/components/ui/Meter";
 import { SearchField } from "@/features/console/components/ui/SearchField";
 import { Segmented } from "@/features/console/components/ui/Segmented";
 import { shopHref } from "@/features/console/config";
@@ -24,6 +24,49 @@ import { useLimits } from "@/features/console/lib/credit-limits";
 
 type Tab = "all" | "late" | "rec";
 const suggestsChange = (l: CreditLine): boolean => /^(Raise|Lower)/.test(l.recommendation);
+/* "No change" and "Hold" say nothing happens: the cell stays empty so a real suggestion stands out */
+const quietRec = (r: string): boolean => /^(no change|hold)\.?$/i.test(r.trim());
+const used = (l: CreditLine, limit: number): number => (limit > 0 ? l.shop.owed / limit : 0);
+/** Urgency: a suggested change first, then overdue, then the most of its limit in use. */
+const urgency = (l: CreditLine): number => (suggestsChange(l) ? 2 : 0) + (l.late ? 1 : 0);
+
+/**
+ * Credit's point in one line, facts in ink: how many credit lines are overdue, and whether a limit
+ * change waits on the owner. Counts only, read off the same lines the table shows.
+ */
+export function CreditHeadline() {
+  const book = useCreditBook();
+  if (book.loading || book.lines.length === 0) return null;
+  const n = book.lines.length;
+  const late = book.lines.filter((l) => l.late).length;
+  const recs = book.recs.length;
+  return (
+    <p className="x-sub">
+      {late > 0 ? (
+        <>
+          <b>
+            {late} of {n} shops
+          </b>{" "}
+          are overdue.
+        </>
+      ) : (
+        <>
+          <b>All {n} shops</b> are paying on time.
+        </>
+      )}{" "}
+      {recs > 0 ? (
+        <>
+          <b>
+            {recs} limit {recs === 1 ? "change" : "changes"}
+          </b>{" "}
+          {recs === 1 ? "waits" : "wait"} on you.
+        </>
+      ) : (
+        "No limit changes to review."
+      )}
+    </p>
+  );
+}
 
 /** Recommended limit changes and the credit lines they apply to. Accepting updates the line. */
 export function CreditBoard() {
@@ -80,29 +123,36 @@ export function CreditBoard() {
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase();
-    return lines.filter(
-      (l) =>
-        (tab === "all" || (tab === "late" ? l.late : suggestsChange(l))) &&
-        (!query || `${l.shop.name} ${l.shop.area} ${l.recommendation}`.toLowerCase().includes(query)),
-    );
-  }, [lines, tab, q]);
+    const limitOf = (l: CreditLine) => set[l.shop.id]?.limit ?? l.limit;
+    return lines
+      .filter(
+        (l) =>
+          (tab === "all" || (tab === "late" ? l.late : suggestsChange(l))) &&
+          (!query || `${l.shop.name} ${l.shop.area} ${l.recommendation}`.toLowerCase().includes(query)),
+      )
+      .sort((a, b) => urgency(b) - urgency(a) || used(b, limitOf(b)) - used(a, limitOf(a)) || a.shop.name.localeCompare(b.shop.name));
+  }, [lines, tab, q, set]);
+  /* the Recommendation column only when some line has something to say */
+  const showRec = useMemo(
+    () => lines.some((l) => !quietRec(l.recommendation) || !!set[l.shop.id]),
+    [lines, set],
+  );
   /* the API has no credit score: show the column only when a line in the book really has one */
   const showScore = useMemo(() => lines.some((l) => !l.shop.live), [lines]);
 
+  const open = recs.filter((r) => set[r.shopId]?.limit !== r.to).length;
+
   return (
     <>
+      {/* nothing to review: the headline already says so, so the section goes (no "Nothing to review." row) */}
+      {(book.loading || open > 0) && (
       <div className="x-card x-recs">
+        {/* the count only when there is something to count: "· 0" beside "Nothing to review" said it twice */}
         <p className="x-rh">
-          Recommended changes <span className="x-num">· {recs.filter((r) => set[r.shopId]?.limit !== r.to).length}</span>
+          Recommended changes
+          {open > 0 && <span className="x-num"> · {open}</span>}
         </p>
         {book.loading && <SkeletonRows count={2} />}
-        {!book.loading && recs.length === 0 && (
-          <div className="x-ri">
-            <div>
-              <small>No changes to review. Mimi checks again tomorrow.</small>
-            </div>
-          </div>
-        )}
         {recs.filter((r) => set[r.shopId]?.limit !== r.to).map((r) => {
           const name = lines.find((l) => l.shop.id === r.shopId)?.shop.name ?? r.shopId;
           return (
@@ -114,8 +164,8 @@ export function CreditBoard() {
                 </b>
                 <small>{r.why}</small>
               </div>
-              <Button size="sm" onClick={() => decide(r, true)}>
-                Review
+              <Button size="sm" variant="ghost" onClick={() => decide(r, true)}>
+                Review {naira(r.to)}
               </Button>
               <button
                 className="x-ib"
@@ -129,6 +179,7 @@ export function CreditBoard() {
           );
         })}
       </div>
+      )}
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="landmark" />
@@ -144,7 +195,10 @@ export function CreditBoard() {
             segments={[
               { value: "all", label: "All", count: lines.length },
               { value: "late", label: "Overdue", count: lines.filter((l) => l.late).length },
-              { value: "rec", label: "Change suggested", count: lines.filter(suggestsChange).length },
+              /* no segment that can only show nothing ("Change suggested 0") */
+              ...(lines.some(suggestsChange)
+                ? [{ value: "rec" as const, label: "Change suggested", count: lines.filter(suggestsChange).length }]
+                : []),
             ]}
           />
         </div>
@@ -153,18 +207,19 @@ export function CreditBoard() {
         ) : rows.length === 0 ? (
           <BookUnreachable empty={lines.length ? "No credit lines match the current filters" : "No credit lines yet"} />
         ) : (
-          <Table label="Credit lines">
+          <Table label="Credit lines" className="x-dt--phone-fit">
             <thead>
               <tr>
                 <th scope="col">Shop</th>
                 <th scope="col" className="r">
                   Limit
                 </th>
-                <th scope="col">Used</th>
+                {/* phones keep shop, limit and due; the row opens the shop for the rest */}
+                <th scope="col" className="mc-hide-phone">Used</th>
                 <th scope="col">Due</th>
-                {showScore && <th scope="col">Score</th>}
-                <th scope="col">Recommendation</th>
-                <th scope="col">
+                {showScore && <th scope="col" className="mc-hide-phone">Score</th>}
+                {showRec && <th scope="col" className="mc-hide-phone">Recommendation</th>}
+                <th scope="col" className="mc-hide-phone">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -182,7 +237,7 @@ export function CreditBoard() {
                     </Link>
                   </td>
                   <td className="r x-ink">{naira(set[l.shop.id]?.limit ?? l.limit)}</td>
-                  <td>
+                  <td className="mc-hide-phone">
                     <MiniBar percent={(set[l.shop.id]?.limit ?? l.limit) > 0 ? (l.shop.owed / (set[l.shop.id]?.limit ?? l.limit)) * 100 : 0} />
                     <span className="x-num">{naira(l.shop.owed)}</span>
                   </td>
@@ -191,19 +246,21 @@ export function CreditBoard() {
                     {l.late && !l.shop.live && " · overdue"}
                   </td>
                   {showScore && (
-                    <td className="x-num">
+                    <td className="x-num mc-hide-phone">
                       {l.shop.live ? (
                         <span className="x-mu">—</span>
                       ) : (
-                        <>
-                          <span className="x-ink">{l.shop.score}</span>
-                          <span className="x-mu">/100</span>
-                        </>
+                        <ScoreTicks score={l.shop.score} />
                       )}
                     </td>
                   )}
-                  <td className="x-mu">{set[l.shop.id] ? `Set to ${naira(set[l.shop.id]!.limit)} by you` : l.recommendation}</td>
-                  <td className="r">
+                  {showRec && (
+                    <td className="x-mu mc-hide-phone">
+                      {set[l.shop.id] ? `Set to ${naira(set[l.shop.id]!.limit)} by you` : quietRec(l.recommendation) ? "" : l.recommendation}
+                    </td>
+                  )}
+                  {/* one quiet action, shown on row hover or focus (always on touch screens) */}
+                  <td className="r x-rowact mc-hide-phone">
                     <ActionGroup
                       row
                       label={`More for ${l.shop.name}`}
@@ -215,6 +272,11 @@ export function CreditBoard() {
               ))}
             </tbody>
           </Table>
+        )}
+        {!book.loading && rows.length > 0 && (
+          <p className="x-tfoot">
+            {rows.length} {rows.length === 1 ? "shop" : "shops"} · suggested changes and overdue first, then most of the limit in use
+          </p>
         )}
       </div>
     </>

@@ -137,19 +137,22 @@ function TaskSection({
     <div className={cx("mc-task", open && "is-open")} id={`task-${c.slug}`} data-task={c.slug}>
       {/* each long job reads as one quiet muted line: the date (when it changes) and the title, nothing else.
           State, proof and "updated by" live in the task's own thread (TaskSheet) and the Steps sheet. */}
-      <button
-        type="button"
-        className="mc-ev mc-ev--task mc-taskln"
-        aria-haspopup="dialog"
-        aria-label={`${label !== prevLabel ? `${label}. ` : ""}${title}. ${word}${by ? `, updated by ${by} ${c.ago} ago` : ""}. Open the task`}
-        onClick={() => onTask(c.slug)}
-      >
-        {label !== prevLabel && <span className="mc-taskln__d">{label}</span>}
-        <span className="mc-taskln__t">{title}</span>
-      </button>
+      {/* an empty conversation has no task to open: no "Today 4:20 · You and Mimi" line over nothing (copy cut, 4 Nov) */}
+      {(rest.length > 0 || typing) && (
+        <button
+          type="button"
+          className="mc-ev mc-ev--task mc-taskln"
+          aria-haspopup="dialog"
+          aria-label={`${label !== prevLabel ? `${label}. ` : ""}${title}. ${word}${by ? `, updated by ${by} ${c.ago} ago` : ""}. Open the task`}
+          onClick={() => onTask(c.slug)}
+        >
+          {label !== prevLabel && <span className="mc-taskln__d">{label}</span>}
+          <span className="mc-taskln__t">{title}</span>
+        </button>
+      )}
       {rest.length === 0 && !typing ? (
         open ? (
-          focus ? <EmptyThread helper={focus}>Nothing here yet. Ask {focus} anything below.</EmptyThread> : <EmptyThread helper={c.helper} />
+          focus ? <EmptyThread helper={focus}>Ask {focus} anything.</EmptyThread> : <EmptyThread helper={c.helper} />
         ) : null
       ) : (
         <MessageFeed slug={c.slug} messages={rest} typing={typing} />
@@ -533,7 +536,6 @@ function ThreadChatView({
                   <Icon name="chevron-right" className="i mc-tt__c" />
                 </span>
               </button>
-              <p className="mf-job">{who === "Mimi" ? "Runs your team for Coral Lane · reports to you" : `${job} for Coral Lane · reports to you`}</p>
               <p className={cx("mc-tt__s", (live || writing) && "is-busy", tstate === "needs" && "is-needs")} aria-live="polite">
                 {waitingAll > 0 ? null : statusText ? (
                   <button type="button" className="mc-tt__sb" aria-haspopup="dialog" aria-label={`${statusText}. Show steps`} onClick={() => setQuiet({ kind: "steps" })}>
@@ -651,6 +653,7 @@ function ThreadChatView({
               )}
           </div>
           <div className="mc-hdr__r">
+            {conv.helper === "Mimi" && !focus && <LiveDemoNote inline />}
             {compHere && !panelOpen && (
               <button
                 type="button"
@@ -687,7 +690,6 @@ function ThreadChatView({
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
-            {conv.helper === "Mimi" && !focus && <LiveDemoNote />}
             {sections.map(({ c, lines, from, task }, i) => (
               <TaskSection
                 key={`${from ?? "own"}:${c.slug}`}

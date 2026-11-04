@@ -19,9 +19,6 @@ export default function BooksPage() {
           <h1 className="x-title">Two books</h1>
           <PageMenu page="Two books" />
         </div>
-        <p className="x-sub">
-          What Mimi&apos;s book says Coral Lane is owed, against what Zoho Books reports.
-        </p>
         <BooksView />
       </Page>
     </ConsoleView>
