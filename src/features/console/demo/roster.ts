@@ -1,4 +1,5 @@
 import { agoLabel } from "@/features/console/api/mappers";
+import { USES_API } from "@/features/console/api/config";
 import { helperActivity, needsLine } from "@/features/console/lib/helper-activity";
 import type { Conversation, DemoState, HelperName } from "@/features/console/demo/types";
 
@@ -161,14 +162,17 @@ export function rosterRow(
     step = s.computer.status === "user" ? "You have her computer · she resumes when you're done" : `Computer · ${s.computer.activity}`;
   }
   const thread = mine.find((c) => needsIn(c) > 0) ?? mine[0];
-  /* threads from the API (demo build): the row reads from them, never from the sample outcomes */
-  if (s.conversations.some((c) => c.api)) {
+  /* threads from the API (demo build): the row reads from them, never from the sample outcomes.
+     The API build takes this branch even with no threads yet: the sample outcomes, costs and step
+     counts must never stand in for a book that could not be read. */
+  if (USES_API || s.conversations.some((c) => c.api)) {
     /* every answer lands in the owner's one thread with Mimi: a helper's row reads her own lines in it */
     const act = helperActivity(s.conversations, name, seen);
     /* every helper has her own chat: in the live demo it is the owner's shared thread seen as hers,
        so her row always opens it (`with=`), even before she has said anything */
     const ownerThread = s.conversations.find((c) => c.api?.kind === "owner");
-    const home = (act.slug ? s.conversations.find((c) => c.slug === act.slug) : undefined) ?? ownerThread;
+    /* her inbox is always her side of the owner's thread (shop tasks are filed into it there) */
+    const home = ownerThread ?? (act.slug ? s.conversations.find((c) => c.slug === act.slug) : undefined);
     const shared = name !== "Mimi" && !!home && home.helper !== name;
     const where = shared ? home : thread;
     /* her cards waiting on the owner, in her own threads or the shared one */

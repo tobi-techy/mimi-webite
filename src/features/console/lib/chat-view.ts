@@ -213,3 +213,133 @@ export function assignFor(chat: Worker | undefined | null): string | undefined {
   const id = chat.toLowerCase();
   return (ASSIGNABLE as readonly string[]).includes(id) ? id : undefined;
 }
+
+/* ---------- Mimi's chat: one-line updates from each helper (Tobi, 3 Nov 2026) ---------- */
+
+/** A helper's task that came from a shop (or rep): her inbox holds it; Mimi's chat gets one line. */
+export type ShopTask = { slug: string; helper: Worker; shopName?: string; messages: Message[] };
+
+const turnOfAny = (m: Message): string | undefined =>
+  "turn" in m && typeof m.turn === "string" && m.turn ? m.turn : undefined;
+const atOf = (m: Message): number | undefined => ("at" in m && typeof m.at === "number" ? m.at : undefined);
+
+/** One plain update for a helper's piece of work: her card first, then her question, then her reply. */
+function updateNote(lines: Message[], shop: string): string | null {
+  const card = lines.find((m): m is Extract<Message, { kind: "card" }> => m.kind === "card");
+  if (card) {
+    const t = noteOf(card) ?? "";
+    return card.card.status === "needs" ? `${t}, waiting for your approval` : t;
+  }
+  if (lines.some((m) => m.kind === "ask")) return "needs your answer";
+  const sys = [...lines].reverse().find((m) => m.kind === "system" && / replied to /.test(m.text));
+  if (sys && sys.kind === "system") return `replied to ${shop}`;
+  for (const m of lines) {
+    if (fromOf(m) === "me" || m.kind === "system") continue;
+    const n = noteOf(m);
+    if (n) return n;
+  }
+  return null;
+}
+
+function updateLine(id: string, who: HelperName, at: number, text: string, turn?: string): Handoff {
+  return {
+    id,
+    kind: "step",
+    from: who,
+    at,
+    variant: "handoff",
+    to: who,
+    state: "done",
+    text: clip(`${who}: ${text}`, 110),
+    ...(turn ? { turn } : {}),
+  };
+}
+
+/**
+ * The helper a turn group belongs to: the speaker the API filed that turn under (the mapper keeps
+ * each line's turn), falling back to the task's own helper.
+ */
+function helperIn(lines: Message[], fallback: Worker): Worker {
+  for (const m of lines) {
+    const f = fromOf(m);
+    if (f && f !== "me" && f !== "Mimi") return f;
+  }
+  return fallback;
+}
+
+/**
+ * Every shop task as one update line each (newest work per turn), for Mimi's chat. Each line is
+ * attributed to the helper who worked that turn, not to the thread's helper today: a thread that
+ * moved to another helper keeps naming the helper who did each piece of work.
+ */
+export function shopUpdates(tasks: ShopTask[]): Message[] {
+  const out: Message[] = [];
+  for (const t of tasks) {
+    const shop = t.shopName || "a shop";
+    const turns = new Map<string, Message[]>();
+    for (const m of t.messages) {
+      const k = turnOfAny(m) ?? (m.kind === "card" ? "cards" : undefined);
+      if (!k) continue;
+      turns.set(k, [...(turns.get(k) ?? []), m]);
+    }
+    for (const [k, lines] of turns) {
+      const who = helperIn(lines, t.helper);
+      /* Mimi's own turns are in her chat whole: no update line repeating them */
+      if (who === "Mimi") continue;
+      const at = Math.max(...lines.map((m) => atOf(m) ?? 0));
+      const note = updateNote(lines, shop) ?? `working on a task from ${shop}`;
+      out.push(updateLine(`upd:${t.slug}:${k}`, who as HelperName, at, note, k === "cards" ? undefined : k));
+    }
+  }
+  return out.sort((a, b) => (atOf(a) ?? 0) - (atOf(b) ?? 0));
+}
+
+/**
+ * Mimi's chat in the API build. What the owner said to Mimi and what Mimi said back stay whole.
+ * Work a helper took on never shows here: a task Mimi handed over reads "Handed to Collector: …"
+ * until the helper has a result, then "Collector: reminder sent to Mama Sola"; a task the owner gave
+ * a helper in her own chat, and every task from a shop, adds one such line. Each line opens the
+ * helper's chat, where the work is.
+ */
+export function mimiFeed(owner: Message[], tasks: ShopTask[] = []): Message[] {
+  /* turns the owner typed straight into a helper's chat: one update each, from her first result */
+  const assigned = new Map<string, HelperName>();
+  for (const m of owner) if (isHandoff(m) && m.turn && m.via === "assign") assigned.set(m.turn, m.to!);
+  const direct: Message[] = [];
+  /* the newest note for a turn wins: an interim reply must not outlive the helper's result */
+  const latest = new Map<string, { note: string; at: number }>();
+  for (const m of owner) {
+    const turn = turnOf(m);
+    const who = turn ? assigned.get(turn) : undefined;
+    if (!turn || !who || fromOf(m) !== who) continue;
+    const note = m.kind === "card" ? updateNote([m], "") : m.kind === "ask" ? "needs your answer" : noteOf(m);
+    if (!note) continue;
+    const at = atOf(m) ?? 0;
+    const prev = latest.get(turn);
+    if (!prev || at >= prev.at) latest.set(turn, { note, at });
+  }
+  for (const [turn, v] of latest) direct.push(updateLine(`upd:${turn}`, assigned.get(turn)!, v.at, v.note, turn));
+  const base = ownChat(owner, "Mimi").map((m) =>
+    isHandoff(m) && m.result ? { ...m, text: clip(`${m.to}: ${m.result}`, 110), result: undefined } : m,
+  );
+  const extra = [...direct, ...shopUpdates(tasks)].sort((a, b) => (atOf(a) ?? 0) - (atOf(b) ?? 0));
+  if (!extra.length) return base;
+  /* each update goes in by time, after the newest line at or before it */
+  const out = [...base];
+  for (const u of extra) {
+    const at = atOf(u) ?? 0;
+    let i = out.length;
+    while (i > 0) {
+      const t = atOf(out[i - 1]!);
+      if (t === undefined || t <= at) break;
+      i -= 1;
+    }
+    out.splice(i, 0, u);
+  }
+  return out;
+}
+
+/** A helper's inbox: her shop tasks (each a section) as she works them. Shop words never show. */
+export function shopTaskLines(t: ShopTask): Message[] {
+  return t.messages.filter((m) => m.kind !== "text" || fromOf(m) !== "me");
+}

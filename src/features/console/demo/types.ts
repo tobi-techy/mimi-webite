@@ -39,7 +39,7 @@ export type CardStatus = "needs" | "sending" | "sent" | "declined";
 
 /** A plan or approval card: reminder plan, order draft, credit change, restock, brand draft, flagged payment. */
 export type DecisionCard = {
-  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match" | "zoho" | "limit";
+  kind: "plan" | "order" | "credit" | "stock" | "brand" | "flag" | "match" | "zoho" | "limit" | "return";
   /** Risk tier label; cards that wait on the owner are Approve. */
   tier?: RiskTier;
   /** Brand emails: the draft itself (stays a draft until the owner taps Send). */
@@ -175,7 +175,7 @@ export type Message =
   /** A system event, centred and grey: "Created routine: morning chase", "Handed to Credit". */
   | { id: string; kind: "event"; text: string; at: number; /** A send the API refused (the demo allowance): reads as a stop, not a quiet aside. */ tone?: "stop" }
   /** A helper work step shown as a muted activity line ("Checked GTBank statement · 2 matches"). */
-  | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon }
+  | { id: string; kind: "system"; text: string; at: number; icon?: ActivityIcon; /** API turn this line belongs to (shop tasks). */ turn?: string }
   /**
    * A helper's reasoning: while `live` a shimmering "Thinking…" that streams the text; then a
    * collapsed "Thought for 4s" line that opens to the reasoning in muted markdown.

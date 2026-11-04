@@ -4,7 +4,12 @@ import { useSyncExternalStore } from "react";
 import { USES_API } from "@/features/console/api/config";
 import type { ErrorKind } from "@/features/console/api/mappers";
 import type { CreditLine, CreditRecommendation } from "@/features/console/content/credit";
+import type { Exposure } from "@/features/console/content/exposure";
+import type { ShopReturn } from "@/features/console/content/returns";
 import type { Shop } from "@/features/console/content/shops";
+
+/** How a read that this server may not have yet went: missing = no such route, never an error. */
+export type LedgerRead = "unread" | "missing" | "error";
 import { isApiBacked } from "@/features/console/demo/store";
 import type { AskAnswer } from "@/features/console/demo/types";
 
@@ -23,9 +28,21 @@ export type LiveState = {
   /** The newest thing the owner should know, in plain words. Never a raw error. */
   notice: { kind: ErrorKind | "info"; text: string; at: number } | null;
   shops: Shop[] | null;
+  /** The API's own sums from GET /v1/shops (mimi/owed.py): the book's definition of owed and overdue. */
+  bookTotals: { owed: number; overdue: number } | null;
   shopDetails: Record<string, Shop>;
   creditLines: CreditLine[] | null;
   creditRecs: CreditRecommendation[] | null;
+  /** The returns ledger; null until this server has the route. */
+  returns: ShopReturn[] | null;
+  /** Credit exposure, with the API's own ageing buckets; null until this server has the route. */
+  exposure: Exposure | null;
+  /**
+   * Why `returns`/`exposure` are null: "missing" is this server having no such route (the honest
+   * "not available yet"), "error" is a read that failed, which the screens must say and offer Retry
+   * for. Without this a dropped connection would read as "the ledger isn't connected to Mimi".
+   */
+  ledger: { returns: LedgerRead; exposure: LedgerRead };
   /**
    * The demo's daily allowance is used up (or the demo is paused): the API refuses new turns, so
    * the composer is shut and says why. Set from a refused send (429/503) or from GET /v1/me.
@@ -47,9 +64,13 @@ const INITIAL: LiveState = {
   status: USES_API ? "connecting" : "off",
   notice: null,
   shops: null,
+  bookTotals: null,
   shopDetails: {},
   creditLines: null,
   creditRecs: null,
+  returns: null,
+  exposure: null,
+  ledger: { returns: "unread", exposure: "unread" },
   cap: null,
   since: 0,
   viewed: {},

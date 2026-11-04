@@ -11,14 +11,27 @@ import { Note } from "@/features/console/components/ui/Note";
 import { Page } from "@/features/console/components/ui/Page";
 import { Row } from "@/features/console/components/ui/Row";
 import { ToastButton } from "@/features/console/components/ui/ToastButton";
-import type { SettingsSection } from "@/features/console/content/settings";
+import { settingsAvailable, type SettingsSection } from "@/features/console/content/settings";
+import { ButtonLink } from "@/features/console/components/ui/Button";
+import { settingsHref } from "@/features/console/content/settings";
 
 /** One settings screen. Connectors and Usage have their own views; the rest are rows. */
 export function SettingsSectionView({ section }: { section: SettingsSection }) {
   return (
     <ConsoleView label={section.title}>
       <Page className="x-set">
-        {section.id === "connectors" ? (
+        {!settingsAvailable(section.id) ? (
+          <>
+            <div className="x-shead">
+              <h1 className="x-title">{section.title}</h1>
+            </div>
+            <p className="x-sub">
+              Not available yet. This part of settings isn&apos;t connected to Mimi, so nothing here would be
+              saved.
+            </p>
+            <ButtonLink href={settingsHref("connectors")}>Open Connected tools</ButtonLink>
+          </>
+        ) : section.id === "connectors" ? (
           <ConnectorsView />
         ) : section.id === "policy" ? (
           <PolicyView />

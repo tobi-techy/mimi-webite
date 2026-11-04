@@ -9,6 +9,7 @@ import { Button } from "@/features/console/components/ui/Button";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { approveCard } from "@/features/console/demo/engine";
 import { owner } from "@/features/console/demo/seed";
+import { ownerRecordName } from "@/features/console/lib/owner-name";
 import { patchMessage } from "@/features/console/demo/store";
 import { useToast } from "@/features/console/hooks/use-toast";
 import {
@@ -143,7 +144,7 @@ function Sheet({ t }: { t: LimitTarget }) {
 
   function set() {
     const now = stamp();
-    saveLimit(t.shopId, { limit: amount, prev: t.current, at: now, by: owner.name, review: when, told: tell });
+    saveLimit(t.shopId, { limit: amount, prev: t.current, at: now, by: ownerRecordName, review: when, told: tell });
     if (onApi) {
       const reason = t.suggestion && amount === t.suggestion.to ? t.suggestion.why : undefined;
       change.current = liveSetLimit(t.shopId, amount, reason).then((r) => {
@@ -348,7 +349,7 @@ function Sheet({ t }: { t: LimitTarget }) {
               </p>
             </div>
             <ul className="mf-ls__hist" aria-label="History">
-              {(history.length ? history.slice(0, 3) : [{ text: historyLine(owner.name, at), at }]).map((h) => (
+              {(history.length ? history.slice(0, 3) : [{ text: historyLine(ownerRecordName, at), at }]).map((h) => (
                 <li key={h.at + h.text}>{h.text}</li>
               ))}
               {tell && <li>{live ? "Message to the shop: preview only in this demo, not sent" : `${firstName(t.name)} gets the message on WhatsApp`}</li>}

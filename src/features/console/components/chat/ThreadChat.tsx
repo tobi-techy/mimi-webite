@@ -11,8 +11,9 @@ import { PlanStrip, goToCard } from "@/features/console/components/chat/Work";
 import { HelperBrief } from "@/features/console/components/helpers/HelperBrief";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { WorkspacePanel } from "@/features/console/components/panel/WorkspacePanel";
-import { apiActive, markViewed, setFocus, useLive } from "@/features/console/api/live-store";
-import { asksIn, assignFor, borrowedChat, ownChat } from "@/features/console/lib/chat-view";
+import { retryLive } from "@/features/console/api/sync";
+import { markViewed, setFocus, useLive } from "@/features/console/api/live-store";
+import { asksIn, assignFor, borrowedChat, mimiFeed, ownChat, shopTaskLines, type ShopTask } from "@/features/console/lib/chat-view";
 import { NeedsYou } from "@/features/console/components/chat/Ask";
 import { SkeletonFeed } from "@/features/console/components/live/Skeleton";
 import { LiveDemoNote } from "@/features/console/components/live/LiveDemoNote";
@@ -22,14 +23,12 @@ import { needItems } from "@/features/console/demo/needs";
 import { liveWork, statusLine, taskState, taskStateLabel, updatedBy } from "@/features/console/lib/thread-view";
 import { Replies } from "@/features/console/components/chat/Replies";
 import {
-  DEMO_SLUG,
   openPanel,
   playDemo,
   resetDemo,
   setActiveThread,
   setDocFilter,
   setPanelTab,
-  stageStory,
   stopDemo,
   togglePanel,
 } from "@/features/console/demo/engine";
@@ -37,7 +36,6 @@ import { dayLabel, helperSections, rosterNames, rosterRow, type RosterName } fro
 import { helperJobs } from "@/features/console/demo/seed";
 import type { Conversation, HelperName, Message, Speaker, Worker } from "@/features/console/demo/types";
 import { findConversation, useDemo } from "@/features/console/demo/store";
-import { TOUR_SLUG, startTour } from "@/features/console/demo/tour";
 import { useShell } from "@/features/console/hooks/use-shell";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { isSoundOn, setSound } from "@/lib/sound";
@@ -54,18 +52,8 @@ const SETUP_STEPS = 5;
  */
 function GettingStarted() {
   const status = useLive((s) => s.status);
-  const touring = useDemo((s) => s.conversations.some((c) => c.slug === TOUR_SLUG));
-  if (status === "connecting") return null;
-  /* the demo build (live or fallen back to sample data): the five-scene tour is the way in */
-  if (status === "ready" || status === "fallback")
-    return touring ? null : (
-      <button type="button" className="mc-gs mc-gs--feed" onClick={() => startTour()} aria-label="Play the demo: one morning with Mimi, five short scenes">
-        <Icon name="play" />
-        <span className="mc-gs__t">Play the demo</span>
-        <span className="mc-gs__k">One morning, 5 scenes</span>
-        <Icon name="chevron-right" />
-      </button>
-    );
+  /* the API build (sandbox and production): no setup checklist from sample data, no guided tour */
+  if (status !== "off") return null;
   return (
     <Link
       href={`${consoleRoutes.settings}/connectors`}
@@ -171,7 +159,31 @@ function TaskSection({
 }
 
 /** A helper's one conversation: iMessage-style feed of her tasks in the Factory skin, docked composer (on the open task), workspace panel. */
-export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: RosterName }) {
+const isTask = (c: Conversation) => !!c.api && c.api.kind !== "owner";
+const asTask = (c: Conversation): ShopTask => ({ slug: c.slug, helper: c.helper, shopName: c.api?.shopName, messages: c.messages });
+
+/**
+ * A chat. In the API build a shop's (or rep's) thread is never opened as a chat of its own: it is a
+ * task in the responsible helper's inbox, so its link opens that helper's chat. A task the API filed
+ * with Mimi is shown in her own chat (`openTask`), so no task is a link to nowhere; with no owner
+ * thread yet the task's own conversation is shown.
+ */
+export function ThreadChat({ slug, focus }: { slug: string; focus?: RosterName }) {
+  const inbox = useDemo((s) => {
+    const c = findConversation(s, slug);
+    if (!c || !isTask(c)) return null;
+    const owner = s.conversations.find((x) => x.api?.kind === "owner");
+    return owner ? `${owner.slug}|${c.helper}` : null;
+  });
+  if (inbox) {
+    const [o, h] = inbox.split("|") as [string, RosterName];
+    /* Mimi's own tasks open in Mimi's chat: focus would be cleared there (she is the owner thread) */
+    return <ThreadChatView slug={o} focus={h === "Mimi" ? undefined : h} openTask={h === "Mimi" ? slug : undefined} />;
+  }
+  return <ThreadChatView slug={slug} focus={focus} />;
+}
+
+function ThreadChatView({ slug, focus: focusIn, openTask }: { slug: string; focus?: RosterName; openTask?: string }) {
   const conv = useDemo((s) => findConversation(s, slug));
   const typing = useDemo((s) => (s.typing?.slug === slug ? s.typing.who : null));
   const typingAny = useDemo((s) => s.typing);
@@ -349,14 +361,11 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
     if (!slug)
       return (
         <section className="mc-empty-thread" aria-label="Thread">
-          <EmptyThread helper="Mimi">Mimi can&apos;t be reached right now, so the demo runs on sample data. Play it, or look around.</EmptyThread>
+          <EmptyThread helper="Mimi">Mimi can&apos;t be reached right now. Nothing is shown in her place.</EmptyThread>
           <div className="mc-empty-thread__acts">
-            <button type="button" className="mc-btn mc-btn--pri" onClick={() => startTour()}>
-              Play the demo
+            <button type="button" className="mc-btn mc-btn--pri" onClick={() => void retryLive()}>
+              Retry
             </button>
-            <Link className="mc-btn" href={consoleRoutes.shops}>
-              See the shops
-            </Link>
           </div>
         </section>
       );
@@ -407,24 +416,39 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
   const face = rosterRow({ conversations, typing: typingAny, computer }, conv.helper);
   /* one conversation per helper: every task she has worked on, the open one last, each read as her
      own chat (work she handed over folds into one line). Live: the shared thread seen as `who`'s chat */
-  const own = helperSections(conversations, conv.helper, slug).map((c) => ({
-    c,
-    lines: c.api ? (focus ? passedOn(borrowedChat(c.messages, focus as HelperName), answers) : ownChat(c.messages, "Mimi")) : ownChat(c.messages, c.helper),
-    from: undefined as Worker | undefined,
-  }));
+  /* API build: shop tasks live in the responsible helper's inbox; Mimi's chat gets one line each */
+  const tasks = conv.api ? conversations.filter(isTask) : [];
+  const own = helperSections(conversations, conv.helper, slug)
+    .filter((c) => !isTask(c))
+    .map((c) => ({
+      c,
+      lines: c.api ? (focus ? passedOn(borrowedChat(c.messages, focus as HelperName), answers) : mimiFeed(c.messages, tasks.map(asTask))) : ownChat(c.messages, c.helper),
+      from: undefined as Worker | undefined,
+      task: false,
+    }));
+  /* a task is in a helper's inbox when she worked a turn in it, not only when she is its named
+     helper today: a thread the API moved keeps showing in the inbox of every helper who worked it */
+  const inInbox = (c: Conversation, who: Worker) =>
+    c.helper === who || c.messages.some((m) => ("from" in m ? m.from : undefined) === who);
+  /* the task a shop link points at (Mimi's own), or the task this chat is (no owner thread yet) */
+  const pointed = openTask ? tasks.filter((c) => c.slug === openTask) : [];
+  const self = isTask(conv) ? [conv] : [];
+  const inboxTasks = focus
+    ? tasks.filter((c) => inInbox(c, focus)).map((c) => ({ c, lines: shopTaskLines(asTask(c)), from: undefined as Worker | undefined, task: true }))
+    : [...pointed, ...self]
+        .filter((c, i, all) => all.findIndex((x) => x.slug === c.slug) === i)
+        .map((c) => ({ c, lines: shopTaskLines(asTask(c)), from: undefined as Worker | undefined, task: true }));
   /* sample threads: what other helpers handed to her lives here too, as its own task */
   const borrowed =
     conv.api || who === "Mimi"
       ? []
       : conversations
           .filter((c) => c.helper !== who && !c.api)
-          .map((c) => ({ c, lines: borrowedChat(c.messages, who as HelperName, c.helper), from: c.helper as Worker | undefined }))
+          .map((c) => ({ c, lines: borrowedChat(c.messages, who as HelperName, c.helper), from: c.helper as Worker | undefined, task: false }))
           .filter((x) => x.lines.some((m) => m.kind !== "date" && m.kind !== "step"));
-  const sections = [...borrowed, ...own];
+  const sections = [...borrowed, ...inboxTasks, ...own];
   /* Mimi is the inbox for questions: every helper's ask shows in her chat as "Needs you" */
-  /* while the demo tour plays, its scenes are the one thing in Mimi's chat: other asks wait in Needs you */
-  const touring = conversations.some((c) => c.slug === TOUR_SLUG && c.state !== "done");
-  const asks = who === "Mimi" && !touring ? asksIn(conversations.filter((c) => (conv.api ? !!c.api : !c.api))) : [];
+  const asks = who === "Mimi" ? asksIn(conversations.filter((c) => (conv.api ? !!c.api : !c.api))) : [];
   /* the typing dots belong to the chat the newest message was typed in */
   const lastMine = [...conv.messages].reverse().find((m): m is Extract<Message, { kind: "text" }> => m.kind === "text" && m.from === "me");
   const typedIn: Worker = lastMine?.to ?? "Mimi";
@@ -526,10 +550,13 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                 <Icon name="list-checks" />
                 Steps
               </button>
-              <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "memory" }))}>
-                <Icon name="file-text" />
-                What I remember
-              </button>
+              {/* the memory sheet and the sample tools below (demo story, routines, side chat, docs) are sample data: API threads leave them out */}
+              {!conv.api && (
+                <button role="menuitem" type="button" onClick={() => (setMenu(false), setQuiet({ kind: "memory" }))}>
+                  <Icon name="file-text" />
+                  What I remember
+                </button>
+              )}
               <Link
                 role="menuitem"
                 href={consoleRoutes.home}
@@ -543,6 +570,8 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                 <Icon name="plus" />
                 New: ask Mimi
               </Link>
+              {!conv.api && (
+                <>
               <hr />
               <button
                 role="menuitem"
@@ -554,19 +583,6 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
               >
                 <Icon name="play" />
                 Play demo
-              </button>
-              <button
-                role="menuitem"
-                type="button"
-                onClick={() => {
-                  setMenu(false);
-                  stageStory();
-                  /* live demo: stageStory starts the tour here in Mimi's chat (no sample story thread) */
-                  router.push(apiActive() ? consoleRoutes.home : `${consoleRoutes.threads}/${DEMO_SLUG}`);
-                }}
-              >
-                <Icon name="list-checks" />
-                Walk through with chips
               </button>
               <button
                 role="menuitem"
@@ -593,6 +609,8 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                 <Icon name="file-text" />
                 Docs
               </button>
+                </>
+              )}
               {conv.helper === "Credit" && (
                 <Link role="menuitem" href={consoleRoutes.credit} onClick={() => setMenu(false)}>
                   <Icon name="landmark" />
@@ -634,6 +652,7 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                 <span className="mc-hide-phone">Stop demo</span>
               </button>
             )}
+            {!conv.api && (
             <button
               type="button"
               className={cx("mc-fb mc-fb--round", panelOpen && "is-on")}
@@ -644,12 +663,13 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
             >
               <Icon name="panel-right-open" />
             </button>
+            )}
           </div>
         </header>
         <div className="mc-feed" ref={feed} data-motion={consoleMotion.spring ? "spring" : undefined}>
           <div className="mc-col mc-fi">
             {conv.helper === "Mimi" && !focus && <LiveDemoNote />}
-            {sections.map(({ c, lines, from }, i) => (
+            {sections.map(({ c, lines, from, task }, i) => (
               <TaskSection
                 key={`${from ?? "own"}:${c.slug}`}
                 c={c}
@@ -660,7 +680,7 @@ export function ThreadChat({ slug, focus: focusIn }: { slug: string; focus?: Ros
                 typing={typingAny?.slug === c.slug && dotsHere && (!from || typingAny.who === who) ? (conv.api ? (who as Speaker) : typingAny.who) : null}
                 onTask={(t) => setQuiet({ kind: "task", slug: t })}
                 quiet={conv.helper === "Mimi"}
-                focus={focus}
+                focus={task ? undefined : focus}
               />
             ))}
             <NeedsYou asks={asks} />

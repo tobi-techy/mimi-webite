@@ -5,6 +5,7 @@ import { ShopsTable } from "@/features/console/components/shops/ShopsTable";
 import { ButtonLink } from "@/features/console/components/ui/Button";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { PageMenu } from "@/features/console/components/ui/PageMenu";
+import { USES_API } from "@/features/console/api/config";
 import { ToastButton } from "@/features/console/components/ui/ToastButton";
 import { Page } from "@/features/console/components/ui/Page";
 import { consoleRoutes } from "@/features/console/config";
@@ -22,10 +23,13 @@ export default function ShopsLayout({ children }: { children: ReactNode }) {
               <Icon name="landmark" />
               Credit limits
             </ButtonLink>
+            {/* no API route behind this button yet: the API build leaves it out */}
+            {!USES_API && (
             <ToastButton variant="primary" message="Shop invite link copied">
               <Icon name="plus" />
               Add shop
             </ToastButton>
+            )}
           </div>
           <ShopsSummary />
           <ShopsTable />

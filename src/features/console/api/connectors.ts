@@ -1,84 +1,40 @@
 "use client";
 
-import { MimiApiError, mimiApi, missingRoute } from "@/features/console/api/client";
-import { USES_API } from "@/features/console/api/config";
-import { getLive } from "@/features/console/api/live-store";
-import { authed, report } from "@/features/console/api/sync";
-import type { ApiConnectorToolkit } from "@/features/console/api/types";
-import { connectorsStore } from "@/features/console/lib/connectors-store";
+import { mimiApi } from "@/features/console/api/client";
+import { authed } from "@/features/console/api/sync";
+import type { ApiConnectorCallback, ApiConnectorRead } from "@/features/console/api/types";
+import { safeRedirect, toolkitView, type ToolkitView } from "@/features/console/lib/connector-state";
 
 /**
- * Settings > Connected tools on the API (GET /v1/connectors, POST …/{toolkit}/connect,
- * DELETE …/{connection_id}). Only the toolkits the API has (Zoho Books, Google Sheets) go there;
- * every other tool, and every tool when this demo server has no connector routes, keeps the
- * console's own demo switch.
+ * Settings > Connected tools on the MIMI-AGENT API (sandbox and production alike):
+ * GET /v1/connectors, POST /v1/connectors/{toolkit}/connect, GET /v1/connectors/callback,
+ * GET /v1/connectors/{id}/read, DELETE /v1/connectors/{id}. Every call is real; errors are thrown
+ * (MimiApiError) for the view to say plainly. There is no local stand-in for a connection.
  */
 
-const KEY_OF: Record<string, string> = { ZOHO_BOOKS: "zoho", ZOHO: "zoho", GOOGLESHEETS: "googlesheets" };
-const TOOLKIT_OF: Record<string, string> = { zoho: "ZOHO_BOOKS", googlesheets: "GOOGLESHEETS" };
-
-/** Connection id per connector key, for Disconnect. */
-const connections = new Map<string, string>();
-
-const onApi = () => USES_API && getLive().status === "ready";
-const activeOf = (t: ApiConnectorToolkit) => t.connections.find((c) => !c.revoked_at && !/revoked|failed|expired/i.test(c.status));
-
-/** Reads the API's connectors into the switches. Quiet when the route is not there yet. */
-export async function loadLiveConnectors(signal?: AbortSignal): Promise<void> {
-  if (!onApi()) return;
-  try {
-    const r = await authed((t) => mimiApi.connectors(t, { signal }));
-    for (const t of r.connectors) {
-      const key = KEY_OF[t.toolkit.toUpperCase()];
-      if (!key) continue;
-      const c = activeOf(t);
-      if (c) connections.set(key, c.connection_id);
-      else connections.delete(key);
-      /* the demo's own copy starts with Zoho on: only an API connection list that has one decides */
-      if (c || t.connections.length) connectorsStore.set(key, !!c);
-    }
-  } catch (e) {
-    if (e instanceof DOMException || missingRoute(e) || (e instanceof MimiApiError && e.status === 403)) return;
-    report(e);
-  }
+export async function listConnectors(signal?: AbortSignal): Promise<ToolkitView[]> {
+  const r = await authed((t) => mimiApi.connectors(t, { signal }));
+  return r.connectors.map(toolkitView);
 }
 
-/**
- * Connect: the API's consent page when it has one (the browser goes there and comes back to
- * Settings), else `local` (the console's demo hop). `error` was already shown.
- */
-export async function liveConnect(key: string): Promise<"redirect" | "local" | "error"> {
-  const toolkit = TOOLKIT_OF[key];
-  if (!toolkit || !onApi()) return "local";
-  try {
-    const r = await authed((t) => mimiApi.connect(t, toolkit));
-    if (r.redirect_url && /^https:\/\//.test(r.redirect_url)) {
-      window.location.assign(r.redirect_url);
-      return "redirect";
-    }
-    return "local";
-  } catch (e) {
-    /* no route, or no connector service behind this demo server (502): the demo hop stands in */
-    if (missingRoute(e) || (e instanceof MimiApiError && (e.status === 502 || e.status === 503 || e.status === 403))) return "local";
-    report(e);
-    return "error";
-  }
+/** Starts the real connect flow: returns the consent page to send the browser to. */
+export async function startConnect(toolkit: string): Promise<string> {
+  const r = await authed((t) => mimiApi.connect(t, toolkit));
+  const url = safeRedirect(r.redirect_url);
+  if (!url) throw new Error("This server didn't return a real sign-in page for that tool, so nothing was connected.");
+  return url;
 }
 
-/** Disconnect on the API when the connection came from it. Returns false when it failed (already shown). */
-export async function liveDisconnect(key: string): Promise<boolean> {
-  const id = connections.get(key);
-  if (!id || !onApi()) return true;
-  try {
-    await authed((t) => mimiApi.disconnect(t, id));
-    connections.delete(key);
-    return true;
-  } catch (e) {
-    if (missingRoute(e) || (e instanceof MimiApiError && e.status === 404)) {
-      connections.delete(key);
-      return true;
-    }
-    report(e);
-    return false;
-  }
+/** Composio sent the owner back: the API checks the signed state and saves the connection. */
+export function finishConnect(p: { state: string; connected_account_id: string; status: string }): Promise<ApiConnectorCallback> {
+  return authed((t) => mimiApi.connectorCallback(t, p));
+}
+
+/** A live read from the connected account (what Mimi can see there now). */
+export function readConnection(connectionId: string, signal?: AbortSignal): Promise<ApiConnectorRead> {
+  return authed((t) => mimiApi.connectorRead(t, connectionId, { signal }));
+}
+
+export async function disconnect(connectionId: string): Promise<void> {
+  await authed((t) => mimiApi.disconnect(t, connectionId));
 }

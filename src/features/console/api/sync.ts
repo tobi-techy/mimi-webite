@@ -1,15 +1,14 @@
 "use client";
 
-import { MimiApiError, isAbort, mimiApi } from "@/features/console/api/client";
+import { MimiApiError, isAbort, mimiApi, missingRoute } from "@/features/console/api/client";
 import { USES_API } from "@/features/console/api/config";
-import { getLive, notify, setLive } from "@/features/console/api/live-store";
-import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, mapCreditLines, mapCreditRecs, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
+import { getLive, notify, setLive, type LedgerRead } from "@/features/console/api/live-store";
+import { capFromMe, type TurnExtras, friendlyMessage, inFlight, liveActivity, koboToNaira, mapCreditLines, mapCreditRecs, mapExposure, mapReturns, mapShop, mapThread, mapThreadSummary } from "@/features/console/api/mappers";
 import { newSession, sessionToken, writeSession } from "@/features/console/api/session";
 import type { ApiApproval, ApiCredit, ApiShop, ApiThreadDetail, ApiThreadSummary } from "@/features/console/api/types";
 import type { Shop } from "@/features/console/content/shops";
-import { getDemo, isApiBacked, setApiConversations, setDemo, restoreSampleConversations } from "@/features/console/demo/store";
-import { tourConversation, tourEcho } from "@/features/console/demo/tour-state";
-import { hideTourEcho } from "@/features/console/lib/tour-echo";
+import { getDemo, isApiBacked, setApiConversations, setDemo } from "@/features/console/demo/store";
+import { taskStore } from "@/features/console/lib/computer-tasks-store";
 import type { Conversation, Message, Worker } from "@/features/console/demo/types";
 
 /**
@@ -31,6 +30,8 @@ const FAST_MS = 1000;
 const details = new Map<string, { sig: string; detail: ApiThreadDetail }>();
 let approvals: ApiApproval[] = [];
 let shopRows: ApiShop[] = [];
+/** The API's own sums from GET /v1/shops (mimi/owed.py): the book's definition of owed and overdue. */
+let bookTotals: { owed: number; overdue: number } | null = null;
 let credit: ApiCredit | null = null;
 let threads: ApiThreadSummary[] = [];
 /** Messages the owner sent that the API has not stored yet, per thread. */
@@ -77,6 +78,8 @@ const keeps = (m: Message) => (m.kind === "photos" || m.kind === "voice" || m.ki
 
 export function resetCaches() {
   revokeLocal();
+  /* the computer tasks hold this session's rows, steps and files: a new session must not see them */
+  taskStore.reset();
   localMedia.clear();
   details.clear();
   approvals = [];
@@ -181,20 +184,8 @@ function publish() {
     return stamp(c, now);
   });
   firstPaint = false;
-  /* the demo tour (five scenes) is the console's own: it rides along with the API's threads */
-  const tour = tourConversation();
-  if (!tour) {
-    setApiConversations(convs);
-    return syncTyping(typing);
-  }
-  /* the tour drives the visitor's book, so the API echoes it into the owner thread: hide the echo */
-  const echo = tourEcho(() => convs.find((c) => c.api?.kind === "owner")?.messages.map((m) => m.id) ?? []);
-  const shown = convs.map((c) => (c.api?.kind === "owner" ? { ...c, messages: hideTourEcho(c.messages, echo) } : c));
-  setApiConversations([...shown, tour]);
-  /* while it plays, the tour's own typing dots are its to clear, and the owner thread's echo types nothing */
-  if (echo.active && getDemo().typing?.slug === tour.slug) return;
-  const t = typing as { slug: string; who: Conversation["helper"] } | null;
-  syncTyping(echo.active && t?.slug !== tour.slug && t?.who === "Mimi" ? null : t);
+  setApiConversations(convs);
+  syncTyping(typing);
 }
 
 function syncTyping(typing: { slug: string; who: Conversation["helper"] } | null) {
@@ -207,6 +198,7 @@ function publishBook() {
   const prev = getLive();
   setLive({
     shops,
+    bookTotals,
     creditLines: credit ? mapCreditLines(credit, shops) : prev.creditLines,
     creditRecs: credit ? mapCreditRecs(credit) : prev.creditRecs,
   });
@@ -231,8 +223,47 @@ async function refreshThreads(t: string, signal?: AbortSignal) {
 async function refreshBook(t: string, signal?: AbortSignal) {
   const [s, c] = await Promise.all([mimiApi.shops(t, { signal }), mimiApi.credit(t, { signal })]);
   shopRows = s.shops;
+  /* the API's own totals win over anything the console could add up itself */
+  bookTotals =
+    typeof s.owed_total_kobo === "number" || typeof s.overdue_total_kobo === "number"
+      ? { owed: koboToNaira(s.owed_total_kobo), overdue: koboToNaira(s.overdue_total_kobo) }
+      : null;
   credit = c;
   publishBook();
+  await refreshLedger(t, signal);
+}
+
+/**
+ * The returns ledger and the exposure figure. Both arrive with the API's next release: until this
+ * server has them the routes answer 404, which reads as "not available yet" on the screen and is
+ * never announced as an error.
+ */
+async function refreshLedger(t: string, signal?: AbortSignal) {
+  /* each read records why it has no data: no such route ("missing") or a read that failed ("error") */
+  const verdict = (e: unknown): LedgerRead => (missingRoute(e) ? "missing" : "error");
+  const ledger = (key: "returns" | "exposure", read: LedgerRead) => setLive({ ledger: { ...getLive().ledger, [key]: read } });
+  await Promise.all([
+    (async () => {
+      try {
+        setLive({ returns: mapReturns(await mimiApi.returns(t, { signal })) });
+        ledger("returns", "unread");
+      } catch (e) {
+        if (isAbort(e)) return;
+        ledger("returns", verdict(e));
+        if (!missingRoute(e)) report(e);
+      }
+    })(),
+    (async () => {
+      try {
+        setLive({ exposure: mapExposure(await mimiApi.exposure(t, { signal })) });
+        ledger("exposure", "unread");
+      } catch (e) {
+        if (isAbort(e)) return;
+        ledger("exposure", verdict(e));
+        if (!missingRoute(e)) report(e);
+      }
+    })(),
+  ]);
 }
 
 /** One shop with its payments and open invoices, for the drawer. Aborted when the drawer closes. */
@@ -243,7 +274,8 @@ export async function loadShop(id: string, signal: AbortSignal): Promise<Shop | 
     setLive({ shopDetails: { ...getLive().shopDetails, [id]: shop } });
     return shop;
   } catch (e) {
-    if (!isAbort(e)) report(e);
+    /* a shop the API does not have is not announced: the drawer already says "Shop not found" */
+    if (!isAbort(e) && !missingRoute(e)) report(e);
     return null;
   }
 }
@@ -274,6 +306,11 @@ export function republish(): void {
 let timer: ReturnType<typeof setTimeout> | undefined;
 let busy = false;
 let again = false;
+/** A queued pass set `again`: remember a book request that arrived while a read was in flight. */
+let againBook = false;
+/** A caller that arrived during a pass waits on the pass that runs next, the one that reads the book. */
+let queuedPass: Promise<boolean> | null = null;
+let settleQueued: ((ok: boolean) => void) | null = null;
 
 const hidden = () => typeof document !== "undefined" && document.hidden;
 const active = () => openTurns.size > 0 || [...pending.values()].some((l) => l.some((m) => !keeps(m))) || threads.some((t) => t.status === "running");
@@ -284,14 +321,47 @@ function schedule() {
   if (active() && !hidden()) timer = setTimeout(() => void refresh(), FAST_MS);
 }
 
-/** Re-reads threads and approvals (and the book when asked), then polls again only if work is running. */
-export async function refresh(withBook = false): Promise<void> {
+/** Starts one pass, and when a caller arrived during it, the pass they asked for straight after. */
+function startPass(withBook: boolean): Promise<boolean> {
+  busy = true;
+  return runPass(withBook).finally(() => {
+    busy = false;
+    if (again) {
+      again = false;
+      const queued = withBook || againBook;
+      againBook = false;
+      const next = startPass(queued);
+      const settle = settleQueued;
+      settleQueued = null;
+      queuedPass = null;
+      /* the caller riding the queue gets the queued pass's own outcome, not this pass's */
+      if (settle) void next.then(settle);
+    } else schedule();
+  });
+}
+
+/**
+ * Re-reads threads and approvals (and the book when asked), then polls again only if work is
+ * running. Resolves true only when the pass that ran for this call really reached the end: a
+ * caller that arrives while a pass is in flight waits on the pass that runs next, keeping its
+ * book request, so it never reports a read that did not happen.
+ */
+export function refresh(withBook = false): Promise<boolean> {
   if (busy) {
     again = true;
-    return;
+    if (withBook) againBook = true;
+    queuedPass ??= new Promise<boolean>((settle) => {
+      settleQueued = settle;
+    });
+    return queuedPass;
   }
-  busy = true;
+  return startPass(withBook);
+}
+
+/** One pass. `ok` is true only when it reached the end without an error. */
+async function runPass(withBook: boolean): Promise<boolean> {
   let capCheck = false;
+  let ok = false;
   try {
     await authed(async (t) => {
       for (const [turnId, thread] of [...openTurns]) {
@@ -316,19 +386,16 @@ export async function refresh(withBook = false): Promise<void> {
       await refreshThreads(t);
       if (withBook) await refreshBook(t);
       if (capCheck) await checkCap(t);
+      ok = true;
     });
   } catch (e) {
     report(e);
-  } finally {
-    busy = false;
-    if (again) {
-      again = false;
-      void refresh(withBook);
-    } else schedule();
   }
+  return ok;
 }
 
 let started = false;
+let watching = false;
 
 /** Called once by the console shell. Does nothing in the sample and live (signed-out) builds. */
 export async function startLive(): Promise<void> {
@@ -346,14 +413,25 @@ export async function startLive(): Promise<void> {
       setLive({ status: "ready", since: Date.now() });
       report(err);
     } else {
-      restoreSampleConversations();
+      /* no sample data stands in: the console says Mimi can't be reached and offers Retry */
       setLive({ status: "fallback" });
       notify(err.kind, friendlyMessage(err.kind === "other" ? "unreachable" : err.kind, err.detail));
     }
   }
-  document.addEventListener("visibilitychange", () => {
-    if (!hidden() && getLive().status === "ready") void refresh();
-    else schedule();
-  });
+  if (!watching) {
+    watching = true;
+    document.addEventListener("visibilitychange", () => {
+      if (!hidden() && getLive().status === "ready") void refresh();
+      else schedule();
+    });
+  }
   schedule();
+}
+
+/** Mimi could not be reached on first load: try again (the Retry button). */
+export async function retryLive(): Promise<void> {
+  if (!USES_API || getLive().status !== "fallback") return;
+  started = false;
+  setLive({ status: "connecting", notice: null });
+  await startLive();
 }

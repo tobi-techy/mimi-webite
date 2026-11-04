@@ -7,12 +7,11 @@ import { connectorPermissions, type Connector } from "@/features/console/content
 import { useConnected } from "@/features/console/hooks/use-connected";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { connectorsStore } from "@/features/console/lib/connectors-store";
-import { liveConnect, liveDisconnect } from "@/features/console/api/connectors";
 import { Button } from "@/features/console/components/ui/Button";
 
 const CONNECT_MS = 900;
 
-/** Connect (or disconnect) one connector: what Mimi may do with it, then a fake OAuth hop. */
+/** Sample build: connect (or disconnect) one sample connector. The API build never uses this. */
 export function ConnectorModal({ connector, onClose }: { connector: Connector; onClose: () => void }) {
   const say = useToast();
   const on = useConnected().has(connector.key);
@@ -43,16 +42,13 @@ export function ConnectorModal({ connector, onClose }: { connector: Connector; o
     return () => window.clearTimeout(t);
   }, [hop, connector, onClose, say]);
 
+  /* the sample build only (no API): the API build uses LiveConnectorsView and the real connect flow */
   async function go() {
     if (!on) {
       setBusy(true);
-      /* the API's consent page when it has one; otherwise the demo hop below finishes it */
-      const how = await liveConnect(connector.key);
-      if (how === "error") setBusy(false);
-      else if (how === "local") setHop(true);
+      setHop(true);
       return;
     }
-    if (!(await liveDisconnect(connector.key))) return;
     connectorsStore.set(connector.key, false);
     say(`${connector.name} disconnected`);
     onClose();

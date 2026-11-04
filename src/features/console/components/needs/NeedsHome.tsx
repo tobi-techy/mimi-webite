@@ -9,7 +9,7 @@ import { Icon } from "@/features/console/components/ui/Icon";
 import { ShopAvatar } from "@/features/console/components/ui/ShopAvatar";
 import { approveCard, conversationHref, declineCard, startThread } from "@/features/console/demo/engine";
 import { needItems, type NeedItem } from "@/features/console/demo/needs";
-import { owner } from "@/features/console/demo/seed";
+import { ownerFirstName } from "@/features/console/lib/owner-name";
 import { useLiveLoading } from "@/features/console/api/live-store";
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { useDemo } from "@/features/console/demo/store";
@@ -166,15 +166,15 @@ export function NeedsHome() {
             </>
           ) : loading ? (
             <>
-              <h1 className="mc-nh__hi">{when}, {owner.first}.</h1>
+              <h1 className="mc-nh__hi">{when}{ownerFirstName ? `, ${ownerFirstName}` : ""}.</h1>
               <SkeletonRows count={3} />
             </>
           ) : (
             <>
               <h1 className="mc-nh__hi">
                 {items.length
-                  ? `${when}, ${owner.first}. ${waiting} thing${waiting === 1 ? "" : "s"} need${waiting === 1 ? "s" : ""} you.`
-                  : `All clear, ${owner.first}.${busy.length ? ` ${busy.join(" and ")} ${busy.length > 1 ? "are" : "is"} working.` : ""}`}
+                  ? `${when}${ownerFirstName ? `, ${ownerFirstName}` : ""}. ${waiting} thing${waiting === 1 ? "" : "s"} need${waiting === 1 ? "s" : ""} you.`
+                  : `All clear${ownerFirstName ? `, ${ownerFirstName}` : ""}.${busy.length ? ` ${busy.join(" and ")} ${busy.length > 1 ? "are" : "is"} working.` : ""}`}
               </h1>
               {items.length > 0 && (
                 <section aria-label="Waiting on you">
