@@ -12,6 +12,7 @@ import {
   inboxChatLines,
   inboxMimiLines,
   mapHelperLines,
+  mapInbox,
   mapInboxItem,
   mergeByTime,
   sentence,
@@ -196,6 +197,20 @@ test("the API's own helper lines map by contract id, and Mimi is not one of them
   );
   assert.equal(helperLineIn(lines, "Proof")?.open, 1);
   assert.equal(helperLineIn(lines, "Collector"), undefined);
+});
+
+/* ---------- one read of the list ---------- */
+
+test("one read of the list: the items we can place, plus the API's own helper lines", () => {
+  const read = mapInbox({ items: [raw(), raw({ task_id: "itk_2", to_helper: "nobody" })], helpers: [{ helper: "proof", helper_name: "Proof", open: 1, waiting_on_owner: 1, outcome: "Checking Mama Sola's screenshot" }] }, parseApiTime);
+  assert.deepEqual(read.items.map((i) => i.taskId), ["itk_1"], "an item we cannot place is dropped");
+  assert.deepEqual(read.helpers.map((h) => [h.helper, h.open, h.waitingOnOwner]), [["Proof", 1, 1]]);
+});
+
+test("a list with nothing in it (or no list at all) maps to nothing, never to a made-up row", () => {
+  assert.deepEqual(mapInbox(undefined, parseApiTime), { items: [], helpers: [] });
+  assert.deepEqual(mapInbox({}, parseApiTime), { items: [], helpers: [] });
+  assert.deepEqual(mapInbox({ items: [], helpers: [] }, parseApiTime), { items: [], helpers: [] });
 });
 
 /* ---------- placing lines ---------- */
