@@ -240,9 +240,16 @@ export function SideNav({ settings }: { settings: ReactNode }) {
             <Icon name="refresh-cw" />
           </Link>
         )}
-        <Link href={consoleRoutes.computers} className="mc-ib" aria-label="Computer tasks" title="Computer tasks">
-          <Icon name="monitor" />
-        </Link>
+        {USES_API && (
+          <>
+            <Link href={consoleRoutes.books} className="mc-ib" aria-label="Two books" title="Two books">
+              <Icon name="book-text" />
+            </Link>
+            <Link href={consoleRoutes.routines} className="mc-ib" aria-label="Routines" title="Routines">
+              <Icon name="calendar-clock" />
+            </Link>
+          </>
+        )}
         <div className="mc-rail__faces" role="list" aria-label="Your team" aria-busy={waiting || undefined}>
           {waiting ? <RosterSkeleton rail /> : roster.map((r) => (
             <Link
@@ -333,6 +340,15 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                 label="Returns"
                 on={pathname.startsWith(consoleRoutes.returns)}
               />
+              {/* two books reads the book, so it only exists where the API does */}
+              {USES_API && (
+                <NavRow
+                  href={consoleRoutes.books}
+                  icon="book-text"
+                  label="Two books"
+                  on={pathname.startsWith(consoleRoutes.books)}
+                />
+              )}
               {/* automations and shop lists are sample data: the API build has no routes for them yet */}
               {!USES_API && (
                 <NavRow
@@ -343,12 +359,15 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                   on={pathname.startsWith(consoleRoutes.automations)}
                 />
               )}
-              <NavRow
-                href={consoleRoutes.computers}
-                icon="monitor"
-                label="Computer tasks"
-                on={pathname.startsWith(consoleRoutes.computers)}
-              />
+              {/* routines reads the book too; where the API runs, it takes the automations slot */}
+              {USES_API && (
+                <NavRow
+                  href={consoleRoutes.routines}
+                  icon="calendar-clock"
+                  label="Routines"
+                  on={pathname.startsWith(consoleRoutes.routines)}
+                />
+              )}
             </nav>
             )}
             <div className="mc-side__scroll mc-side__team" data-filter={filter}>

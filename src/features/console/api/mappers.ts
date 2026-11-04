@@ -1,19 +1,25 @@
 /**
  * Pure mappers from MIMI-AGENT API responses to the console's existing demo types, so every
- * screen keeps rendering with the same components. Type imports only (no runtime imports), so
- * `node --test` can run the tests in mappers.test.ts without a bundler.
+ * screen keeps rendering with the same components. Imports stay pure and relative (the content
+ * modules, and nothing that needs a bundler), so `node --test` can run the tests in
+ * mappers.test.ts without one.
  *
  * Rule: never invent a figure. A value the API does not have (sell-through, score, sales this week)
  * is marked through `Shop.live` and the screens show a dash instead.
  */
+import { decidedLine, outcomeOf } from "../content/decisions.ts";
+import type { BooksAgreement, BooksMoney, BooksShop } from "../content/books";
 import type { CreditLine, CreditRecommendation } from "../content/credit";
 import type { Exposure, ExposureShop } from "../content/exposure";
+import type { Routine, RoutineList } from "../content/routines";
 import type { ShopReturn } from "../content/returns";
 import type { LiveShopExtra, Shop, ShopStatus } from "../content/shops";
 import type { ProofGrade } from "../lib/proof";
 import type { AnswerBlock, CardStatus, Conversation, DecisionCard, Folder, HelperName, Message, Reply, TableCell, ThreadState } from "../demo/types";
 import type {
   ApiApproval,
+  ApiBooksAgreement,
+  ApiBooksMoney,
   ApiCard,
   ApiChip,
   ApiCredit,
@@ -23,6 +29,8 @@ import type {
   ApiMessage,
   ApiReturn,
   ApiReturnList,
+  ApiRoutineList,
+  ApiRoutineRun,
   ApiShop,
   ApiShopDetail,
   ApiStep,
@@ -227,7 +235,11 @@ export type OverLimitPayload = { shop_name: string; order_ngn: number; limit_ngn
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 
-/** "Record ₦500,000 from Mama Sola in Zoho Books": after approve, "Recorded in Zoho" with Undo. */
+/**
+ * "Record ₦500,000 from Mama Sola in Zoho Books"; after approve, the shared rule in
+ * content/decisions.ts words the line (a real write names Zoho Books and the invoice, a demo-only
+ * one says so in its own words) with Undo under it.
+ */
 export function zohoCard(p: ZohoPayload, status: CardStatus, opts: { undo?: DecisionCard["undo"]; sentAt?: string } = {}): DecisionCard {
   const amount = Math.round(p.amount_ngn);
   const shop = nairaSign(p.shop_name) || "A shop";
@@ -247,6 +259,7 @@ export function zohoCard(p: ZohoPayload, status: CardStatus, opts: { undo?: Deci
     labels: { primary: "Record in Zoho", secondary: "Not now" },
     status,
     sentAt: opts.sentAt,
+    /* rewritten by the shared rule when the card is mapped: never rendered as written here */
     doneText: "Recorded in Zoho",
     declinedText: "Not recorded",
     undo: opts.undo,
@@ -333,19 +346,45 @@ function wiredCard(a: ApiApproval, status: CardStatus, sentAt: string | undefine
 export function mapApprovalCard(a: ApiApproval, shopName: string, undone: ReadonlySet<string> = new Set()): DecisionCard | null {
   const status = cardStatusOf(a.status);
   if (!status) return null;
-  const wired = wiredCard(a, status, parseApiTime(a.decided_at) !== null ? clockLabel(parseApiTime(a.decided_at)!) : undefined, undone);
-  if (wired) return wired;
+  const decided = parseApiTime(a.decided_at);
+  /* A decided card carries when it was decided and whether the API's write was demo only: the
+     decided list on the needs screen dates the row with that, and says the demo part in words. */
+  const decidedFields: Pick<DecisionCard, "decidedAt" | "demoOnly"> = {
+    ...(decided !== null ? { decidedAt: decided } : {}),
+    ...(a.result?.demo === true ? { demoOnly: true } : {}),
+  };
+  /**
+   * One card, worded by the shared rule (content/decisions.ts), so the in-thread card and the
+   * decided row on Needs you cannot claim different things about the same write.
+   */
+  const worded = (c: DecisionCard): DecisionCard => {
+    const outcome = outcomeOf(c);
+    const line = decidedLine({
+      outcome,
+      kind: c.kind,
+      doneText: c.doneText,
+      declinedText: c.declinedText,
+      undoText: c.undo?.text,
+      demoOnly: c.demoOnly,
+    });
+    if (outcome === "declined") return { ...c, declinedText: line };
+    /* an undone card shows its undo line; a demo-only card shows the demo words in both places, so
+       neither the done line nor the line under an undo can read as a real write */
+    if (outcome === "undone") return { ...c, ...(c.demoOnly ? { doneText: line } : {}), ...(c.undo ? { undo: { ...c.undo, text: line } } : {}) };
+    return { ...c, doneText: line };
+  };
+  const wired = wiredCard(a, status, decided !== null ? clockLabel(decided) : undefined, undone);
+  if (wired) return worded({ ...wired, ...decidedFields });
   const kind = cardKindOf(a.tool || a.intent_kind);
   const amount = payloadAmount(a.payload);
   const helper = helperOf(a.helper);
   const who = shopName || "Your business";
-  const decided = parseApiTime(a.decided_at);
   const rows: DecisionCard["rows"] = [{ label: who, amount, note: helper === "Mimi" ? "Mimi" : helper }];
   if (a.draft?.text) rows.push({ label: "Draft", note: short(hideKeys(a.draft.text), 90) });
   const subject = typeof a.payload?.subject === "string" ? a.payload.subject : "";
   const body = typeof a.payload?.body === "string" ? a.payload.body : a.draft?.text ?? "";
   const to = typeof a.payload?.to === "string" ? a.payload.to : typeof a.payload?.brand === "string" ? a.payload.brand : "";
-  return {
+  return worded({
     kind,
     tier: "Approve",
     shop: shopName || undefined,
@@ -361,7 +400,8 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
     status,
     sentAt: decided !== null ? clockLabel(decided) : undefined,
     doneText: a.draft ? "Approved, Mimi sends it" : "Approved by you",
-  };
+    ...decidedFields,
+  });
 }
 
 const STEP_ICONS: [RegExp, NonNullable<Extract<Message, { kind: "step" }>["icon"]>][] = [
@@ -1116,4 +1156,137 @@ export function friendlyMessage(kind: ErrorKind, detail = ""): string {
     default:
       return "Something went wrong. Please try again in a moment.";
   }
+}
+
+/* ---------- routines (GET /v1/routines) ---------- */
+
+/** A sentence written by code, or "". A bare machine word ("paused", "morning_brief") is not a sentence. */
+function words(v: unknown): string {
+  const t = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+  if (!t) return "";
+  return /^[a-z0-9_:-]+$/.test(t) ? "" : t;
+}
+
+/** A name a person reads: kept as the API wrote it, unless it is a machine id ("shop_001", "zc-shop-1"). */
+function name(v: unknown): string {
+  const t = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+  if (!t) return "";
+  return /^[a-z0-9]+([_:-][a-z0-9]+)+$/.test(t) ? "" : t;
+}
+
+/**
+ * A machine id, kept as sent, or "". Unlike a name it is never rendered, so it is not filtered for
+ * looking like an id: it is one, and the console only uses it to build a link the API asked for.
+ */
+function machineId(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/**
+ * Mimi's routines. The API owns the words (`name`, `schedule`, `paused_reason`, `last_finding`) and
+ * they are rendered as written; the two times become epoch ms for the console to word in Lagos. A
+ * routine with no id or no name is not a row: it could not be paused, and a person could not read it.
+ * The as-of time comes with the rows, so the screen can date them.
+ */
+export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | undefined) => number | null): RoutineList {
+  const out: Routine[] = [];
+  for (const r of l.routines ?? []) {
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    const label = name(r.name);
+    if (!id || !label) continue;
+    out.push({
+      id,
+      name: label,
+      schedule: words(r.schedule),
+      paused: r.paused === true,
+      pausedReason: words(r.paused_reason),
+      /* a time the API sent that cannot be read is 0, never "now" */
+      lastRunAt: parseTime(r.last_run_at) ?? 0,
+      nextRunAt: parseTime(r.next_run_at) ?? 0,
+      finding: words(r.last_finding),
+      /* the one piece of machine data the console keeps: it builds the finding's link, and is never shown */
+      findingShopId: machineId(r.last_finding_shop_id),
+    });
+  }
+  return { asOf: figure(l.as_of), routines: out };
+}
+
+/**
+ * True when the answer carries the list this console reads. A renamed field must not read as "Mimi
+ * runs nothing": an answer we do not recognise is "not available yet", and so is a list where no row
+ * could be read at all, which is a shape we do not know rather than an empty rail.
+ */
+export function routinesAnswerReadable(l: ApiRoutineList, rows: readonly Routine[]): boolean {
+  if (!Array.isArray(l.routines)) return false;
+  return l.routines.length === 0 || rows.length > 0;
+}
+
+/**
+ * The routine's own row inside a run answer, or null when the answer is not one. The console must
+ * never read a refusal, or a shape it does not know, as a run that happened: null here means "not
+ * started", whatever the HTTP status said. The scheduler answers with the row bare, under `routine`,
+ * or as a one-row `routines` list, because it is the same object the list sends.
+ */
+export function readRunRow(body: unknown): Routine | null {
+  const b = (body ?? {}) as ApiRoutineRun;
+  const one = b.routine ?? (Array.isArray(b.routines) ? b.routines[0] : b);
+  if (!one || typeof one !== "object") return null;
+  const rows = mapRoutines({ routines: [one] }, parseApiTime).routines;
+  return rows.length === 1 ? rows[0]! : null;
+}
+
+/* ---------- two books (GET /v1/books/agreement) ---------- */
+
+/** A formatted figure exactly as the API sent it. "" when it sent none: the console builds no figure. */
+const figure = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+/** An integer the API sent, or null. Unreadable and absent are the same: the console renders nothing. */
+const koboOf = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+const booksMoney = (m: ApiBooksMoney | null | undefined): BooksMoney => ({
+  mimi: figure(m?.mimi_outstanding_naira),
+  zoho: figure(m?.zoho_outstanding_naira),
+  difference: figure(m?.difference_naira),
+  mimiKobo: koboOf(m?.mimi_outstanding_kobo),
+  zohoKobo: koboOf(m?.zoho_outstanding_kobo),
+  differenceKobo: koboOf(m?.difference_kobo),
+});
+
+/**
+ * The two books comparison. Every figure is the API's own formatted string; the kobo integers are
+ * carried for the sort and the direction only. `zoho_connected: false` is not an empty book: the
+ * screen says Zoho is not connected and shows nothing, because a nought would be a claim about a
+ * real accounting system.
+ */
+export function mapBooksAgreement(a: ApiBooksAgreement): BooksAgreement {
+  const shops: BooksShop[] = [];
+  for (const s of a.shops ?? []) {
+    const label = name(s.shop_name);
+    if (!label) continue;
+    shops.push({ id: (s.shop_id ?? "").trim() || label, name: label, ...booksMoney(s) });
+  }
+  return {
+    asOf: figure(a.as_of),
+    /* true, false, or null when the API did not say: the console never claims a connection it was not told about */
+    connected: a.zoho_connected === true ? true : a.zoho_connected === false ? false : null,
+    shops,
+    total: booksMoney(a.total),
+    note: words(a.note),
+  };
+}
+
+/** Any figure at all on a money block: a string the console renders, or the kobo behind it. */
+const hasFigure = (m: ApiBooksMoney | null | undefined): boolean =>
+  !!m && [m.mimi_outstanding_naira, m.zoho_outstanding_naira, m.difference_naira, m.mimi_outstanding_kobo, m.zoho_outstanding_kobo, m.difference_kobo].some((v) => v !== null && v !== undefined && v !== "");
+
+/**
+ * True when the answer carries a comparison this console reads: the shops list, a total with a
+ * figure, or the API's own word on whether Zoho Books is connected. A renamed field must not read as
+ * "neither book has a shop yet" or as two books that agree, and a shops list where no row could be
+ * read is a shape we do not know rather than an empty book.
+ */
+export function booksAnswerReadable(a: ApiBooksAgreement, shops: readonly BooksShop[]): boolean {
+  if (Array.isArray(a.shops) && a.shops.length > 0 && shops.length === 0) return false;
+  if (Array.isArray(a.shops)) return true;
+  if (typeof a.zoho_connected === "boolean") return true;
+  return hasFigure(a.total);
 }

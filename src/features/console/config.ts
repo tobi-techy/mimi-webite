@@ -16,6 +16,10 @@ export const consoleRoutes = {
   money: consolePath("/money"),
   /** Returns, and the credit that closes one. */
   returns: consolePath("/returns"),
+  /** Two books: Mimi's outstanding against Zoho Books', shop by shop (reads the book; API build only). */
+  books: consolePath("/books"),
+  /** Routines: the work Mimi does on her own, with a pause (API build only). */
+  routines: consolePath("/routines"),
   /** Shop lists: one message, sent to each shop privately (demo data). */
   lists: consolePath("/lists"),
   automations: consolePath("/automations"),

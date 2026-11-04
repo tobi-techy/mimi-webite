@@ -1,3 +1,5 @@
+/* relative with its extension, like lib/ageing.ts: node --test loads this file without a bundler */
+import { decidedLine, outcomeOf, type DecidedOutcome } from "../content/decisions.ts";
 import type { CardStatus, Conversation, DecisionCard, HelperName } from "@/features/console/demo/types";
 
 /** One item in the Needs you pile: a card somewhere in a thread that waits on the owner. */
@@ -57,3 +59,67 @@ export function needItems(conversations: Conversation[]): NeedItem[] {
 
 export const needCount = (conversations: Conversation[]) =>
   conversations.reduce((n, c) => n + c.messages.filter((m) => m.kind === "card" && m.card.status === "needs").length, 0);
+
+/** One decided card as the needs screen's history row: what it was, how it ended, and when. */
+export type DecidedItem = {
+  key: string;
+  slug: string;
+  messageId: string;
+  helper: HelperName | "Mimi";
+  kind: DecisionCard["kind"];
+  what: string;
+  shop?: string;
+  amount?: number;
+  outcome: DecidedOutcome;
+  /** One line saying how it ended, worded by content/decisions.ts (the card reads the same words). */
+  line: string;
+  /** When the owner decided, epoch ms. 0 when the API sent no time. */
+  decidedAt: number;
+  conv: Conversation;
+};
+
+/**
+ * Decided cards (approved, declined, taken back), newest first. This is the history under the pile:
+ * a decision the API still holds is never left invisible, since the header would then read as if
+ * nothing had happened. A card still waiting on the owner belongs in the pile above, not here.
+ */
+export function decidedItems(conversations: Conversation[]): DecidedItem[] {
+  const out: DecidedItem[] = [];
+  for (const conv of conversations) {
+    for (const m of conv.messages) {
+      if (m.kind !== "card" || m.card.status === "needs" || m.card.status === "sending") continue;
+      const c = m.card;
+      const outcome = outcomeOf(c);
+      out.push({
+        key: `${conv.slug}:${m.id}`,
+        slug: conv.slug,
+        messageId: m.id,
+        helper: m.from === "me" ? conv.helper : m.from,
+        kind: c.kind,
+        what: c.title.split(" · ")[0] ?? c.title,
+        shop: c.shop,
+        amount: amountOf(c),
+        outcome,
+        line: decidedLine({ outcome, kind: c.kind, doneText: c.doneText, declinedText: c.declinedText, undoText: c.undo?.text, demoOnly: c.demoOnly }),
+        decidedAt: c.decidedAt ?? 0,
+        conv,
+      });
+    }
+  }
+  /* newest first; a card with no readable decision time (0) sits at the end */
+  return out.sort((a, b) => b.decidedAt - a.decidedAt);
+}
+
+/**
+ * The needs screen's one line, in words that are true in each of its three states: things waiting on
+ * the owner; nothing waiting but decisions on the record; and nothing at all. "All clear" is said
+ * only in the last one: with a decision the API still holds, it would be a false statement about a
+ * record that exists (found in a live rehearsal, 5 Nov 2026).
+ */
+export function needsHeadline(p: { when: string; owner?: string; waiting: number; decided: number; busy?: readonly string[] }): string {
+  const who = p.owner ? `, ${p.owner}` : "";
+  const working = p.busy?.length ? ` ${p.busy.join(" and ")} ${p.busy.length > 1 ? "are" : "is"} working.` : "";
+  if (p.waiting > 0) return `${p.when}${who}. ${p.waiting} thing${p.waiting === 1 ? "" : "s"} need${p.waiting === 1 ? "s" : ""} you.`;
+  if (p.decided > 0) return `${p.when}${who}. Nothing waiting for you. ${p.decided} decision${p.decided === 1 ? "" : "s"} made.${working}`;
+  return `All clear${who}.${working}`;
+}

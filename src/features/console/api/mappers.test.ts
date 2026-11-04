@@ -18,9 +18,13 @@ import {
   mapApprovalCard,
   mapCreditLines,
   mapCreditRecs,
+  mapBooksAgreement,
+  booksAnswerReadable,
+  routinesAnswerReadable,
   mapExposure,
   mapReturn,
   mapReturns,
+  mapRoutines,
   mapShop,
   mapThread,
   mapThreadSummary,
@@ -30,8 +34,9 @@ import {
   stateOf,
 } from "./mappers.ts";
 import { personOf } from "../content/returns.ts";
+import { booksState } from "../lib/two-books.ts";
 import type { ApiExposure, ApiReturn } from "./types.ts";
-import type { ApiApproval, ApiCredit, ApiShop, ApiShopDetail, ApiThreadDetail, ApiThreadSummary } from "./types.ts";
+import type { ApiApproval, ApiBooksAgreement, ApiCredit, ApiRoutineList, ApiShop, ApiShopDetail, ApiThreadDetail, ApiThreadSummary } from "./types.ts";
 
 const NOW = Date.UTC(2026, 9, 29, 9, 45); // 10:45 WAT
 
@@ -436,13 +441,31 @@ test("zoho_payment approval: a plain Record card, then Recorded in Zoho with Und
   assert.equal(pending.kind, "zoho");
   assert.equal(pending.title, "Record ₦34,950 from Mama Chidi Kiosk in Zoho Books");
   assert.equal(pending.labels?.primary, "Record in Zoho");
+  assert.equal(pending.doneText, "Recorded in Zoho Books against the invoice", "the line it will show once really sent");
   assert.ok(!JSON.stringify(pending).includes("mimi-zp-1"), "no internal reference in the card");
   const done = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: true, demo: true } }, "")!;
   assert.equal(done.status, "sent");
-  assert.equal(done.doneText, "Recorded in Zoho");
   assert.deepEqual(done.undo, { state: "ready" });
+  /* a demo-only write claims no real one: the card says so in its own words, and never "Recorded in Zoho" */
+  assert.equal(done.demoOnly, true);
+  assert.equal(done.doneText, "Demo only: no real record changed.");
+  assert.ok(!JSON.stringify(done).includes("Recorded in Zoho"), JSON.stringify(done.doneText));
+  /* a real write says which book it landed in and what it went against */
+  const real = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "zp_1", undo_available: true } }, "")!;
+  assert.equal(real.doneText, "Recorded in Zoho Books against the invoice");
+  assert.equal(real.demoOnly, undefined);
+  /* the decided card carries whether the API's write was demo only, and when it was decided */
+  assert.equal(done.decidedAt, undefined, "no decided_at, so no time to show");
+  const timed = mapApprovalCard({ ...a, status: "approved", result: { demo: true }, decided_at: "Thu 2026-11-05 09:00 AM WAT (UTC+01:00)" }, "")!;
+  assert.equal(timed.decidedAt, Date.UTC(2026, 10, 5, 8, 0));
+
   const back = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: false, undone_at: "2026-11-03T08:00:00Z" } }, "")!;
   assert.equal(back.undo?.state, "done");
+  assert.equal(back.undo?.text, "Taken back out of Zoho");
+  /* a demo-only write taken back says the demo words too, never that Zoho took anything out */
+  const backDemo = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", demo: true, undo_available: false, undone_at: "2026-11-03T08:00:00Z" } }, "")!;
+  assert.equal(backDemo.undo?.text, "Demo only: no real record changed.");
+  assert.ok(!JSON.stringify(backDemo).includes("Recorded in Zoho"));
 });
 
 test("credit_over_limit approval: reasons, Approve new limit / Keep limit, Undo by change id", () => {
@@ -686,4 +709,202 @@ test("the live buckets: both open ends stay absent, and every naira figure is ca
     "a band the API sends a nought for is a nought of money, not a missing bound",
   );
   assert.equal(e.total.oldest, 49);
+});
+
+/* the shape GET /v1/routines is contracted to answer (lib/routines-contract.ts, 4 Nov 2026) */
+const routinesList: ApiRoutineList = {
+  as_of: "2026-11-04T09:00:00+01:00",
+  routines: [
+    {
+      id: "morning_brief",
+      name: "Morning briefing",
+      schedule: "Every day at 8:00 AM",
+      paused: false,
+      last_run_at: "2026-11-04T08:00:12+01:00",
+      next_run_at: "2026-11-05T08:00:00+01:00",
+      last_finding: "3 shops are past 60 days, ₦1,240,000 between them.",
+      last_finding_shop_id: "shop-001",
+    },
+    {
+      id: "chase_overdue",
+      name: "Chase overdue invoices",
+      schedule: "Every weekday at 9:00 AM",
+      paused: true,
+      paused_reason: "Held while the shop's dispute is sorted out.",
+      last_run_at: "",
+      next_run_at: "2026-11-05T09:00:00+01:00",
+      last_finding: "",
+    },
+  ],
+};
+
+test("routines: the API's own words are carried through, as written", () => {
+  const list = mapRoutines(routinesList, parseApiTime);
+  assert.equal(list.asOf, "2026-11-04T09:00:00+01:00", "the rail dates its rows, so the as-of time is carried");
+  const out = list.routines;
+  assert.equal(out.length, 2);
+  assert.deepEqual(out[0], {
+    id: "morning_brief",
+    name: "Morning briefing",
+    schedule: "Every day at 8:00 AM",
+    paused: false,
+    pausedReason: "",
+    lastRunAt: Date.UTC(2026, 10, 4, 7, 0, 12),
+    nextRunAt: Date.UTC(2026, 10, 5, 7, 0),
+    finding: "3 shops are past 60 days, ₦1,240,000 between them.",
+    findingShopId: "shop-001",
+  });
+  assert.equal(out[1]!.paused, true, "the paused switch is the API's");
+  assert.equal(out[1]!.pausedReason, "Held while the shop's dispute is sorted out.");
+  assert.equal(out[1]!.findingShopId, "", "no shop named is no link, never one guessed from the sentence");
+  assert.equal(out[1]!.lastRunAt, 0, "a routine that has never run has no instant, not a nought as a time");
+});
+
+test("a routine with no id, or a name a person cannot read, is not a row", () => {
+  const list = mapRoutines(
+    {
+      routines: [
+        { id: "", name: "No id" },
+        { id: "x", name: "shop_001" },
+        { id: "ok", name: "Real routine", schedule: "Every hour" },
+      ],
+    },
+    parseApiTime,
+  );
+  const out = list.routines;
+  assert.equal(list.asOf, "", "no as-of time sent is no time, never a made-up one");
+  assert.deepEqual(out.map((r) => r.id), ["ok"], "a row that could not be paused or read is dropped");
+});
+
+test("a machine word is not a schedule or a finding, and a bad time is no time", () => {
+  const [r] = mapRoutines(
+    {
+      routines: [
+        {
+          id: "r",
+          name: "Routine",
+          schedule: "daily",
+          last_finding: "nothing_to_chase",
+          last_run_at: "whenever",
+        },
+      ],
+    },
+    parseApiTime,
+  ).routines;
+  assert.equal(r!.schedule, "", "a bare token is not a sentence, so nothing is shown for it");
+  assert.equal(r!.finding, "", "the same for a finding that is a machine word rather than a sentence");
+  assert.equal(r!.lastRunAt, 0);
+  assert.equal(r!.nextRunAt, 0);
+
+  const [s] = mapRoutines(
+    { routines: [{ id: "s", name: "Routine", schedule: "Every hour", last_finding: "Nothing to chase today." }] },
+    parseApiTime,
+  ).routines;
+  assert.equal(s!.schedule, "Every hour", "a sentence the API wrote is shown as written");
+  assert.equal(s!.finding, "Nothing to chase today.");
+});
+
+/* the shape GET /v1/books/agreement is contracted to answer (lib/two-books-contract.ts, 4 Nov 2026) */
+const booksPayload: ApiBooksAgreement = {
+  as_of: "2026-11-04T09:04:00+01:00",
+  zoho_connected: true,
+  shops: [
+    {
+      shop_id: "shop-001",
+      shop_name: "Mama Sola Provisions",
+      mimi_outstanding_kobo: 349730000,
+      mimi_outstanding_naira: "₦3,497,300",
+      zoho_outstanding_kobo: 340000000,
+      zoho_outstanding_naira: "₦3,400,000",
+      difference_kobo: 9730000,
+      difference_naira: "₦97,300",
+    },
+    {
+      shop_id: "shop-002",
+      shop_name: "Ikeja Stores",
+      mimi_outstanding_kobo: 8000000,
+      mimi_outstanding_naira: "₦80,000",
+      zoho_outstanding_kobo: null,
+      zoho_outstanding_naira: "",
+      difference_kobo: null,
+      difference_naira: "",
+    },
+  ],
+  total: {
+    mimi_outstanding_kobo: 357730000,
+    mimi_outstanding_naira: "₦3,577,300",
+    zoho_outstanding_kobo: 340000000,
+    zoho_outstanding_naira: "₦3,400,000",
+    difference_kobo: 17730000,
+    difference_naira: "₦177,300",
+  },
+  currency: "NGN",
+};
+
+test("two books: every figure is the API's own string, and kobo is carried for the direction", () => {
+  const v = mapBooksAgreement(booksPayload);
+  assert.equal(v.connected, true);
+  assert.equal(v.asOf, "2026-11-04T09:04:00+01:00");
+  assert.deepEqual(v.shops[0], {
+    id: "shop-001",
+    name: "Mama Sola Provisions",
+    mimi: "₦3,497,300",
+    zoho: "₦3,400,000",
+    difference: "₦97,300",
+    mimiKobo: 349730000,
+    zohoKobo: 340000000,
+    differenceKobo: 9730000,
+  });
+  assert.equal(v.total.difference, "₦177,300", "the total difference is the API's figure, not a sum");
+});
+
+test("a shop the other book does not know keeps an empty figure, never a nought", () => {
+  const v = mapBooksAgreement(booksPayload);
+  const ikeja = v.shops[1]!;
+  assert.equal(ikeja.zoho, "");
+  assert.equal(ikeja.difference, "");
+  assert.equal(ikeja.zohoKobo, null, "an absent kobo is absent, so nothing can be computed from it");
+  assert.equal(ikeja.differenceKobo, null);
+  assert.equal(booksState(ikeja).kind, "only");
+});
+
+test("Zoho not connected is a flag, and it stays false rather than reading as agreement", () => {
+  const v = mapBooksAgreement({ as_of: "2026-11-04T09:04:00+01:00", zoho_connected: false });
+  assert.equal(v.connected, false);
+  assert.deepEqual(v.shops, []);
+  assert.equal(v.total.mimi, "");
+  assert.equal(v.total.difference, "");
+});
+
+test("an answer the console does not know reads as not available, never as empty", () => {
+  /* routines */
+  assert.equal(routinesAnswerReadable({}, []), false, "no list in the answer is not an empty rail");
+  assert.equal(routinesAnswerReadable({ routines: [] }, []), true, "an honest empty list is still a list");
+  const renamed = { routines: [{ id: "r", name: "row_1" }] };
+  assert.equal(
+    routinesAnswerReadable(renamed, mapRoutines(renamed, parseApiTime).routines),
+    false,
+    "a list no row could be read from is a shape we do not know, not 'Mimi runs nothing'",
+  );
+  const real = { routines: [{ id: "r", name: "Real routine" }] };
+  assert.equal(routinesAnswerReadable(real, mapRoutines(real, parseApiTime).routines), true);
+
+  /* two books */
+  const unknown = { rows: [] } as unknown as ApiBooksAgreement;
+  assert.equal(booksAnswerReadable(unknown, []), false, "renamed fields are not an empty book");
+  assert.equal(booksAnswerReadable({}, []), false, "an answer with nothing in it is not a comparison");
+  assert.equal(booksAnswerReadable({ shops: [] }, []), true, "an honest empty shops list is a comparison");
+  assert.equal(booksAnswerReadable({ zoho_connected: false }, []), true, "the API's word on the connection is enough");
+  assert.equal(booksAnswerReadable({ total: { mimi_outstanding_naira: "₦1" } }, []), true, "a total with a figure is enough");
+  assert.equal(
+    booksAnswerReadable({ shops: [{ shop_id: "s", shop_name: "shop_1" }] }, []),
+    false,
+    "shops no row could be read from is not two books that agree",
+  );
+});
+
+test("Zoho is only 'not connected' when the API says so", () => {
+  assert.equal(mapBooksAgreement({}).connected, null, "no word on the connection is not a claim that it is off");
+  assert.equal(mapBooksAgreement({ zoho_connected: false }).connected, false);
+  assert.equal(mapBooksAgreement({ zoho_connected: true }).connected, true);
 });

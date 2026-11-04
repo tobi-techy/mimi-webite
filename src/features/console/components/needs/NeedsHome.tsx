@@ -8,12 +8,15 @@ import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { ShopAvatar } from "@/features/console/components/ui/ShopAvatar";
 import { approveCard, conversationHref, declineCard, startThread } from "@/features/console/demo/engine";
-import { needItems, type NeedItem } from "@/features/console/demo/needs";
+import { decidedItems, needItems, needsHeadline, type DecidedItem, type NeedItem } from "@/features/console/demo/needs";
+import { outcomeWords } from "@/features/console/content/decisions";
 import { ownerFirstName } from "@/features/console/lib/owner-name";
-import { useLiveLoading } from "@/features/console/api/live-store";
+import { USES_API } from "@/features/console/api/config";
+import { timeWords } from "@/features/console/lib/routine-times";
+import { useLive, useLiveLoading } from "@/features/console/api/live-store";
 import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { useDemo } from "@/features/console/demo/store";
-import type { HelperName } from "@/features/console/demo/types";
+import type { Conversation, HelperName } from "@/features/console/demo/types";
 import { cx } from "@/lib/cx";
 import { consoleRoutes } from "@/features/console/config";
 
@@ -41,7 +44,7 @@ const part = () => {
 };
 
 /** Opens the helper's conversation on this card. */
-const cardHref = (it: NeedItem) => `${conversationHref(it.conv)}#m-${it.messageId}`;
+const cardHref = (it: { conv: Conversation; messageId: string }) => `${conversationHref(it.conv)}#m-${it.messageId}`;
 
 function Row({ it }: { it: NeedItem }) {
   const sending = it.status === "sending";
@@ -90,6 +93,36 @@ function Row({ it }: { it: NeedItem }) {
   );
 }
 
+/**
+ * A decided card, in the compact list under the pile: the same row language as the pile, with the
+ * outcome in words instead of buttons. The card itself stays where it is (that is where Undo lives),
+ * and this row opens it.
+ */
+function DoneRow({ it, now }: { it: DecidedItem; now: number }) {
+  const when = it.decidedAt > 0 ? timeWords(it.decidedAt, now) : "";
+  return (
+    <li className="mc-nr is-done">
+      <HelperFace name={it.helper} size={32} />
+      <Link className="mc-nr__tx" href={cardHref(it)}>
+        <span className="mc-nr__what">
+          {it.what}
+          {it.amount !== undefined && <b> · {naira(it.amount)}</b>}
+        </span>
+        <small className="mc-nr__why">
+          {it.shop && !/^\d+ shops$|manager|Dufil|Hypo|Peak|Indomie/i.test(it.shop) && <ShopAvatar name={it.shop} size={20} className="mc-nr__shop" />}
+          {[it.shop, it.line].filter(Boolean).join(" · ")}
+        </small>
+      </Link>
+      <div className="mc-nr__act">
+        <span className="mc-nr__st mc-mono">
+          {outcomeWords(it.outcome)}
+          {when ? ` · ${when}` : ""}
+        </span>
+      </div>
+    </li>
+  );
+}
+
 /** /console/needs (⌘K "Needs you"): one calm pile of everything waiting on the owner, and the composer that starts a thread. */
 export function NeedsHome() {
   const router = useRouter();
@@ -120,6 +153,16 @@ export function NeedsHome() {
   const waiting = items.filter((i) => i.status === "needs").length;
   const busy = [...new Set(conversations.filter((c) => c.working).map((c) => c.helper))].slice(0, 2);
   const shown = all ? items : items.slice(0, VISIBLE);
+  /*
+   * The decisions the API still holds (approved, declined, taken back), shown under the pile. In the
+   * sample build these cards are sample data, so the list stays out of it: only the demo build, with
+   * the API answering, has real records to report.
+   */
+  const api = useLive((s) => s.status === "ready");
+  const decided = useMemo(() => (USES_API && api ? decidedItems(conversations) : []), [conversations, api]);
+  /* the decision times are worded once, when the screen opens: they are words, not a running clock */
+  const [now] = useState(() => Date.now());
+  const head = needsHeadline({ when, owner: ownerFirstName ?? undefined, waiting, decided: decided.length, busy });
 
   function go() {
     if (!text.trim()) return;
@@ -171,11 +214,7 @@ export function NeedsHome() {
             </>
           ) : (
             <>
-              <h1 className="mc-nh__hi">
-                {items.length
-                  ? `${when}${ownerFirstName ? `, ${ownerFirstName}` : ""}. ${waiting} thing${waiting === 1 ? "" : "s"} need${waiting === 1 ? "s" : ""} you.`
-                  : `All clear${ownerFirstName ? `, ${ownerFirstName}` : ""}.${busy.length ? ` ${busy.join(" and ")} ${busy.length > 1 ? "are" : "is"} working.` : ""}`}
-              </h1>
+              <h1 className="mc-nh__hi">{head}</h1>
               {items.length > 0 && (
                 <section aria-label="Waiting on you">
                   <ul className="mc-nl">
@@ -189,6 +228,16 @@ export function NeedsHome() {
                       <Icon name="chevron-down" />
                     </button>
                   )}
+                </section>
+              )}
+              {decided.length > 0 && (
+                <section aria-label="Decided">
+                  <p className="mc-nl__hd">Decided</p>
+                  <ul className="mc-nl">
+                    {decided.map((it) => (
+                      <DoneRow key={it.key} it={it} now={now} />
+                    ))}
+                  </ul>
                 </section>
               )}
             </>
