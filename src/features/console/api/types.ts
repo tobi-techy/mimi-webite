@@ -407,7 +407,18 @@ export type ApiReturnList = { returns: ApiReturn[]; total: number };
 
 /* ---------- exposure (GET /v1/credit/exposure) ---------- */
 
-export type ApiExposureBucket = { key: string; label: string; from_days: number; to_days: number; weight_pct: number };
+/**
+ * One ageing band. The API sends `null` for an open end: the current band has no lower bound and
+ * the oldest band has no upper one. It is typed `number | null` so every reader has to say what it
+ * shows when the bound is absent, rather than printing a nought that reads as a range of no days.
+ */
+export type ApiExposureBucket = {
+  key: string;
+  label: string;
+  from_days: number | null;
+  to_days: number | null;
+  weight_pct: number;
+};
 
 export type ApiExposureRow = {
   shop_id?: string;

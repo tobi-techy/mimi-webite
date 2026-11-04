@@ -6,8 +6,10 @@
 export type ExposureBand = {
   key: string;
   label: string;
-  fromDays: number;
-  toDays: number;
+  /** The band's first day, or null when that end is open (the current band has no lower bound). */
+  fromDays: number | null;
+  /** The band's last day, or null when that end is open (the oldest band has no upper bound). */
+  toDays: number | null;
   /** The age weighting this band carries, in percent: an assumption, not money owed. */
   weightPct: number;
 };

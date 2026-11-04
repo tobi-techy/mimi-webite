@@ -13,6 +13,7 @@ import { useBookTotals, useExposure, useShops, useUnreachable } from "@/features
 import type { Exposure } from "@/features/console/content/exposure";
 import type { Shop } from "@/features/console/content/shops";
 import { ageingOf, reasonOf } from "@/features/console/lib/ageing";
+import { bandSubline } from "@/features/console/lib/exposure-bands";
 import { naira, nairaShort } from "@/features/console/lib/format";
 
 const TILES = ["Total at risk", "Past due", "Shops carrying it", "Oldest"] as const;
@@ -90,9 +91,7 @@ function FromApi({ e }: { e: Exposure }) {
               <li key={b.key}>
                 <span className="v2-rows__l">
                   <span>{b.label}</span>
-                  <span className="v2-rows__sub">
-                    {b.fromDays} to {b.toDays} days · weighted at {b.weightPct}%
-                  </span>
+                  <span className="v2-rows__sub">{bandSubline(b)}</span>
                 </span>
                 <span className="v2-rows__r">
                   {money !== null && total.overdue > 0 && <MiniBar percent={(money / total.overdue) * 100} />}
