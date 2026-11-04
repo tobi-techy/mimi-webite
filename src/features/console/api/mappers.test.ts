@@ -446,6 +446,12 @@ test("zoho_payment approval: a plain Record card, then Recorded in Zoho with Und
   assert.equal(done.status, "sent");
   assert.equal(done.doneText, "Recorded in Zoho");
   assert.deepEqual(done.undo, { state: "ready" });
+  /* the decided card carries whether the API's write was demo only, and when it was decided */
+  assert.equal(done.demoOnly, true);
+  assert.equal(done.decidedAt, undefined, "no decided_at, so no time to show");
+  const timed = mapApprovalCard({ ...a, status: "approved", decided_at: "Thu 2026-11-05 09:00 AM WAT (UTC+01:00)" }, "")!;
+  assert.equal(timed.decidedAt, Date.UTC(2026, 10, 5, 8, 0));
+  assert.equal(timed.demoOnly, undefined);
   const back = mapApprovalCard({ ...a, status: "approved", result: { zoho_payment_id: "z", undo_available: false, undone_at: "2026-11-03T08:00:00Z" } }, "")!;
   assert.equal(back.undo?.state, "done");
 });

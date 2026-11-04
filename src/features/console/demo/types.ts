@@ -62,6 +62,16 @@ export type DecisionCard = {
   secondary: "Review" | "Decline";
   status: CardStatus;
   sentAt?: string;
+  /**
+   * When the owner decided it, epoch ms (`decided_at` on the approval). The decided list on the needs
+   * screen words it in Lagos. 0/absent when the API sent no time.
+   */
+  decidedAt?: number;
+  /**
+   * The API said the write was demo only (`result.demo`): nothing outside the demo changed, and the
+   * decided row says so in words rather than repeating a line that reads as a real write.
+   */
+  demoOnly?: boolean;
   /** Text shown once sent ("Sent to 4 shops on WhatsApp"). */
   doneText: string;
   /** Plain reasons under the title (an order over its limit: why Credit suggests a new one). */

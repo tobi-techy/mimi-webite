@@ -338,13 +338,19 @@ function wiredCard(a: ApiApproval, status: CardStatus, sentAt: string | undefine
 export function mapApprovalCard(a: ApiApproval, shopName: string, undone: ReadonlySet<string> = new Set()): DecisionCard | null {
   const status = cardStatusOf(a.status);
   if (!status) return null;
-  const wired = wiredCard(a, status, parseApiTime(a.decided_at) !== null ? clockLabel(parseApiTime(a.decided_at)!) : undefined, undone);
-  if (wired) return wired;
+  const decided = parseApiTime(a.decided_at);
+  /* A decided card carries when it was decided and whether the API's write was demo only: the
+     decided list on the needs screen dates the row with that, and says the demo part in words. */
+  const decidedFields: Pick<DecisionCard, "decidedAt" | "demoOnly"> = {
+    ...(decided !== null ? { decidedAt: decided } : {}),
+    ...(a.result?.demo === true ? { demoOnly: true } : {}),
+  };
+  const wired = wiredCard(a, status, decided !== null ? clockLabel(decided) : undefined, undone);
+  if (wired) return { ...wired, ...decidedFields };
   const kind = cardKindOf(a.tool || a.intent_kind);
   const amount = payloadAmount(a.payload);
   const helper = helperOf(a.helper);
   const who = shopName || "Your business";
-  const decided = parseApiTime(a.decided_at);
   const rows: DecisionCard["rows"] = [{ label: who, amount, note: helper === "Mimi" ? "Mimi" : helper }];
   if (a.draft?.text) rows.push({ label: "Draft", note: short(hideKeys(a.draft.text), 90) });
   const subject = typeof a.payload?.subject === "string" ? a.payload.subject : "";
@@ -366,6 +372,7 @@ export function mapApprovalCard(a: ApiApproval, shopName: string, undone: Readon
     status,
     sentAt: decided !== null ? clockLabel(decided) : undefined,
     doneText: a.draft ? "Approved, Mimi sends it" : "Approved by you",
+    ...decidedFields,
   };
 }
 
