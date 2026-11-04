@@ -83,7 +83,8 @@ function Compared({ v }: { v: BooksAgreement }) {
           {total.kind === "agreed"
             ? "Both books agree, every shop taken together."
             : `All shops together, ${booksWords(total, "Zoho Books")}.`}
-          {v.note ? ` ${v.note}` : ""}
+          {/* the note explains which way a difference points; with nothing apart it only adds words (Rico cut, 4 Nov) */}
+          {v.note && total.kind !== "agreed" ? ` ${v.note}` : ""}
         </p>
       ) : null /* not comparable: the API's note explains a difference that is not shown, so it stays out */}
 

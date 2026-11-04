@@ -72,6 +72,42 @@ const shareOf = (part: number, whole: number) => (whole > 0 && part > 0 ? `${Mat
 /** "of 40 shops", or null before the shop list is read. */
 const ofShops = (n: number) => (n > 0 ? `of ${n} ${n === 1 ? "shop" : "shops"}` : null);
 
+/**
+ * The page's point in one line, facts in ink and connecting words in grey: how much is past due,
+ * across how many shops, and how much of it the five biggest carry. Every figure is the API's own
+ * or a share of figures already on this screen; nothing is invented.
+ */
+function Headline({ overdue, owed, pastDue }: { overdue: number; owed: number; pastDue: readonly number[] }) {
+  const n = pastDue.length;
+  if (overdue <= 0 || n === 0) {
+    return (
+      <p className="x-sub">
+        Nothing is past due. <b>{naira(owed)}</b> is owed, none of it late.
+      </p>
+    );
+  }
+  const top = [...pastDue].sort((a, b) => b - a).slice(0, 5);
+  const share = Math.round((top.reduce((t, v) => t + v, 0) / overdue) * 100);
+  return (
+    <p className="x-sub">
+      <b>{naira(overdue)}</b> is past due across <b>{n} {n === 1 ? "shop" : "shops"}</b>.
+      {n > 5 ? (
+        <>
+          {" "}
+          The top <b>5</b> carry <b>{share}%</b> of it.
+        </>
+      ) : null}
+    </p>
+  );
+}
+
+/** The quiet line under a table: how many rows and how they are sorted, because the sort is part of the answer. */
+const SortedBy = ({ n }: { n: number }) => (
+  <p className="x-tfoot">
+    {n} {n === 1 ? "shop" : "shops"} · sorted by past due, largest first
+  </p>
+);
+
 /** The API's exposure endpoint: its buckets, its ageing, its weighted figure, labelled as such. */
 function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
   const { total } = e;
@@ -82,6 +118,7 @@ function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
 
   return (
     <>
+      <Headline overdue={total.overdue} owed={total.owed} pastDue={rows.filter((s) => s.overdue > 0).map((s) => s.overdue)} />
       <Kpis
         values={[
           naira(total.owed),
@@ -160,6 +197,7 @@ function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
             </tbody>
           </Table>
         )}
+        {rows.length > 0 && <SortedBy n={rows.length} />}
       </div>
 
     </>
@@ -175,6 +213,7 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
 
   return (
     <>
+      <Headline overdue={age.overdue} owed={age.owed} pastDue={debtors.map((s) => s.live?.overdue ?? 0)} />
       <Kpis
         values={[
           naira(age.owed),
@@ -267,6 +306,7 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
             </tbody>
           </Table>
         )}
+        {debtors.length > 0 && <SortedBy n={debtors.length} />}
       </div>
 
     </>
