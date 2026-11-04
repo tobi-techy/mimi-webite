@@ -32,8 +32,8 @@ export function memoryFor(helper: string): MemoryNote[] {
  */
 const rules: Record<string, string[]> = {
   Mimi: ["No messages on Sunday", "Short updates before 9"],
-  Collector: ["Credit cap ₦50k", "No Sunday visits", "WhatsApp only"],
-  Credit: ["Credit cap ₦50k for new shops", "8 on-time weeks before a raise"],
+  Collector: ["Credit cap ₦50,000", "No Sunday visits", "WhatsApp only"],
+  Credit: ["Credit cap ₦50,000 for new shops", "8 on-time weeks before a raise"],
   Order: ["Bright Foods: 30 cartons max"],
   Stock: ["Price changes go to all Yaba shops at once"],
   Brand: ["Coral Lane name on every invoice"],

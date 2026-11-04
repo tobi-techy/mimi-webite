@@ -40,10 +40,17 @@ export const creditRecommendations: readonly CreditRecommendation[] = [
   },
 ];
 
-/* notes follow from the sample book itself (48 shops, ₦4,820,000 outstanding): no invented comparisons */
+/* the tiles are added up from the sample book itself (12 shops in content/shops.ts): no invented figures */
+const sampleOwed = shops.reduce((t, s) => t + s.owed, 0);
+const sampleLate = shops.filter((s) => s.status === "o");
+const sampleOverdue = sampleLate.reduce((t, s) => t + s.owed, 0);
+const sampleLimits = creditLines.reduce((t, l) => t + l.limit, 0);
+const sampleInLines = creditLines.reduce((t, l) => t + l.shop.owed, 0);
+const money = (n: number) => `₦${n.toLocaleString("en-US")}`;
+const pct = (a: number, b: number) => `${Math.round((a / b) * 100)}%`;
 export const creditKpis = [
-  { value: "₦4,820,000", label: "Outstanding", note: "across 48 shops" },
-  { value: "₦1,100,000", label: "Overdue", note: "23% of outstanding" },
-  { value: "92%", label: "Repaid on time" },
-  { value: "38", label: "Shops eligible", note: "of 48 shops" },
+  { value: money(sampleOwed), label: "Outstanding", note: `across ${shops.length} shops` },
+  { value: money(sampleOverdue), label: "Overdue", note: `${pct(sampleOverdue, sampleOwed)} of outstanding` },
+  { value: money(sampleLimits), label: "Credit limits", note: `${pct(sampleInLines, sampleLimits)} in use` },
+  { value: String(shops.length), label: "Shops", note: `${sampleLate.length} overdue` },
 ] as const;

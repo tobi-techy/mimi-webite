@@ -108,7 +108,11 @@ export function useShopsSummary(): string | null {
   /* no summary when there is nothing to summarise: the page says Mimi can't be reached instead */
   if (loading || unreachable) return null;
   /* the sample line is the sample build's only: the API build never prints figures it did not read */
-  if (!USES_API && !shops.some((s) => s.live)) return "48 shops · 41 on WhatsApp · ₦4,820,000 outstanding";
+  if (!USES_API && !shops.some((s) => s.live)) {
+    /* added up from the sample list itself, so the count and the rows always agree */
+    const onWa = shops.filter((s) => s.whatsapp).length;
+    return `${shops.length} shops · ${onWa} on WhatsApp · ${naira(shops.reduce((n, s) => n + s.owed, 0))} outstanding`;
+  }
   const owed = shops.reduce((n, s) => n + s.owed, 0);
   const overdue = shops.filter((s) => (s.live?.overdue ?? 0) > 0).length;
   return `${shops.length} shops · ${overdue} overdue · ${naira(owed)} outstanding`;

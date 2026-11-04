@@ -4,5 +4,6 @@ export const workspace = {
   kind: "Distributor · 14 seats",
   initials: "WG",
   user: { name: "Tobi Omotade", email: "omotadetobiloba@gmail.com", initials: "TO" },
-  shopCount: 48,
+  /* the sample list has 12 shops (content/shops.ts): every count says the same */
+  shopCount: 12,
 } as const;

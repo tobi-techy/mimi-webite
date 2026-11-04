@@ -92,7 +92,7 @@ export function triggerLabel(t: AutoTrigger): string {
   return e.label.replace(/^A /, "");
 }
 
-export function scopeLabel(s: ShopScope, total = 48): string {
+export function scopeLabel(s: ShopScope, total = 12): string {
   if (s.mode === "all") return `All ${total} shops`;
   if (s.mode === "area") return `${s.area ?? "Oshodi"} shops`;
   if (s.mode === "tag") return `Tagged ${s.tag ?? "Late payers"}`;
@@ -106,7 +106,7 @@ export const templates: readonly AutoTemplate[] = [
   {
     id: "monday-chase",
     title: "Monday debt chase",
-    description: "Every Monday, check the bank, then draft polite reminders for every shop over ₦50k. Firm past a week.",
+    description: "Every Monday, check the bank, then draft polite reminders for every shop over ₦50,000. Firm past a week.",
     helper: "Collector",
     channels: ["bank", "whatsapp"],
     trigger: { kind: "schedule", days: ["Mon"], time: "08:00" },

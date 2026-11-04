@@ -43,11 +43,11 @@ type Skill = { cmd: string; text: string };
 const SKILLS: Record<Worker, Skill[]> = {
   Mimi: [
     { cmd: "team", text: "What is everyone working on?" },
-    { cmd: "chase", text: "Chase everyone over ₦50k this week" },
+    { cmd: "chase", text: "Chase everyone over ₦50,000 this week" },
     { cmd: "check", text: "Check Joy's POS on GTBank" },
   ],
   Collector: [
-    { cmd: "chase", text: "Chase everyone over ₦50k this week" },
+    { cmd: "chase", text: "Chase everyone over ₦50,000 this week" },
     { cmd: "who-paid", text: "Who has paid so far?" },
     { cmd: "plan", text: "Show me the plan" },
     { cmd: "routine", text: "Do this every weekday morning" },
@@ -80,7 +80,7 @@ const SKILLS: Record<Worker, Skill[]> = {
  */
 const LIVE_SKILLS: Skill[] = [
   { cmd: "owes", text: "Who owes me the most this week?" },
-  { cmd: "chase", text: "Chase everyone over ₦50k this week" },
+  { cmd: "chase", text: "Chase everyone over ₦50,000 this week" },
   { cmd: "low", text: "Which shops are running low?" },
   { cmd: "credit", text: "Which shops are close to their credit limit?" },
 ];

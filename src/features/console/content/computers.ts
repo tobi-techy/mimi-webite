@@ -81,10 +81,10 @@ export const chatBubbles = [
 ] as const;
 
 export const sheetRows = [
-  { shop: "Ola Stores", cartons: 24, value: "₦648k", day: "Tue" },
-  { shop: "Mama Bisi", cartons: 18, value: "₦486k", day: "Tue" },
-  { shop: "Kola Mart", cartons: 36, value: "₦972k", day: "Wed", active: true },
-  { shop: "Ifeoma Ent.", cartons: 12, value: "₦324k", day: "Wed" },
-  { shop: "Sule & Co", cartons: 30, value: "₦810k", day: "Thu" },
-  { shop: "Joy Provisions", cartons: 20, value: "₦540k", day: "Thu" },
+  { shop: "Ola Stores", cartons: 24, value: "₦648,000", day: "Tue" },
+  { shop: "Mama Bisi", cartons: 18, value: "₦486,000", day: "Tue" },
+  { shop: "Kola Mart", cartons: 36, value: "₦972,000", day: "Wed", active: true },
+  { shop: "Ifeoma Ent.", cartons: 12, value: "₦324,000", day: "Wed" },
+  { shop: "Sule & Co", cartons: 30, value: "₦810,000", day: "Thu" },
+  { shop: "Joy Provisions", cartons: 20, value: "₦540,000", day: "Thu" },
 ] as const;

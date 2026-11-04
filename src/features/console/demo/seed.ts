@@ -157,7 +157,7 @@ const chaseMessages = (): Conversation["messages"] => {
       from: "me",
       at: T(8, 41),
       read: true,
-      text: "Chase everyone over ₦50k this week. Polite, but firm past a week.",
+      text: "Chase everyone over ₦50,000 this week. Polite, but firm past a week.",
       reactions: [{ by: "Collector", r: "like" }],
     },
     { id: id(), kind: "thought", from: "Collector", at: T(8, 41), secs: 6, text: CHASE_THOUGHT },
@@ -198,7 +198,7 @@ const chaseMessages = (): Conversation["messages"] => {
         type: "list",
         items: [
           { icon: "landmark", text: "GTBank statement", meta: "38 credits" },
-          { icon: "book-text", text: "Shop book", meta: "48 shops · 9 owe over ₦50k" },
+          { icon: "book-text", text: "Shop book", meta: "12 shops · 3 overdue" },
           { icon: "message-square", text: "WhatsApp chats", meta: "6 replies this week" },
         ],
       },
@@ -294,7 +294,7 @@ const chaseMessages = (): Conversation["messages"] => {
 
 /** The chase thread's checklist as seeded: everything up to the approval is done. */
 const chasePlan = (): WorkPlan => ({
-  title: "Chase everyone over ₦50k",
+  title: "Chase everyone over ₦50,000",
   items: [
     { label: "Check the bank for payments", state: "done" },
     { label: "Read the shop book", state: "done" },
@@ -342,7 +342,7 @@ function withEvents(c: Conversation): Conversation {
 const liveConversations = (): Conversation[] => [
   {
     slug: "chase-over-50k",
-    title: "Chase everyone over ₦50k this week",
+    title: "Chase everyone over ₦50,000 this week",
     helper: "Collector",
     folder: "Collections",
     code: "COL-14",

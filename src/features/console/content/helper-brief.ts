@@ -37,7 +37,7 @@ export const helperBrief: Record<HelperName, HelperBriefContent> = {
       ],
     },
     rules: [
-      { text: "Soft reminders under ₦50k", tier: "allowed" },
+      { text: "Soft reminders under ₦50,000", tier: "allowed" },
       { text: "Firm tone, held deliveries", tier: "ask" },
       { text: "Move money, change amounts", tier: "never" },
     ],

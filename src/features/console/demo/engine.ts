@@ -709,7 +709,7 @@ export const CHASE_PLAN = [
 
 /** The chase story, with every stage on screen: think, read, match, hand off, retry, draft, gate. */
 async function collect(slug: string, ep: number) {
-  setPlan(slug, "Chase everyone over ₦50k", CHASE_PLAN);
+  setPlan(slug, "Chase everyone over ₦50,000", CHASE_PLAN);
   tick(slug, 0, "run");
   if (!(await think(slug, "Collector", CHASE_THOUGHT, ep))) return;
   if (!(await say(slug, "Collector", "On it. Checking the bank first so we don't chase anyone who already paid.", ep, 700))) return;
@@ -740,7 +740,7 @@ async function collect(slug: string, ep: number) {
         type: "list",
         items: [
           { icon: "landmark", text: "GTBank statement", meta: "38 credits" },
-          { icon: "book-text", text: "Shop book", meta: "48 shops · 9 owe over ₦50k" },
+          { icon: "book-text", text: "Shop book", meta: "12 shops · 3 overdue" },
           { icon: "message-square", text: "WhatsApp chats", meta: "6 replies this week" },
         ],
       },
@@ -1114,7 +1114,7 @@ async function fallback(slug: string, helper: HelperName | "Mimi", ep: number) {
   status(slug, "waiting for your next message", false, "idle");
   if (helper === "Mimi")
     offer(slug, [
-      { label: "Chase everyone over ₦50k", text: "Chase everyone over ₦50k this week", step: "col.start" },
+      { label: "Chase everyone over ₦50,000", text: "Chase everyone over ₦50,000 this week", step: "col.start" },
       { label: "Check a transfer alert", text: "Kola Mart sent a transfer alert. Is it real?", step: "prf.recheck" },
       { label: "Write Hypo's report", text: "Write Hypo's weekly sell-out report", step: "brd.new" },
     ]);
@@ -1599,7 +1599,7 @@ export function sideSend(text: string, quote?: string) {
       if (row >= 0) window.setTimeout(() => alive(ep) && setRowTone("chase-over-50k", card.id, row, "Soft"), 1100);
     }
   } else if (/(late|usually|new)/.test(t)) reply = "New. He paid on time for 11 of the last 12 weeks.";
-  else if (/(owe|total|how much|outstanding)/.test(t)) reply = "Across Lagos mainland, 48 shops owe ₦4.82m. Five are past a week.";
+  else if (/(owe|total|how much|outstanding)/.test(t)) reply = "Across Lagos mainland, 12 shops owe ₦2,751,500. Three are overdue.";
   else if (/(joy)/.test(t)) reply = "Joy pays by POS most weeks. Settlements land in GTB a few hours later.";
   else if (/(kola)/.test(t)) reply = "Kola Mart sent one fake alert this month. I'd keep their orders on hold until cash lands.";
   window.setTimeout(() => {
@@ -1715,7 +1715,7 @@ export function resetDemo() {
 }
 
 export const DEMO_SLUG = "chase-over-50k";
-const STORY_ASK = "Chase everyone over ₦50k this week. Polite, but firm past a week.";
+const STORY_ASK = "Chase everyone over ₦50,000 this week. Polite, but firm past a week.";
 
 /**
  * Empties the story thread so it can be walked from the first message, by chips alone
@@ -1734,10 +1734,10 @@ export function stageStory(playing = false) {
     plan: undefined,
     messages: [
       { id: "story-d", kind: "date", label: `Today ${clock()}` },
-      { id: "story-hi", kind: "text", from: "Collector", at: 0, text: "Morning, Emeka. 6 shops owe you over ₦50k. Want me to start?" },
+      { id: "story-hi", kind: "text", from: "Collector", at: 0, text: "Morning, Emeka. 6 shops owe you over ₦50,000. Want me to start?" },
     ],
     replies: [
-      { label: "Chase everyone over ₦50k", text: STORY_ASK, step: "col.start" },
+      { label: "Chase everyone over ₦50,000", text: STORY_ASK, step: "col.start" },
       { label: "Who owes me the most?", step: "col.start" },
     ],
   }));
