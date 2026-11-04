@@ -559,3 +559,64 @@ export type ApiComputerTaskSummary = {
 
 /** GET /v1/computer/tasks. */
 export type ApiComputerTaskList = { tasks: ApiComputerTaskSummary[] };
+
+/* ---------- routines (GET /v1/routines) ---------- */
+
+/**
+ * One routine: the work Mimi does on her own, and when. The route is not on this server yet, so
+ * every field is read defensively. The API owns the words (`name`, `schedule`, `last_finding`); the
+ * console words the two times itself, in Lagos.
+ */
+export type ApiRoutine = {
+  /** Machine id: the row's key, and what a pause or resume names. Never rendered. */
+  id?: string | null;
+  name?: string | null;
+  /** The schedule in words, written by code: "Every day at 8:00 AM". */
+  schedule?: string | null;
+  paused?: boolean | null;
+  /** Why it is paused, in words. Only shown when the API sends it. */
+  paused_reason?: string | null;
+  /** ISO 8601 with zone, or "" when it has never run. */
+  last_run_at?: string | null;
+  next_run_at?: string | null;
+  /** What it found last time, one line a person reads. "" when it found nothing to say. */
+  last_finding?: string | null;
+};
+
+export type ApiRoutineList = { routines?: ApiRoutine[]; as_of?: string | null };
+
+/** The answer to pausing or resuming one routine: its own new state, in words. */
+export type ApiRoutineChange = { id?: string | null; name?: string | null; paused?: boolean | null; note?: string | null };
+
+/* ---------- two books (GET /v1/books/agreement) ---------- */
+
+/**
+ * One outstanding figure in both books. Money arrives twice, as integer kobo for code and as a
+ * formatted naira string for display: the console renders the string and never a figure it built
+ * itself. `null` is "this book does not know", which is never the same as nought.
+ */
+export type ApiBooksMoney = {
+  mimi_outstanding_kobo?: number | null;
+  mimi_outstanding_naira?: string | null;
+  zoho_outstanding_kobo?: number | null;
+  zoho_outstanding_naira?: string | null;
+  difference_kobo?: number | null;
+  difference_naira?: string | null;
+};
+
+export type ApiBooksRow = ApiBooksMoney & {
+  shop_id?: string | null;
+  shop_name?: string | null;
+  /** Zoho's own contact id for the shop. Machine data: never rendered. */
+  zoho_contact_id?: string | null;
+};
+
+export type ApiBooksAgreement = {
+  as_of?: string | null;
+  /** False when Zoho Books is not connected: the screen says so and shows no figure at all. */
+  zoho_connected?: boolean | null;
+  shops?: ApiBooksRow[];
+  total?: ApiBooksMoney | null;
+  currency?: string | null;
+  note?: string | null;
+};

@@ -6,14 +6,18 @@
  * Rule: never invent a figure. A value the API does not have (sell-through, score, sales this week)
  * is marked through `Shop.live` and the screens show a dash instead.
  */
+import type { BooksAgreement, BooksMoney, BooksShop } from "../content/books";
 import type { CreditLine, CreditRecommendation } from "../content/credit";
 import type { Exposure, ExposureShop } from "../content/exposure";
+import type { Routine } from "../content/routines";
 import type { ShopReturn } from "../content/returns";
 import type { LiveShopExtra, Shop, ShopStatus } from "../content/shops";
 import type { ProofGrade } from "../lib/proof";
 import type { AnswerBlock, CardStatus, Conversation, DecisionCard, Folder, HelperName, Message, Reply, TableCell, ThreadState } from "../demo/types";
 import type {
   ApiApproval,
+  ApiBooksAgreement,
+  ApiBooksMoney,
   ApiCard,
   ApiChip,
   ApiCredit,
@@ -23,6 +27,7 @@ import type {
   ApiMessage,
   ApiReturn,
   ApiReturnList,
+  ApiRoutineList,
   ApiShop,
   ApiShopDetail,
   ApiStep,
@@ -1116,4 +1121,84 @@ export function friendlyMessage(kind: ErrorKind, detail = ""): string {
     default:
       return "Something went wrong. Please try again in a moment.";
   }
+}
+
+/* ---------- routines (GET /v1/routines) ---------- */
+
+/** A sentence written by code, or "". A bare machine word ("paused", "morning_brief") is not a sentence. */
+function words(v: unknown): string {
+  const t = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+  if (!t) return "";
+  return /^[a-z0-9_:-]+$/.test(t) ? "" : t;
+}
+
+/** A name a person reads: kept as the API wrote it, unless it is a machine id ("shop_001", "zc-shop-1"). */
+function name(v: unknown): string {
+  const t = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+  if (!t) return "";
+  return /^[a-z0-9]+([_:-][a-z0-9]+)+$/.test(t) ? "" : t;
+}
+
+/**
+ * Mimi's routines. The API owns the words (`name`, `schedule`, `paused_reason`, `last_finding`) and
+ * they are rendered as written; the two times become epoch ms for the console to word in Lagos. A
+ * routine with no id or no name is not a row: it could not be paused, and a person could not read it.
+ */
+export function mapRoutines(l: ApiRoutineList, parseTime: (s: string | null | undefined) => number | null): Routine[] {
+  const out: Routine[] = [];
+  for (const r of l.routines ?? []) {
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    const label = name(r.name);
+    if (!id || !label) continue;
+    out.push({
+      id,
+      name: label,
+      schedule: words(r.schedule),
+      paused: r.paused === true,
+      pausedReason: words(r.paused_reason),
+      /* a time the API sent that cannot be read is 0, never "now" */
+      lastRunAt: parseTime(r.last_run_at) ?? 0,
+      nextRunAt: parseTime(r.next_run_at) ?? 0,
+      finding: words(r.last_finding),
+    });
+  }
+  return out;
+}
+
+/* ---------- two books (GET /v1/books/agreement) ---------- */
+
+/** A formatted figure exactly as the API sent it. "" when it sent none: the console builds no figure. */
+const figure = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+/** An integer the API sent, or null. Unreadable and absent are the same: the console renders nothing. */
+const koboOf = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+const booksMoney = (m: ApiBooksMoney | null | undefined): BooksMoney => ({
+  mimi: figure(m?.mimi_outstanding_naira),
+  zoho: figure(m?.zoho_outstanding_naira),
+  difference: figure(m?.difference_naira),
+  mimiKobo: koboOf(m?.mimi_outstanding_kobo),
+  zohoKobo: koboOf(m?.zoho_outstanding_kobo),
+  differenceKobo: koboOf(m?.difference_kobo),
+});
+
+/**
+ * The two books comparison. Every figure is the API's own formatted string; the kobo integers are
+ * carried for the sort and the direction only. `zoho_connected: false` is not an empty book: the
+ * screen says Zoho is not connected and shows nothing, because a nought would be a claim about a
+ * real accounting system.
+ */
+export function mapBooksAgreement(a: ApiBooksAgreement): BooksAgreement {
+  const shops: BooksShop[] = [];
+  for (const s of a.shops ?? []) {
+    const label = name(s.shop_name);
+    if (!label) continue;
+    shops.push({ id: (s.shop_id ?? "").trim() || label, name: label, ...booksMoney(s) });
+  }
+  return {
+    asOf: figure(a.as_of),
+    connected: a.zoho_connected === true,
+    shops,
+    total: booksMoney(a.total),
+    note: words(a.note),
+  };
 }
