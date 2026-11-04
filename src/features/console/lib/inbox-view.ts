@@ -152,6 +152,21 @@ export function mapInboxItem(raw: RawInboxItem, parseTime: (s: string | null | u
   };
 }
 
+/* ---------- one read of the list ---------- */
+
+/** One read of GET /v1/inbox: the items the console can place, and the API's own helper lines. */
+export function mapInbox(
+  list: { items?: readonly RawInboxItem[]; helpers?: readonly RawHelperLine[] } | null | undefined,
+  parseTime: (s: string | null | undefined) => number | null,
+): { items: InboxItem[]; helpers: HelperLine[] } {
+  const items: InboxItem[] = [];
+  for (const raw of list?.items ?? []) {
+    const item = mapInboxItem(raw, parseTime);
+    if (item) items.push(item);
+  }
+  return { items, helpers: mapHelperLines(list?.helpers) };
+}
+
 /* ---------- the lines ---------- */
 
 /** The line in the receiving helper's chat: who asked, and the ask in their own words. */

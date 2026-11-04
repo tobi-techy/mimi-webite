@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { USES_API } from "@/features/console/api/config";
+import { useLive } from "@/features/console/api/live-store";
 import { HelperFace } from "@/features/console/components/helpers/HelperFace";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { consoleRoutes } from "@/features/console/config";
@@ -11,6 +12,7 @@ import { conversationHref, toggleAutomation } from "@/features/console/demo/engi
 import { faceStateLabel, rosterRow, type RosterName } from "@/features/console/demo/roster";
 import { helperJobs } from "@/features/console/demo/seed";
 import { useDemo } from "@/features/console/demo/store";
+import { helperLineIn } from "@/features/console/lib/inbox-view";
 import { useToast } from "@/features/console/hooks/use-toast";
 import { sfx } from "@/lib/sound";
 import { cx } from "@/lib/cx";
@@ -30,8 +32,13 @@ export function HelperView({ name }: { name: RosterName }) {
   const computer = useDemo((s) => s.computer);
   const autos = useDemo((s) => s.autos);
   const on = useDemo((s) => s.automations);
+  /* the API's own line for this helper (GET /v1/inbox); null while this server has no route */
+  const helperLines = useLive((s) => s.helperLines);
   const say = useToast();
-  const row = useMemo(() => rosterRow({ conversations, typing, computer }, name), [conversations, typing, computer, name]);
+  const row = useMemo(
+    () => rosterRow({ conversations, typing, computer }, name, Number.POSITIVE_INFINITY, helperLineIn(helperLines, name)),
+    [conversations, typing, computer, name, helperLines],
+  );
   const mine = autos.filter((a) => (name === "Mimi" ? false : a.helper === name));
   const threads = conversations.filter((c) => c.helper === name).slice(0, 6);
   const job = name === "Mimi" ? "Routes your asks to the team" : helperJobs[name];

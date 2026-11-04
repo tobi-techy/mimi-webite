@@ -11,6 +11,7 @@ import { shops as sampleShops, type Shop } from "@/features/console/content/shop
 import { useDemo } from "@/features/console/demo/store";
 import type { Conversation } from "@/features/console/demo/types";
 import { nairaShort } from "@/features/console/lib/format";
+import type { HelperLine, InboxItem } from "@/features/console/lib/inbox-view";
 
 /**
  * One hook per resource. Each returns `loading` (show the skeleton) while the demo build waits for
@@ -107,6 +108,8 @@ export function useShopsSummary(): string | null {
 
 /* stable empty, so screens that copy it into state never loop */
 const NO_RETURNS: readonly ShopReturn[] = [];
+const NO_INBOX: readonly InboxItem[] = [];
+const NO_HELPERS: readonly HelperLine[] = [];
 
 /** The API's own sums from GET /v1/shops: the book's definition of owed and overdue. */
 export function useBookTotals(): { owed: number; overdue: number } | null {
@@ -133,4 +136,18 @@ export function useExposureFailed(): boolean {
 /** Credit exposure from the API, with its own ageing buckets. Null when this server has no route. */
 export function useExposure(): Exposure | null {
   return useLive((s) => s.exposure);
+}
+
+/**
+ * The per-helper inbox. `missing` is true when this server has no /v1/inbox yet, which the console
+ * reads as "not available yet": every chat keeps exactly the lines it had, and no task is invented.
+ * `failed` is a read that went wrong, which is a different thing and is said out loud.
+ */
+export function useInbox(): { items: readonly InboxItem[]; helpers: readonly HelperLine[]; loading: boolean; missing: boolean; failed: boolean } {
+  const status = useLive((s) => s.status);
+  const items = useLive((s) => s.inbox);
+  const helpers = useLive((s) => s.helperLines);
+  const read = useLive((s) => s.ledger.inbox);
+  if (status === "connecting") return { items: NO_INBOX, helpers: NO_HELPERS, loading: true, missing: false, failed: false };
+  return { items: items ?? NO_INBOX, helpers: helpers ?? NO_HELPERS, loading: false, missing: read === "missing", failed: read === "error" };
 }
