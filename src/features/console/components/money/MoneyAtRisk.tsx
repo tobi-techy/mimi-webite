@@ -124,20 +124,21 @@ function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
         {rows.length === 0 ? (
           <EmptyState>No shop owes anything right now</EmptyState>
         ) : (
-          <Table label="Money at risk">
+          <Table label="Money at risk" className="x-dt--phone-fit">
             <thead>
               <tr>
                 <th scope="col">Shop</th>
                 <th scope="col" className="r">
                   Outstanding
                 </th>
-                <th scope="col" className="r">
+                {/* phones keep shop and amount only, so the table never scrolls sideways */}
+                <th scope="col" className="r mc-hide-phone">
                   Past due
                 </th>
-                <th scope="col" className="r">
+                <th scope="col" className="r mc-hide-phone">
                   Oldest
                 </th>
-                <th scope="col">Why it sits there</th>
+                <th scope="col" className="mc-hide-phone">Why it sits there</th>
               </tr>
             </thead>
             <tbody>
@@ -149,9 +150,9 @@ function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
                     </Link>
                   </td>
                   <td className="r x-ink">{naira(s.owed)}</td>
-                  <td className="r x-ink">{naira(s.overdue)}</td>
-                  <td className="r x-num">{s.oldest > 0 ? `${s.oldest} d` : "Today"}</td>
-                  <td className="x-mu">
+                  <td className="r x-ink mc-hide-phone">{naira(s.overdue)}</td>
+                  <td className="r x-num mc-hide-phone">{s.oldest > 0 ? `${s.oldest} d` : "Today"}</td>
+                  <td className="x-mu mc-hide-phone">
                     {s.openInvoices} open {s.openInvoices === 1 ? "invoice" : "invoices"}
                   </td>
                 </tr>
@@ -229,20 +230,21 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
         {debtors.length === 0 ? (
           <EmptyState>No shop is past its due date right now</EmptyState>
         ) : (
-          <Table label="Money at risk">
+          <Table label="Money at risk" className="x-dt--phone-fit">
             <thead>
               <tr>
                 <th scope="col">Shop</th>
                 <th scope="col" className="r">
                   Outstanding
                 </th>
-                <th scope="col" className="r">
+                {/* phones keep shop and amount only, so the table never scrolls sideways */}
+                <th scope="col" className="r mc-hide-phone">
                   Past due
                 </th>
-                <th scope="col" className="r">
+                <th scope="col" className="r mc-hide-phone">
                   Oldest
                 </th>
-                <th scope="col">Why it sits there</th>
+                <th scope="col" className="mc-hide-phone">Why it sits there</th>
               </tr>
             </thead>
             <tbody>
@@ -256,9 +258,9 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
                       </Link>
                     </td>
                     <td className="r x-ink">{naira(s.owed)}</td>
-                    <td className="r x-ink">{naira(s.live?.overdue ?? 0)}</td>
-                    <td className="r x-num">{days > 0 ? `${days} d` : "Today"}</td>
-                    <td className="x-mu">{reasonOf(s)}</td>
+                    <td className="r x-ink mc-hide-phone">{naira(s.live?.overdue ?? 0)}</td>
+                    <td className="r x-num mc-hide-phone">{days > 0 ? `${days} d` : "Today"}</td>
+                    <td className="x-mu mc-hide-phone">{reasonOf(s)}</td>
                   </tr>
                 );
               })}

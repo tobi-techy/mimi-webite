@@ -74,6 +74,8 @@
 }
 .mc-app .c-table .x-dt { min-width: 880px; }
 .mc-app .c-table .x-dt.x-dt--fit { min-width: 0; }
+/* phones: a table whose secondary columns hide (mc-hide-phone) fits the screen, no sideways scroll */
+@media (max-width: 899px) { .mc-app .c-table .x-dt.x-dt--phone-fit { min-width: 0; } }
 .mc-app .c-table .x-dt th {
   height: 40px;
   padding: 0 12px;

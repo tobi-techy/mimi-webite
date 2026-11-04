@@ -126,6 +126,8 @@
   .mc-app .mc-side .mc-rail .mc-face { margin: 0; }
   .mc-app .mc-side .mc-rail__faces { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 16px; }
   .mc-app .mc-side .mc-rail .mc-pin.is-on { background: var(--f-lift); }
+  /* the selected page's icon gets the same soft pill as the selected row */
+  .mc-app .mc-side .mc-rail > .mc-ib.is-on { background: var(--f-lift); color: var(--f-text); }
 }
 
 /* ---------- phones: the sidebar is the home list; same grid, 16px sides, 40px touch rows ---------- */

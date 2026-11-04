@@ -140,6 +140,16 @@ const FILTERS: { key: SideFilter; label: string }[] = [
   { key: "lists", label: "Lists" },
 ];
 
+/** A collapsed-rail icon: the selected page gets the same soft pill as the selected row, plus aria-current. */
+function RailLink({ href, label, icon, pathname }: { href: string; label: string; icon: IconName; pathname: string }) {
+  const on = pathname.startsWith(href);
+  return (
+    <Link href={href} className={cx("mc-ib", on && "is-on")} aria-label={label} title={label} aria-current={on ? "page" : undefined}>
+      <Icon name={icon} />
+    </Link>
+  );
+}
+
 /**
  * Sidebar: workspace switcher, search, Shops, Automations, then the roster (Mimi and six helpers,
  * one conversation each), the owner. Nothing waiting on the owner needs a row of its own: each
@@ -182,33 +192,19 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <button className="mc-ib" type="button" aria-label="Search (⌘K)" onClick={openPalette}>
           <Icon name="search" />
         </button>
-        <Link href={consoleRoutes.shops} className="mc-ib" aria-label="Shops" title="Shops">
-          <Icon name="store" />
-        </Link>
-        <Link href={consoleRoutes.credit} className="mc-ib" aria-label="Credit" title="Credit">
-          <Icon name="landmark" />
-        </Link>
+        <RailLink href={consoleRoutes.shops} label="Shops" icon="store" pathname={pathname} />
+        <RailLink href={consoleRoutes.credit} label="Credit" icon="landmark" pathname={pathname} />
         {USES_API && (
-          <Link href={consoleRoutes.money} className="mc-ib" aria-label="Money at risk" title="Money at risk">
-            <Icon name="gauge" />
-          </Link>
+          <RailLink href={consoleRoutes.money} label="Money at risk" icon="gauge" pathname={pathname} />
         )}
-        <Link href={consoleRoutes.returns} className="mc-ib" aria-label="Returns" title="Returns">
-          <Icon name="package" />
-        </Link>
+        <RailLink href={consoleRoutes.returns} label="Returns" icon="package" pathname={pathname} />
         {!USES_API && (
-          <Link href={consoleRoutes.automations} className="mc-ib" aria-label="Automations" title="Automations">
-            <Icon name="refresh-cw" />
-          </Link>
+          <RailLink href={consoleRoutes.automations} label="Automations" icon="refresh-cw" pathname={pathname} />
         )}
         {USES_API && (
           <>
-            <Link href={consoleRoutes.books} className="mc-ib" aria-label="Two books" title="Two books">
-              <Icon name="book-text" />
-            </Link>
-            <Link href={consoleRoutes.routines} className="mc-ib" aria-label="Routines" title="Routines">
-              <Icon name="calendar-clock" />
-            </Link>
+            <RailLink href={consoleRoutes.books} label="Two books" icon="book-text" pathname={pathname} />
+            <RailLink href={consoleRoutes.routines} label="Routines" icon="calendar-clock" pathname={pathname} />
           </>
         )}
         <div className="mc-rail__faces" role="list" aria-label="Your team" aria-busy={waiting || undefined}>
