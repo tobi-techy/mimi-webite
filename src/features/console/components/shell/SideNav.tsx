@@ -250,9 +250,6 @@ export function SideNav({ settings }: { settings: ReactNode }) {
             </Link>
           </>
         )}
-        <Link href={consoleRoutes.computers} className="mc-ib" aria-label="Computer tasks" title="Computer tasks">
-          <Icon name="monitor" />
-        </Link>
         <div className="mc-rail__faces" role="list" aria-label="Your team" aria-busy={waiting || undefined}>
           {waiting ? <RosterSkeleton rail /> : roster.map((r) => (
             <Link
@@ -371,12 +368,6 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                   on={pathname.startsWith(consoleRoutes.routines)}
                 />
               )}
-              <NavRow
-                href={consoleRoutes.computers}
-                icon="monitor"
-                label="Computer tasks"
-                on={pathname.startsWith(consoleRoutes.computers)}
-              />
             </nav>
             )}
             <div className="mc-side__scroll mc-side__team" data-filter={filter}>
