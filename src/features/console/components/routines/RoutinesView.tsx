@@ -10,10 +10,9 @@ import { Button } from "@/features/console/components/ui/Button";
 import { EmptyState } from "@/features/console/components/ui/EmptyState";
 import { Icon } from "@/features/console/components/ui/Icon";
 import { Note } from "@/features/console/components/ui/Note";
-import { Pill } from "@/features/console/components/ui/Pill";
 import { shopHref } from "@/features/console/config";
 import { routineAction, routineLook, type Routine } from "@/features/console/content/routines";
-import { lastFindingWords, lastRunWords } from "@/features/console/lib/routine-times";
+import { lastFindingWords, lastRunWords, nextTimeWords, timeWords } from "@/features/console/lib/routine-times";
 
 /**
  * Routines: the work Mimi does on her own, one row each. The API owns the name, the schedule, the
@@ -82,6 +81,7 @@ export function RoutinesView() {
 
   return (
     <>
+      <RoutinesHeadline routines={routines} now={now} />
       <div className="x-grp">
         <div className="x-gh">
           <Icon name="calendar-clock" />
@@ -133,7 +133,8 @@ export function RoutinesView() {
                           Run now
                         </Button>
                       )}
-                      <Pill tone={look.tone}>{look.label}</Pill>
+                      {/* grey words: running on schedule is the normal state, not a status to colour */}
+                      <span className="rt-state">{look.label}</span>
                       <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => void change(r)}>
                         {routineAction(r)}
                       </Button>
@@ -146,6 +147,38 @@ export function RoutinesView() {
         </ul>
       </div>
     </>
+  );
+}
+
+/**
+ * The page's point in one line, from the API's own fields: how many routines run, whether any has
+ * run yet (or when the last one did), and which runs next.
+ */
+function RoutinesHeadline({ routines, now }: { routines: readonly Routine[]; now: number }) {
+  const n = routines.length;
+  const running = routines.filter((r) => !r.paused);
+  const ran = routines.filter((r) => r.lastRunAt > 0).sort((a, b) => b.lastRunAt - a.lastRunAt);
+  const next = running.filter((r) => r.nextRunAt > 0).sort((a, b) => a.nextRunAt - b.nextRunAt)[0];
+  return (
+    <p className="x-sub">
+      <b>
+        {running.length === n ? (n === 1 ? "1 routine" : `${n} routines`) : `${running.length} of ${n} routines`}
+      </b>{" "}
+      {running.length === 1 ? "runs" : "run"} on {running.length === 1 ? "its" : "their"} own.{" "}
+      {ran.length === 0 ? (
+        <>{n === 1 ? "It has not" : n === 2 ? "Neither has" : "None has"} run yet.</>
+      ) : (
+        <>
+          Last run <b>{timeWords(ran[0]!.lastRunAt, now)}</b>.
+        </>
+      )}
+      {next ? (
+        <>
+          {" "}
+          Next is <b>{next.name}</b>, {nextTimeWords(next.nextRunAt, now)}.
+        </>
+      ) : null}
+    </p>
   );
 }
 

@@ -53,7 +53,8 @@ export function ReturnsView() {
         </Note>
       </>
     );
-  if (returns.length === 0) return <EmptyState>No returns yet</EmptyState>;
+  /* nothing came back: one plain line under the title, no box (pass 4) */
+  if (returns.length === 0) return <p className="x-sub">No shop has sent anything back yet.</p>;
 
   const rows = [...returns].sort(
     (a, b) => Number(isOpenReturn(b)) - Number(isOpenReturn(a)) || b.updatedAt.localeCompare(a.updatedAt),

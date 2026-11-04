@@ -11,7 +11,7 @@ import { Note } from "@/features/console/components/ui/Note";
 import { Table } from "@/features/console/components/ui/Table";
 import { consoleRoutes, shopHref } from "@/features/console/config";
 import type { BooksAgreement } from "@/features/console/content/books";
-import { booksState, booksWhole, booksWords, orderedShops, shopSectionWords, summaryWords } from "@/features/console/lib/two-books";
+import { apartShops, booksState, booksWhole, booksWords, orderedShops, shopSectionWords, summaryWords } from "@/features/console/lib/two-books";
 
 /**
  * Two books: what Mimi's book says Coral Lane is owed, against what Zoho Books reports, shop by shop
@@ -30,12 +30,21 @@ import { booksState, booksWhole, booksWords, orderedShops, shopSectionWords, sum
 export function BooksView() {
   const { agreed, loading, missing, failed } = useBooksAgreement();
 
+  /* the topic line stands in until there is a comparison to state; Compared opens on its point instead */
+  const topic = <p className="x-sub">Mimi&apos;s book against Zoho Books.</p>;
   if (loading) return <SkeletonRows count={5} />;
-  if (missing) return <NotYet />;
+  if (missing)
+    return (
+      <>
+        {topic}
+        <NotYet />
+      </>
+    );
   /* a read that failed says so, and is not the same as "not connected" */
   if (failed)
     return (
       <>
+        {topic}
         <EmptyState>Mimi couldn&apos;t read both books just now.</EmptyState>
         <Note>
           <Button size="sm" variant="ghost" onClick={() => void refresh(true)}>
@@ -45,8 +54,20 @@ export function BooksView() {
       </>
     );
   /* nothing readable: the honest note, never an empty comparison that would read as agreement */
-  if (!agreed) return <NotYet />;
-  if (agreed.connected === false) return <NotConnected />;
+  if (!agreed)
+    return (
+      <>
+        {topic}
+        <NotYet />
+      </>
+    );
+  if (agreed.connected === false)
+    return (
+      <>
+        {topic}
+        <NotConnected />
+      </>
+    );
   return <Compared v={agreed} />;
 }
 
@@ -58,11 +79,35 @@ function Compared({ v }: { v: BooksAgreement }) {
   const whole = booksWhole(v);
   const summary = summaryWords(v);
   const section = shopSectionWords(v);
+  const apart = apartShops(v).length;
+  const n = v.shops.length;
+  const allAgree = whole.kind === "whole" && total.kind === "agreed" && apart === 0;
 
   return (
     <>
-      {/* copy cut (4 Nov): the "Read today at … in Lagos time" line went; the figures carry the point */}
-      {summary && <p className="x-sub">{summary}</p>}
+      {/* the point first, facts in ink: the books agree on the API's own total, or how many shops differ */}
+      {allAgree ? (
+        <p className="x-sub">
+          Both books agree on <b>{v.total.mimi}</b> across <b>{n === 1 ? "1 shop" : `${n} shops`}</b>.
+        </p>
+      ) : whole.kind === "whole" && apart > 0 ? (
+        <p className="x-sub">
+          <b>
+            {apart} of {n} shops
+          </b>{" "}
+          differ.
+          {total.kind === "apart" && total.amount ? (
+            <>
+              {" "}
+              All together the books are <b>{total.amount}</b> apart.
+            </>
+          ) : null}
+        </p>
+      ) : summary ? (
+        <p className="x-sub">{summary}</p>
+      ) : (
+        <p className="x-sub">Mimi&apos;s book against Zoho Books.</p>
+      )}
 
       <div className="x-kpis">
         <Figure value={v.total.mimi} what="Mimi's book" />
@@ -78,7 +123,7 @@ function Compared({ v }: { v: BooksAgreement }) {
         )}
       </div>
 
-      {whole.kind === "whole" ? (
+      {whole.kind === "whole" && !allAgree ? (
         <p className="x-sub">
           {total.kind === "agreed"
             ? "Both books agree, every shop taken together."
@@ -97,17 +142,18 @@ function Compared({ v }: { v: BooksAgreement }) {
         {shops.length === 0 ? (
           <EmptyState>Neither book has a shop yet</EmptyState>
         ) : (
-          <Table label="Two books">
+          <Table label="Two books" className="x-dt--phone-fit">
             <thead>
               <tr>
                 <th scope="col">Shop</th>
-                <th scope="col" className="r">
+                {/* phones: one figure when both agree, the verdict when they do not; never a sideways scroll */}
+                <th scope="col" className={allAgree ? "r" : "r mc-hide-phone"}>
                   Mimi&apos;s book
                 </th>
-                <th scope="col" className="r">
+                <th scope="col" className="r mc-hide-phone">
                   Zoho Books
                 </th>
-                <th scope="col">Where they stand</th>
+                {!allAgree && <th scope="col">Where they stand</th>}
               </tr>
             </thead>
             <tbody>
@@ -120,22 +166,31 @@ function Compared({ v }: { v: BooksAgreement }) {
                         {s.name}
                       </Link>
                     </td>
-                    <td className="r x-ink">{s.mimi || <span className="x-mu">No figure</span>}</td>
-                    <td className="r x-ink">{s.zoho || <span className="x-mu">No figure</span>}</td>
-                    <td className={state.kind === "agreed" ? "x-mu" : "x-ink"}>{booksWords(state, "Zoho Books")}</td>
+                    <td className={allAgree ? "r x-ink" : "r x-ink mc-hide-phone"}>{s.mimi || <span className="x-mu">No figure</span>}</td>
+                    <td className="r x-ink mc-hide-phone">{s.zoho || <span className="x-mu">No figure</span>}</td>
+                    {!allAgree && (
+                      <td className={state.kind === "agreed" ? "x-mu" : "x-ink"}>{booksWords(state, "Zoho Books")}</td>
+                    )}
                   </tr>
                 );
               })}
             </tbody>
           </Table>
         )}
+        {shops.length > 0 && (
+          <p className="x-tfoot">
+            {shops.length} {shops.length === 1 ? "shop" : "shops"} · {allAgree ? "largest first" : "shops that differ first, then largest"}
+          </p>
+        )}
       </div>
 
+      {!allAgree && (
       <p className="x-sub">
         Mimi&apos;s book is what her own records say each shop owes. Zoho Books is what the accounting
         system reports. Where the two disagree, the difference is the API&apos;s own figure, and the
         shop is worth a look before anything is promised.
       </p>
+      )}
     </>
   );
 }
