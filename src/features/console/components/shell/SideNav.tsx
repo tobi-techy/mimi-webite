@@ -193,7 +193,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
           <Icon name="search" />
         </button>
         <RailLink href={consoleRoutes.shops} label="Shops" icon="store" pathname={pathname} />
-        <RailLink href={consoleRoutes.credit} label="Credit" icon="landmark" pathname={pathname} />
+        <RailLink href={consoleRoutes.credit} label="Credit limits" icon="landmark" pathname={pathname} />
         {USES_API && (
           <RailLink href={consoleRoutes.money} label="Money at risk" icon="gauge" pathname={pathname} />
         )}
@@ -281,7 +281,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
                 count={shopCount}
                 on={pathname.startsWith(consoleRoutes.shops)}
               />
-              <NavRow href={consoleRoutes.credit} icon="landmark" label="Credit" on={pathname.startsWith(consoleRoutes.credit)} />
+              <NavRow href={consoleRoutes.credit} icon="landmark" label="Credit limits" on={pathname.startsWith(consoleRoutes.credit)} />
               {/* money at risk reads the book, so it only exists where the API does */}
               {USES_API && (
                 <NavRow
