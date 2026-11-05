@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 type Bar = { label: string; value: number; caption: string; title: string };
 
 const W = 400;
@@ -22,7 +24,7 @@ export function BarChart({ bars, label }: { bars: readonly Bar[]; label: string 
         const cx = PAD.left + slot * i + slot / 2;
         const y = PAD.top + plotH - h;
         return (
-          <g key={b.label} className="x-pt">
+          <g key={b.label} className="x-pt" style={{ "--i": i } as CSSProperties}>
             <title>{b.title}</title>
             <path
               className="x-s1"

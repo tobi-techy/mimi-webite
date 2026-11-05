@@ -1,0 +1,92 @@
+/*
+ * 5 Nov 2026 pass (Tobi): cleaner tables and number cards, shop marks, smoother motion.
+ * Loaded last. Tables and KPI strips sit in one raised card with a tinted header band;
+ * motion uses one soft ease-out, short distances, small staggers, and respects reduced motion.
+ */
+.mc-app {
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --raise: color-mix(in srgb, var(--ink) 2.5%, transparent);
+  --band: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+/* ---------- shop marks ---------- */
+.c-mark { display: inline-flex; flex: none; width: var(--s); height: var(--s); border-radius: 28%; overflow: hidden;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
+.c-mark svg { display: block; width: 100%; height: 100%; }
+.mc-app .c-shop.c-mark { border-radius: 28%; }
+.c-identity--shop { gap: 12px; }
+.c-identity--shop .c-identity__name { font-weight: 500; }
+
+/* ---------- tables: one raised card, tinted mono header band ---------- */
+.mc-app .c-table,
+.mc-app .c-table.c-table--bare {
+  margin-inline: 0;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  background: var(--raise);
+}
+.mc-app .c-table .x-dt th {
+  height: 36px; padding: 0 16px;
+  font: 500 11px/1 var(--font-geist-mono), ui-monospace, monospace !important;
+  text-transform: uppercase !important; letter-spacing: 0.05em !important;
+  color: var(--muted); background: var(--band);
+  border-bottom: 1px solid var(--hair);
+}
+.mc-app .c-table .x-dt td { height: 60px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.mc-app .c-table .x-dt :is(th, td):first-child { padding-left: 20px; }
+.mc-app .c-table .x-dt :is(th, td):last-child { padding-right: 20px; }
+.mc-app .c-table .x-dt tbody tr:last-child td { border-bottom: 0; }
+.mc-app .c-table .x-dt tbody tr { transition: background-color 0.2s var(--ease-soft); }
+.mc-app .c-table .x-dt tbody tr:hover { background: var(--band); }
+.mc-app .c-table .x-dt th.x-st-shop { width: 34%; }
+
+.x-owes { font-size: 14px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.x-use { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 4px;
+  font: 11px/1 var(--font-geist-mono), monospace; color: var(--muted); white-space: nowrap; }
+.x-use__bar { width: 64px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 10%, transparent); overflow: hidden; }
+.x-use__bar i { display: block; height: 100%; width: var(--w); border-radius: 2px; background: var(--soft);
+  transform-origin: left; animation: x-grow-x 0.9s var(--ease-soft) both; animation-delay: calc(var(--i, 0) * 30ms + 150ms); }
+.x-use__bar.is-hot i { background: var(--color-signal-orange); }
+.x-late { color: var(--soft); white-space: nowrap; }
+.x-late.is-hot { color: var(--color-signal-orange); }
+.x-open { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 7px;
+  border: 1px solid var(--hair); font-size: 13px; color: var(--ink);
+  transition: background-color 0.2s var(--ease-soft), border-color 0.2s var(--ease-soft); }
+.mc-app .c-table .x-dt tbody tr:hover .x-open { background: var(--band); border-color: color-mix(in srgb, var(--ink) 22%, transparent); }
+.mc-app .x-tfoot { padding: 0 4px; }
+
+/* ---------- number cards: one raised strip, label on top, big tabular figure, note below ---------- */
+.mc-app .x-kpis { border-radius: 12px; background: var(--raise); }
+.mc-app .x-kpis > .x-kpi,
+.mc-app .x-kpis > .x-kpi:first-child,
+html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi {
+  position: relative; border-left: 0; padding: 18px 20px 16px; gap: 0;
+  animation: x-rise 0.6s var(--ease-soft) both;
+}
+.mc-app .x-kpis > .x-kpi + .x-kpi::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 1px; background: var(--hair); }
+.mc-app .x-kpis > .x-kpi:nth-child(2) { animation-delay: 60ms; }
+.mc-app .x-kpis > .x-kpi:nth-child(3) { animation-delay: 120ms; }
+.mc-app .x-kpis > .x-kpi:nth-child(4) { animation-delay: 180ms; }
+.mc-app .x-kpi > span { font-size: 13px; color: var(--muted); }
+.mc-app .x-kpi > b { margin: 12px 0 0; font-size: 30px; line-height: 38px; font-weight: 500; letter-spacing: -0.02em; }
+.mc-app .x-kpi > small { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--hair); }
+
+/* ---------- motion ---------- */
+@keyframes x-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes x-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes x-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes x-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+.mc-app .x-row-in { animation: x-rise 0.5s var(--ease-soft) both; animation-delay: calc(var(--i, 0) * 28ms); }
+/* chart marks grow from their baseline, one after another */
+.mc-app .x-chart .x-pt path, .mc-app .x-chart .x-s1 { transform-box: fill-box; transform-origin: bottom; animation: x-grow-y 0.8s var(--ease-soft) both; }
+.mc-app .x-chart .x-pt path { animation-delay: calc(var(--i, 0) * 50ms + 100ms); }
+.mc-app .x-chart .x-pt text { animation: x-fade 0.5s var(--ease-soft) both 0.5s; }
+.mc-app .x-mb i { transform-origin: left; animation: x-grow-x 0.9s var(--ease-soft) both 0.15s; }
+
+/* soften every existing transition in the console to one ease */
+.mc-app :is(button, a, .x-seg, .c-seg, .x-pill, input) { transition-timing-function: var(--ease-soft) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-app *, .mc-app *::before { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}
