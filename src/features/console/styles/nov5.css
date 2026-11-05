@@ -90,3 +90,52 @@ html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi {
 @media (prefers-reduced-motion: reduce) {
   .mc-app *, .mc-app *::before { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
 }
+
+/* ---------- 5 Nov pass 2: roomier table, charts over the board ---------- */
+.mc-app .c-table .x-dt th { height: 44px; padding: 0 20px; }
+.mc-app .c-table .x-dt td { height: 72px; padding: 14px 20px; }
+.mc-app .c-table .x-dt :is(th, td):first-child { padding-left: 24px; }
+.mc-app .c-table .x-dt :is(th, td):last-child { padding-right: 24px; }
+.c-identity--shop { gap: 14px; }
+.c-identity--shop .c-identity__sub { margin-top: 2px; }
+.mc-app .x-ltools { margin: 32px 0 16px; }
+.c-mark { border-radius: 30%; }
+
+.x-shcharts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+@media (max-width: 899px) { .x-shcharts { grid-template-columns: 1fr; } }
+.x-chcard { border: 1px solid var(--hair); border-radius: 12px; background: var(--raise); padding: 22px 24px 24px;
+  animation: x-rise 0.6s var(--ease-soft) both; }
+.x-chcard + .x-chcard { animation-delay: 80ms; }
+.x-chcard header h2 { margin: 0; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--muted); }
+.x-chcard header p { margin: 0; font-size: 13px; line-height: 20px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.x-chcard header .x-chcard__big { margin: 6px 0 2px; font-size: 28px; line-height: 34px; font-weight: 500; letter-spacing: -0.02em; color: var(--ink); }
+
+.x-stack { display: flex; gap: 3px; height: 14px; margin: 22px 0 6px; }
+.x-stack i { width: var(--w); border-radius: 4px; transform-origin: left center;
+  animation: x-seg 0.8s var(--ease-soft) both; animation-delay: var(--d, 0ms); }
+@keyframes x-seg { from { transform: scaleX(0); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.t-a { background: color-mix(in srgb, var(--ink) 22%, transparent); }
+.t-b { background: color-mix(in srgb, var(--ink) 45%, transparent); }
+.t-c { background: color-mix(in srgb, var(--ink) 75%, transparent); }
+.t-hot { background: var(--color-signal-orange); }
+
+.x-legend, .x-toplist { list-style: none; margin: 18px 0 0; padding: 0; display: grid; }
+.x-legend li { display: grid; grid-template-columns: 10px 1fr auto 44px; align-items: center; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--hair); font-size: 14px; color: var(--ink);
+  animation: x-rise 0.5s var(--ease-soft) both; animation-delay: calc(var(--i, 0) * 60ms + 300ms); }
+.x-legend li:first-child { border-top: 0; }
+.x-dot { width: 10px; height: 10px; border-radius: 3px; }
+.x-legend__label em { font-style: normal; color: var(--muted); }
+.x-legend b, .x-toplist b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.x-legend b.is-hot { color: var(--color-signal-orange); }
+.x-pct { text-align: right; font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.x-toplist { gap: 14px; margin-top: 22px; }
+.x-toplist li { animation: x-rise 0.5s var(--ease-soft) both; animation-delay: calc(var(--i, 0) * 60ms + 200ms); }
+.x-toplist__row { display: grid; grid-template-columns: 1fr auto 44px; gap: 12px; align-items: baseline; font-size: 14px; }
+.x-toplist__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.x-toplist__track { display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 7%, transparent); overflow: hidden; }
+.x-toplist__track i { display: block; height: 100%; width: var(--w); border-radius: 3px; background: color-mix(in srgb, var(--ink) 70%, transparent);
+  transform-origin: left; animation: x-seg 0.9s var(--ease-soft) both; animation-delay: var(--d, 0ms); }
+.x-toplist li:first-child .x-toplist__track i { background: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .x-stack i, .x-legend li, .x-toplist li, .x-toplist__track i, .x-chcard { animation: none; } }

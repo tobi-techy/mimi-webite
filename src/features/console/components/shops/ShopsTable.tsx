@@ -16,6 +16,7 @@ import { SkeletonRows } from "@/features/console/components/live/Skeleton";
 import { routes as sampleRoutes, shopStatus, type Route, type ShopStatus } from "@/features/console/content/shops";
 import { naira } from "@/features/console/lib/format";
 import { Table } from "@/features/console/components/ui/Table";
+import { ShopsCharts } from "@/features/console/components/shops/ShopsCharts";
 
 type RouteFilter = "All" | Route;
 type StatusFilter = "All statuses" | (typeof shopStatus)[ShopStatus]["label"];
@@ -71,6 +72,7 @@ export function ShopsTable() {
 
   return (
     <>
+      {!loading && <ShopsCharts shops={shops} />}
       <div className="x-ltools">
         <SearchField label="Search shops or owners" value={q} onChange={setQ} />
         <Segmented
