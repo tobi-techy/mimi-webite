@@ -14,15 +14,15 @@ type Bucket = { label: string; shops: number; owed: number; tone: "a" | "b" | "c
 function ageBuckets(shops: readonly Shop[]): { title: string; buckets: Bucket[] } {
   if (shops.some((s) => s.live?.overdueDays != null)) {
     const defs: [string, (d: number) => boolean, Bucket["tone"]][] = [
-      ["On time", (d) => d <= 0, "a"],
-      ["1 to 30 days late", (d) => d >= 1 && d <= 30, "b"],
-      ["31 to 60 days late", (d) => d > 30 && d <= 60, "c"],
-      ["Over 60 days late", (d) => d > 60, "hot"],
+      ["Up to 14 days late", (d) => d <= 14, "a"],
+      ["15 to 30 days late", (d) => d >= 15 && d <= 30, "b"],
+      ["31 to 45 days late", (d) => d > 30 && d <= 45, "c"],
+      ["Over 45 days late", (d) => d > 45, "hot"],
     ];
     return {
       title: "Owed by how late",
       buckets: defs.map(([label, test, tone]) => {
-        const inB = shops.filter((s) => test(s.live?.overdueDays ?? 0));
+        const inB = shops.filter((s) => s.owed > 0 && test(s.live?.overdueDays ?? 0));
         return { label, tone, shops: inB.length, owed: inB.reduce((a, s) => a + s.owed, 0) };
       }),
     };
@@ -92,11 +92,11 @@ export function ShopsCharts({ shops }: { shops: readonly Shop[] }) {
               ></i>
             ))}
         </div>
-        <ul className="x-legend">
+        <ul className="x-agekey">
           {buckets.map((b, i) => (
             <li key={b.label} style={{ "--i": i } as CSSProperties}>
               <span className={`x-dot t-${b.tone}`}></span>
-              <span className="x-legend__label">
+              <span className="x-agekey__label">
                 {b.label}
                 <em> · {b.shops} {b.shops === 1 ? "shop" : "shops"}</em>
               </span>
