@@ -90,3 +90,40 @@ html:not([data-theme="dark"]) .mc-app .x-kpis > .x-kpi {
 @media (prefers-reduced-motion: reduce) {
   .mc-app *, .mc-app *::before { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
 }
+
+/* ---------- 5 Nov pass 2: roomier table, charts over the board ---------- */
+.mc-app .c-table .x-dt th { height: 44px; padding: 0 20px; }
+.mc-app .c-table .x-dt td { height: 72px; padding: 14px 20px; }
+.mc-app .c-table .x-dt :is(th, td):first-child { padding-left: 24px; }
+.mc-app .c-table .x-dt :is(th, td):last-child { padding-right: 24px; }
+.c-identity--shop { gap: 14px; }
+.c-identity--shop .c-identity__sub { margin-top: 2px; }
+.mc-app .x-ltools { margin: 32px 0 16px; }
+.c-mark { border-radius: 30%; }
+
+.x-shcharts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+@media (max-width: 899px) { .x-shcharts { grid-template-columns: 1fr; } }
+.x-chcard { border: 1px solid var(--hair); border-radius: 12px; background: var(--raise); padding: 20px 24px 22px;
+  animation: x-rise 0.6s var(--ease-soft) both; }
+.x-chcard + .x-chcard { animation-delay: 80ms; }
+.x-chcard header h2 { margin: 0; font-size: 15px; line-height: 22px; font-weight: 500; color: var(--ink); }
+.x-chcard header p { margin: 2px 0 0; font-size: 13px; line-height: 20px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.x-agelist, .x-toplist { list-style: none; margin: 20px 0 0; padding: 0; display: grid; gap: 16px; }
+.x-agelist__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; color: var(--ink); }
+.x-agelist__row em { font-style: normal; color: var(--muted); }
+.x-agelist__row b, .x-toplist b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.x-agelist__row b.is-hot { color: var(--color-signal-orange); }
+.x-cells { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; margin-top: 8px; }
+.x-cells i { height: 8px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.x-cells i.is-on { background: var(--soft); animation: x-cell 0.45s var(--ease-soft) both; animation-delay: var(--d, 0ms); }
+.x-cells i.is-hot { background: var(--color-signal-orange); }
+@keyframes x-cell { from { opacity: 0; transform: scaleY(0.3); } to { opacity: 1; transform: none; } }
+
+.x-toplist { gap: 14px; }
+.x-toplist li { display: grid; grid-template-columns: minmax(0, 170px) 1fr auto; align-items: center; gap: 14px; font-size: 14px; }
+.x-toplist__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--soft); }
+.x-toplist__track { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 8%, transparent); overflow: hidden; }
+.x-toplist__track i { display: block; height: 100%; width: var(--w); border-radius: 4px; background: var(--soft);
+  transform-origin: left; animation: x-grow-x 0.9s var(--ease-soft) both; animation-delay: var(--d, 0ms); }
+.x-toplist li:first-child .x-toplist__track i { background: var(--ink); }
