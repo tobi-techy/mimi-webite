@@ -194,7 +194,7 @@ function FromApi({ e, shopCount }: { e: Exposure; shopCount: number }) {
                 <tr key={s.id} className="is-link">
                   <td>
                     <Link href={shopHref(s.id)} scroll={false} aria-label={`Open ${s.name}`}>
-                      <Identity name={s.name} />
+                      <Identity shop name={s.name} />
                     </Link>
                   </td>
                   <td className="r x-ink">{naira(s.owed)}</td>
@@ -312,7 +312,7 @@ function FromBook({ shops, totals }: { shops: readonly Shop[]; totals: { owed: n
                   <tr key={s.id} className="is-link">
                     <td>
                       <Link href={shopHref(s.id)} scroll={false} aria-label={`Open ${s.name}`}>
-                        <Identity name={s.name} sub={s.area} />
+                        <Identity shop name={s.name} sub={s.area} />
                       </Link>
                     </td>
                     <td className="r x-ink">{naira(s.owed)}</td>

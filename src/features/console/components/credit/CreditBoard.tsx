@@ -233,7 +233,7 @@ export function CreditBoard() {
                       aria-label={`Review ${l.shop.name}`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Identity name={l.shop.name} sub={l.shop.area} />
+                      <Identity shop name={l.shop.name} sub={l.shop.area} />
                     </Link>
                   </td>
                   <td className="r x-ink">{naira(set[l.shop.id]?.limit ?? l.limit)}</td>
