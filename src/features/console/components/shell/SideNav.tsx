@@ -192,6 +192,7 @@ export function SideNav({ settings }: { settings: ReactNode }) {
         <button className="mc-ib" type="button" aria-label="Search (⌘K)" onClick={openPalette}>
           <Icon name="search" />
         </button>
+        <RailLink href={consoleRoutes.command} label="Channels" icon="messages-square" pathname={pathname} />
         <RailLink href={consoleRoutes.shops} label="Shops" icon="store" pathname={pathname} />
         <RailLink href={consoleRoutes.credit} label="Credit limits" icon="landmark" pathname={pathname} />
         {USES_API && (
@@ -274,6 +275,12 @@ export function SideNav({ settings }: { settings: ReactNode }) {
             </div>
             {filter === "all" && (
             <nav className="mc-navs mc-navs--quiet" aria-label="Main">
+              <NavRow
+                href={consoleRoutes.command}
+                icon="messages-square"
+                label="Channels"
+                on={pathname.startsWith(consoleRoutes.command)}
+              />
               <NavRow
                 href={consoleRoutes.shops}
                 icon="store"
