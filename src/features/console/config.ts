@@ -18,8 +18,10 @@ export const consoleRoutes = {
   returns: consolePath("/returns"),
   /** Two books: Mimi's outstanding against Zoho Books', shop by shop (reads the book; API build only). */
   books: consolePath("/books"),
-  /** Routines: the work Mimi does on her own, with a pause (API build only). */
+  /** Routines: the work Mimi does on its own, with a pause (API build only). */
   routines: consolePath("/routines"),
+  /** Channels: where the distributor's day happens (docs/PHASE1-COMMAND.md). Preview until the API routes land. */
+  command: consolePath("/command"),
   /** Shop lists: one message, sent to each shop privately (demo data). */
   lists: consolePath("/lists"),
   automations: consolePath("/automations"),
@@ -38,6 +40,9 @@ export const listHref = (id: string): string => `${consoleRoutes.lists}/${id}`;
 export const helperHref = (name: string): string => `${consoleRoutes.helpers}/${name.toLowerCase()}`;
 /** One computer task's page: the id goes in the query, so the static export has a page to serve. */
 export const computerTaskHref = (id: string): string => `${consoleRoutes.computerTask}?id=${encodeURIComponent(id)}`;
+/** One channel, or the caller's pile when no slug is given (static-export safe: selection is a query). */
+export const commandHref = (slug?: string): string =>
+  slug ? `${consoleRoutes.command}?c=${encodeURIComponent(slug)}` : consoleRoutes.command;
 /** Sample shops have their own static page; shops from the API open at /shops/live?id=… (static-export safe). */
 export const shopHref = (id: string): string =>
   findShop(id) ? `${consoleRoutes.shops}/${id}` : `${consoleRoutes.shops}/live?id=${encodeURIComponent(id)}`;

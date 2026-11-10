@@ -1,0 +1,345 @@
+/*
+ * Command: the channel rail, one channel, the item cards and the morning digest
+ * (docs/PHASE1-COMMAND.md). Dark by default like the rest of the console; --color-signal-orange is
+ * used only for what waits on someone, never decoratively.
+ */
+
+.cmd {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.cmd-preview {
+  margin: 0 0 12px;
+}
+
+/* ---- rail ---- */
+
+.cmd-rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+}
+
+.cmd-grp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 14px;
+}
+
+.cmd-gh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cmd-gh svg {
+  width: 13px;
+  height: 13px;
+}
+
+.cmd-c {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.cmd-c:hover {
+  background: var(--tint);
+}
+
+.cmd-c.is-on {
+  background: var(--tint2);
+  font-weight: 600;
+}
+
+.cmd-c svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--muted);
+}
+
+.cmd-c--needs {
+  font-weight: 600;
+}
+
+.cmd-c__n {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmd-c__u {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-signal-orange);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.cmd-c__o {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---- one channel ---- */
+
+.cmd-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cmd-hd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cmd-hd__t {
+  margin: 0;
+  font-size: 18px;
+}
+
+.cmd-hd__s {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.cmd-hd__c {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cmd-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmd-msg {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+}
+
+/* the shop's own words, mirrored: marked so it never reads as an internal message */
+.cmd-msg--shop {
+  border-left: 3px solid var(--color-signal-orange);
+  background: var(--warm);
+}
+
+.cmd-msg--digest {
+  background: var(--surface);
+}
+
+.cmd-msg--sys {
+  border-style: dashed;
+}
+
+.cmd-msg__hd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.cmd-msg__a {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cmd-msg__p {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cmd-msg__tx {
+  margin: 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+.cmd-msg__tx--lead {
+  font-weight: 600;
+}
+
+.cmd-msg__list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--soft);
+}
+
+.cmd-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---- item card ---- */
+
+.cmd-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cmd-item {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.cmd-item__hd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmd-item__k {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cmd-item__t {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+
+.cmd-item__b {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--soft);
+}
+
+.cmd-item__m {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cmd-item__m--late {
+  color: var(--red);
+}
+
+.cmd-item__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cmd-item__ro,
+.cmd-item__no {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cmd-item__no {
+  color: var(--amber);
+}
+
+.cmd-loose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cmd-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---- composer ---- */
+
+.cmd-cmp {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.cmd-cmp textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 120px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* ---- phones: the rail becomes a horizontal strip above the channel ---- */
+
+@media (max-width: 899px) {
+  .cmd {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .cmd-rail {
+    position: static;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 0 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .cmd-grp {
+    flex-direction: row;
+    margin: 0;
+  }
+
+  .cmd-gh {
+    display: none;
+  }
+}

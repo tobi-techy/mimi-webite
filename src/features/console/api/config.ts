@@ -28,3 +28,14 @@ export const LIVE_SIGN_IN_READY = false;
 
 /** True when the console talks to the API in this build (the demo build with an API address). */
 export const USES_API = MIMI_MODE === "demo";
+
+/**
+ * Where Command (channels, messages, items, the digest) reads from.
+ *
+ * - `preview` (default): the typed mock in content/command-mock.ts, through the same mapper the real
+ *   routes use. The screens say in plain words that this is a preview and not connected yet.
+ * - `api`: the real `/v1/channels`, `/v1/channels/{id}/messages`, `/v1/items`, `/v1/needs-you` and
+ *   `/v1/digest/today` routes. Set `NEXT_PUBLIC_MIMI_COMMAND=api` once the backend slices land: the
+ *   screens do not change.
+ */
+export const COMMAND_SOURCE: "preview" | "api" = (process.env.NEXT_PUBLIC_MIMI_COMMAND ?? "").trim().toLowerCase() === "api" ? "api" : "preview";

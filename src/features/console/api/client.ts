@@ -32,6 +32,15 @@ import type {
 import { RETURNS_PATH } from "@/features/console/lib/returns-contract";
 import { ROUTINES_PATH, routinePausePath, routineResumePath, routineRunPath } from "@/features/console/lib/routines-contract";
 import { BOOKS_PATH } from "@/features/console/lib/two-books-contract";
+import type {
+  ApiChannelList,
+  ApiChannelMessage,
+  ApiChannelMessages,
+  ApiDigest,
+  ApiItem,
+  ApiItemList,
+  ApiMe as ApiCommandMe,
+} from "@/features/console/api/command-contract";
 import { routeMissing } from "@/features/console/lib/missing-route";
 
 /**
@@ -250,6 +259,48 @@ export const mimiApi = {
   runRoutine: (token: string, id: string) => call<ApiRoutineRun>(routineRunPath(id), { method: "POST", token }),
   /** The two books comparison: Mimi's outstanding against Zoho Books', per shop and as a total. */
   booksAgreement: (token: string, o: Sig = {}) => call<ApiBooksAgreement>(BOOKS_PATH, { token, ...o }),
+
+  /* ---- Command: channels, messages, items and the digest (docs/PHASE1-COMMAND.md section 8) ----
+   * These routes do not exist on the demo host yet. The console reads a typed mock behind the same
+   * mapper until they do (see api/command-source.ts); nothing else changes when they land. */
+  /** The caller with their role and channels, each carrying the caller's unread and open counts. */
+  commandMe: (token: string, o: Sig = {}) => call<ApiCommandMe>("/v1/me", { token, ...o }),
+  channels: (token: string, o: Sig = {}) => call<ApiChannelList>("/v1/channels", { token, ...o }),
+  /** One channel's messages, newest page first (the API's `before` cursor). */
+  channelMessages: (token: string, channelId: string, o: Sig & { before?: string; limit?: number } = {}) => {
+    const p = new URLSearchParams();
+    if (o.before) p.set("before", o.before);
+    p.set("limit", String(o.limit ?? 50));
+    return call<ApiChannelMessages>(`/v1/channels/${q(channelId)}/messages?${p.toString()}`, { token, signal: o.signal });
+  },
+  /** Posts one message into a channel. Never retried: a retry would post it twice. */
+  postChannelMessage: (token: string, channelId: string, text: string) =>
+    call<ApiChannelMessage>(`/v1/channels/${q(channelId)}/messages`, { method: "POST", token, body: { text } }),
+  items: (token: string, f: { state?: string; owner?: string; channel?: string; kind?: string; dueBefore?: string } = {}, o: Sig = {}) => {
+    const p = new URLSearchParams();
+    if (f.state) p.set("state", f.state);
+    if (f.owner) p.set("owner", f.owner);
+    if (f.channel) p.set("channel", f.channel);
+    if (f.kind) p.set("kind", f.kind);
+    if (f.dueBefore) p.set("due_before", f.dueBefore);
+    const qs = p.toString();
+    return call<ApiItemList>(`/v1/items${qs ? `?${qs}` : ""}`, { token, signal: o.signal });
+  },
+  /** Items awaiting the caller, overdue first. */
+  needsYou: (token: string, o: Sig = {}) => call<ApiItemList>("/v1/needs-you", { token, ...o }),
+  /** The morning digest, built by code from records. */
+  digestToday: (token: string, o: Sig = {}) => call<ApiDigest>("/v1/digest/today", { token, ...o }),
+  /* item writes never retry: deciding twice is a 409 */
+  assignItem: (token: string, id: string, ownerUserId: string) =>
+    call<ApiItem>(`/v1/items/${q(id)}/assign`, { method: "POST", token, body: { owner_user_id: ownerUserId } }),
+  transitionItem: (token: string, id: string, to: string, o: { reason?: string; note?: string } = {}) =>
+    call<ApiItem>(`/v1/items/${q(id)}/transition`, {
+      method: "POST",
+      token,
+      body: { to, ...(o.reason ? { reason: o.reason } : {}), ...(o.note ? { note: o.note } : {}) },
+    }),
+  commentItem: (token: string, id: string, text: string) =>
+    call<ApiItem>(`/v1/items/${q(id)}/comment`, { method: "POST", token, body: { text } }),
 
   /* ---- computer tasks: a hosted cloud browser, one per task (owner approves the whole task) ---- */
   /** The list route is optional (the API may not have it yet): a 404/405 means "not available", not an error. */
